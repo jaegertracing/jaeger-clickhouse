@@ -1,4 +1,4 @@
-CREATE MATERIALIZED VIEW jaeger_operations_v2
+CREATE MATERIALIZED VIEW IF NOT EXISTS jaeger_operations_v2
 ENGINE SummingMergeTree
 PARTITION BY toYYYYMM(date) ORDER BY (date, service, operation)
 SETTINGS index_granularity=32

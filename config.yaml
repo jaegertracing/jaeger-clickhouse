@@ -1,2 +1,2 @@
 address: tcp://localhost:9000
-sql_scripts_dir: ./sqlscripts
+init_sql_scripts_dir: ./sqlscripts

@@ -35,7 +35,7 @@ var _ shared.StoragePlugin = (*Store)(nil)
 var _ io.Closer = (*Store)(nil)
 
 func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
-	sqlFiles, err := walkMatch(cfg.SQLScriptsDir, "*.sql")
+	sqlFiles, err := walkMatch(cfg.InitSQLScriptsDir, "*.sql")
 	if err != nil {
 		return nil, fmt.Errorf("could not list sql files: %q", err)
 	}

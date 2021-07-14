@@ -2,7 +2,8 @@
 
 Jaeger ClickHose gRPC [storage plugin](https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/grpc).
 
-This is project is based on https://github.com/bobrik/jaeger/tree/ivan/clickhouse/plugin/storage/clickhouse
+This is WIP and it is based on https://github.com/bobrik/jaeger/tree/ivan/clickhouse/plugin/storage/clickhouse. 
+See as well [jaegertracing/jaeger/issues/1438](https://github.com/jaegertracing/jaeger/issues/1438) for ClickHouse plugin.
 
 ## Build
 
@@ -14,5 +15,6 @@ make build
 
 ```bash
 docker run --rm -it -p9000:9000 --name some-clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server
-SPAN_STORAGE_TYPE=grpc-plugin ./all-in-one --grpc-storage-plugin.binary=/home/ploffay/projects/jaegertracing/jaeger-clickhouse/jaeger-clickhouse
+# download Jaeger all-in-one
+JAEGER_ALL_IN_ONE=<path to all-in-one> make run
 ```

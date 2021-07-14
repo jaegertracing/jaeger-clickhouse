@@ -19,7 +19,7 @@ import (
 )
 
 type Store struct {
-	db *sql.DB
+	db     *sql.DB
 	logger hclog.Logger
 }
 
@@ -49,18 +49,17 @@ func NewStore(logger hclog.Logger) (*Store, error) {
 		}
 	}
 	return &Store{
-		db: db,
+		db:     db,
 		logger: logger,
 	}, nil
 }
-
 
 func (s *Store) SpanReader() spanstore.Reader {
 	return clickhousespanstore.NewTraceReader(s.db, "jaeger_operations_v2", "jaeger_index_v2", "jaeger_spans_v2")
 }
 
 func (s *Store) SpanWriter() spanstore.Writer {
-	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.EncodingJSON, 5 * time.Second, 10000)
+	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.EncodingJSON, 5*time.Second, 10000)
 }
 
 func (s *Store) DependencyReader() dependencystore.Reader {
@@ -83,7 +82,6 @@ func defaultConnector(datasource string) (*sql.DB, error) {
 
 	return db, nil
 }
-
 
 func walkMatch(root, pattern string) ([]string, error) {
 	var matches []string

@@ -23,9 +23,9 @@ const (
 )
 
 var (
-	ErrNoOperationsTable = errors.New("no operations table supplied")
-	ErrNoIndexTable      = errors.New("no index table supplied")
-	ErrStartTimeRequired = errors.New("start time is required for search queries")
+	errNoOperationsTable = errors.New("no operations table supplied")
+	errNoIndexTable      = errors.New("no index table supplied")
+	errStartTimeRequired = errors.New("start time is required for search queries")
 )
 
 // TraceReader for reading spans from ClickHouse
@@ -166,7 +166,7 @@ func (r *TraceReader) GetServices(ctx context.Context) ([]string, error) {
 	defer span.Finish()
 
 	if r.operationsTable == "" {
-		return nil, ErrNoOperationsTable
+		return nil, errNoOperationsTable
 	}
 
 	query := fmt.Sprintf("SELECT service FROM %s GROUP BY service", r.operationsTable)
@@ -185,7 +185,7 @@ func (r *TraceReader) GetOperations(
 	defer span.Finish()
 
 	if r.operationsTable == "" {
-		return nil, ErrNoOperationsTable
+		return nil, errNoOperationsTable
 	}
 
 	query := fmt.Sprintf("SELECT operation FROM %s WHERE service = ? GROUP BY operation", r.operationsTable)
@@ -226,7 +226,7 @@ func (r *TraceReader) FindTraceIDs(ctx context.Context, params *spanstore.TraceQ
 	defer span.Finish()
 
 	if params.StartTimeMin.IsZero() {
-		return nil, ErrStartTimeRequired
+		return nil, errStartTimeRequired
 	}
 
 	end := params.StartTimeMax
@@ -295,7 +295,7 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 	span.SetTag("range", end.Sub(start).String())
 
 	if r.indexTable == "" {
-		return nil, ErrNoIndexTable
+		return nil, errNoIndexTable
 	}
 
 	query := fmt.Sprintf("SELECT DISTINCT traceID FROM %s WHERE service = ?", r.indexTable)
@@ -358,4 +358,3 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 
 	return traceIDs, nil
 }
-

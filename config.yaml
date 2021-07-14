@@ -1,0 +1,2 @@
+address: tcp://localhost:9000
+sql_scripts_dir: /home/ploffay/projects/jaegertracing/jaeger-clickhouse

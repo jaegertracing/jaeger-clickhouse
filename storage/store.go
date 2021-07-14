@@ -1,56 +1,63 @@
 package storage
 
 import (
+	"database/sql"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
-	"database/sql"
-	_ "github.com/ClickHouse/clickhouse-go"
+	_ "github.com/ClickHouse/clickhouse-go" // force SQL driver registration
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
+
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousedependencystore"
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
+)
+
+const (
+	defaultBatchSize  = 10_000
+	defaultBatchDelay = time.Second * 5
 )
 
 type Store struct {
 	db     *sql.DB
 	logger hclog.Logger
+	cfg    Configuration
 }
 
 var _ shared.StoragePlugin = (*Store)(nil)
 var _ io.Closer = (*Store)(nil)
 
-func NewStore(logger hclog.Logger) (*Store, error) {
-	sqlFiles, err := walkMatch("/home/ploffay/projects/jaegertracing/jaeger-clickhouse", "*.sql")
+func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
+	sqlFiles, err := walkMatch(cfg.SQLScriptsDir, "*.sql")
 	if err != nil {
 		return nil, fmt.Errorf("could not list sql files: %q", err)
 	}
-	db, err := defaultConnector("tcp://localhost:9000")
+	db, err := defaultConnector(cfg.Address)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
-	for _, file := range sqlFiles {
-		logger.Info(file)
-		sqlStatement, err := ioutil.ReadFile(file)
-		if err != nil {
-			db.Close()
-			return nil, err
-		}
-		_, err = db.Exec(string(sqlStatement))
-		if err != nil {
-			db.Close()
-			return nil, fmt.Errorf("could not run sql %q: %q", file, err)
-		}
+	if err := executeScripts(sqlFiles, db); err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	if cfg.Size == 0 {
+		cfg.Size = defaultBatchSize
+	}
+	if cfg.Delay == 0 {
+		cfg.Delay = defaultBatchDelay
 	}
 	return &Store{
 		db:     db,
 		logger: logger,
+		cfg:    cfg,
 	}, nil
 }
 
@@ -59,7 +66,7 @@ func (s *Store) SpanReader() spanstore.Reader {
 }
 
 func (s *Store) SpanWriter() spanstore.Writer {
-	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.EncodingJSON, 5*time.Second, 10000)
+	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.EncodingJSON, s.cfg.Delay, s.cfg.Size)
 }
 
 func (s *Store) DependencyReader() dependencystore.Reader {
@@ -81,6 +88,21 @@ func defaultConnector(datasource string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func executeScripts(sqlFiles []string, db *sql.DB) error {
+	sort.Strings(sqlFiles)
+	for _, file := range sqlFiles {
+		sqlStatement, err := ioutil.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		_, err = db.Exec(string(sqlStatement))
+		if err != nil {
+			return fmt.Errorf("could not run sql %q: %q", file, err)
+		}
+	}
+	return nil
 }
 
 func walkMatch(root, pattern string) ([]string, error) {

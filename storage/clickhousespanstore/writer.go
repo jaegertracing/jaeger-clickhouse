@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
-	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/jaegertracing/jaeger/storage/spanstore"
 
 	"github.com/gogo/protobuf/proto"
 	"go.uber.org/zap"

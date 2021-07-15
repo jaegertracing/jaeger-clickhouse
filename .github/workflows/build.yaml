@@ -33,7 +33,7 @@ jobs:
           go-version: ^1.16
 
       - name: Install tools
-        run: make install-tools && make fmt && git diff --quiet
+        run: make install-tools
 
       - name: Format
         run: make fmt && git diff --quiet

@@ -1,4 +1,4 @@
-name: Build binaries
+name: Build and format
 
 on:
   push:
@@ -17,8 +17,23 @@ jobs:
         with:
           go-version: ^1.16
 
-      - name: Check formatting
-        run: make fmt && git diff --quiet
-
       - name: Build binaries
         run: make build
+
+  format:
+    runs-on: ubuntu-latest
+    name: Build binaries
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          submodules: true
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
+
+      - name: Install tools
+        run: make install-tools && make fmt && git diff --quiet
+
+      - name: Format
+        run: make fmt && git diff --quiet

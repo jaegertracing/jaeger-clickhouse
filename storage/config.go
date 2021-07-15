@@ -8,7 +8,7 @@ type Configuration struct {
 	// Directory with .sql files that are run at plugin startup.
 	InitSQLScriptsDir string `yaml:"init_sql_scripts_dir"`
 	// Batch write size. Default is 10_000.
-	Size int `yaml:"size"`
-	// Write delay. Default is 5s.
-	Delay time.Duration `yaml:"delay"`
+	BatchWriteSize int `yaml:"batch_write_size"`
+	// Batch flush interval. Default is 5s.
+	BatchFlushInterval time.Duration `yaml:"delay"`
 }

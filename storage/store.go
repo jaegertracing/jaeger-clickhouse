@@ -48,11 +48,11 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 		return nil, err
 	}
 
-	if cfg.Size == 0 {
-		cfg.Size = defaultBatchSize
+	if cfg.BatchWriteSize == 0 {
+		cfg.BatchWriteSize = defaultBatchSize
 	}
-	if cfg.Delay == 0 {
-		cfg.Delay = defaultBatchDelay
+	if cfg.BatchFlushInterval == 0 {
+		cfg.BatchFlushInterval = defaultBatchDelay
 	}
 	return &Store{
 		db:     db,
@@ -66,7 +66,7 @@ func (s *Store) SpanReader() spanstore.Reader {
 }
 
 func (s *Store) SpanWriter() spanstore.Writer {
-	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.EncodingJSON, s.cfg.Delay, s.cfg.Size)
+	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.EncodingJSON, s.cfg.BatchFlushInterval, s.cfg.BatchWriteSize)
 }
 
 func (s *Store) DependencyReader() dependencystore.Reader {
@@ -92,17 +92,30 @@ func defaultConnector(datasource string) (*sql.DB, error) {
 
 func executeScripts(sqlFiles []string, db *sql.DB) error {
 	sort.Strings(sqlFiles)
+	tx, err := db.Begin()
+	if err != nil {
+		return nil
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			tx.Rollback()
+		}
+	}()
+
 	for _, file := range sqlFiles {
 		sqlStatement, err := ioutil.ReadFile(file)
 		if err != nil {
 			return err
 		}
-		_, err = db.Exec(string(sqlStatement))
+
+		_, err = tx.Exec(string(sqlStatement))
 		if err != nil {
 			return fmt.Errorf("could not run sql %q: %q", file, err)
 		}
 	}
-	return nil
+	committed = true
+	return tx.Commit()
 }
 
 func walkMatch(root, pattern string) ([]string, error) {

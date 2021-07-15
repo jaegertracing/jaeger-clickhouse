@@ -1,17 +1,16 @@
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
+GOBUILD=CGO_ENABLED=0 installsuffix=cgo go build -trimpath
 
 TOOLS_MOD_DIR = ./internal/tools
 
-JAEGER_ALL_IN_ONE ?= ${HOME}/projects/jaegertracing/jaeger/cmd/all-in-one/all-in-one-linux-amd64
-
 .PHONY: build
 build:
-	go build -o jaeger-clickhouse-$(GOOS)-$(GOARCH) ./cmd/jaeger-clickhouse/main.go
+	${GOBUILD} -o jaeger-clickhouse-$(GOOS)-$(GOARCH) ./cmd/jaeger-clickhouse/main.go
 
 .PHONY: run
 run:
-	SPAN_STORAGE_TYPE=grpc-plugin ${JAEGER_ALL_IN_ONE} --grpc-storage-plugin.binary=./jaeger-clickhouse-$(GOOS)-$(GOARCH) --grpc-storage-plugin.configuration-file=./config.yaml
+	docker run --rm --link some-clickhouse-server -it -u ${shell id -u} -v "${PWD}:/data" -e SPAN_STORAGE_TYPE=grpc-plugin jaegertracing/all-in-one:1.24.0 --grpc-storage-plugin.binary=/data/jaeger-clickhouse-$(GOOS)-$(GOARCH) --grpc-storage-plugin.configuration-file=/data/config.yaml
 
 .PHONY: fmt
 fmt:

@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"time"
+	"sort"
 
 	_ "github.com/ClickHouse/clickhouse-go" // force SQL driver registration
 	"github.com/hashicorp/go-hclog"

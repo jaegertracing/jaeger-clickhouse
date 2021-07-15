@@ -15,8 +15,7 @@ make build
 
 ```bash
 docker run --rm -it -p9000:9000 --name some-clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:21
-# download Jaeger all-in-one
-JAEGER_ALL_IN_ONE=<path to all-in-one> make run
+make run
 ```
 
 After each Jaeger run the ClickHouse server has to be restarted or changed `sql_scripts_dir` to a directory with no SLQ scripts.

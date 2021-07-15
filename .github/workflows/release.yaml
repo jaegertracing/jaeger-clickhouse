@@ -5,9 +5,9 @@ on:
     tags: ['[0-9]+\.[0-9]+\.[0-9]+']
 
 jobs:
-  build-binaries:
+  release:
     runs-on: ubuntu-latest
-    name: Build binaries
+    name: Release
     steps:
       - uses: actions/checkout@v2.3.4
         with:
@@ -17,11 +17,10 @@ jobs:
         with:
           go-version: ^1.16
 
-      - name: Build binaries
-        run: make build
+      - name: Create release distribution
+        run: make build tar
 
       - name: Create Github release
         run: |
           export TAG=${GITHUB_REF##*/}
-          gh release create ${TAG} --title "Release ${TAG}" javaagent/build/libs/*-all.jar
-          make build
+          gh release create ${TAG} --title "Release ${TAG}" *.tar.gz

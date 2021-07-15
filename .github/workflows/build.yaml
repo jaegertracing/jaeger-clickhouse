@@ -17,5 +17,8 @@ jobs:
         with:
           go-version: ^1.16
 
+      - name: Check formatting
+        run: make fmt && git diff --quiet
+
       - name: Build binaries
         run: make build

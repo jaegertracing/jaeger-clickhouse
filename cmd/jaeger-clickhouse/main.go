@@ -10,6 +10,7 @@ import (
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"gopkg.in/yaml.v3"
 
+	jaegerclickhouse "github.com/pavolloffay/jaeger-clickhouse"
 	"github.com/pavolloffay/jaeger-clickhouse/storage"
 )
 
@@ -35,7 +36,7 @@ func main() {
 	}
 
 	var store shared.PluginServices
-	s, err := storage.NewStore(logger, cfg)
+	s, err := storage.NewStore(logger, cfg, jaegerclickhouse.EmbeddedFiles)
 	if err != nil {
 		logger.Error("Failed to crate storage", err)
 		os.Exit(1)

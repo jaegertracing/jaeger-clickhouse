@@ -18,6 +18,10 @@ fmt:
 	go fmt ./...
 	goimports -w  -local github.com/pavolloffay/jaeger-clickhouse ./
 
+.PHONY: tar
+tar:
+	tar -czvf jaeger-clickhouse-$(GOOS)-$(GOARCH).tar.gz  jaeger-clickhouse-$(GOOS)-$(GOARCH) config.yaml
+
 .PHONY: install-tools
 install-tools:
 	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/cmd/goimports

@@ -10,5 +10,7 @@ type Configuration struct {
 	// Batch write size. Default is 10_000.
 	BatchWriteSize int `yaml:"batch_write_size"`
 	// Batch flush interval. Default is 5s.
-	BatchFlushInterval time.Duration `yaml:"delay"`
+	BatchFlushInterval time.Duration `yaml:"batch_flush_interval"`
+	// Encoding either json or protobuf. Default is json.
+	Encoding string `yaml:"encoding"`
 }

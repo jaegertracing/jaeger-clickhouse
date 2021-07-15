@@ -54,6 +54,9 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 	if cfg.BatchFlushInterval == 0 {
 		cfg.BatchFlushInterval = defaultBatchDelay
 	}
+	if cfg.Encoding == "" {
+		cfg.Encoding = string(clickhousespanstore.EncodingJSON)
+	}
 	return &Store{
 		db:     db,
 		logger: logger,
@@ -66,7 +69,7 @@ func (s *Store) SpanReader() spanstore.Reader {
 }
 
 func (s *Store) SpanWriter() spanstore.Writer {
-	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.EncodingJSON, s.cfg.BatchFlushInterval, s.cfg.BatchWriteSize)
+	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.Encoding(s.cfg.Encoding), s.cfg.BatchFlushInterval, s.cfg.BatchWriteSize)
 }
 
 func (s *Store) DependencyReader() dependencystore.Reader {

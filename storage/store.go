@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -34,20 +35,16 @@ type Store struct {
 var _ shared.StoragePlugin = (*Store)(nil)
 var _ io.Closer = (*Store)(nil)
 
-func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
-	sqlFiles, err := walkMatch(cfg.InitSQLScriptsDir, "*.sql")
-	if err != nil {
-		return nil, fmt.Errorf("could not list sql files: %q", err)
-	}
+func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
 	db, err := defaultConnector(cfg.Address)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
-	if err := executeScripts(sqlFiles, db); err != nil {
+
+	if err := initializeDB(db, cfg.InitSQLScriptsDir, embeddedSQLScripts); err != nil {
 		db.Close()
 		return nil, err
 	}
-
 	if cfg.BatchWriteSize == 0 {
 		cfg.BatchWriteSize = defaultBatchSize
 	}
@@ -62,6 +59,41 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 		logger: logger,
 		cfg:    cfg,
 	}, nil
+}
+
+func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS) error {
+	var sqlStatements []string
+	if initSQLScriptsDir != "" {
+		filePaths, err := walkMatch(initSQLScriptsDir, "*.sql")
+		if err != nil {
+			return fmt.Errorf("could not list sql files: %q", err)
+		}
+		sort.Strings(filePaths)
+		for _, f := range filePaths {
+			sqlStatement, err := ioutil.ReadFile(f)
+			if err != nil {
+				return err
+			}
+			sqlStatements = append(sqlStatements, string(sqlStatement))
+		}
+	} else {
+		f, err := embeddedScripts.ReadFile("sqlscripts/0001-jaeger-index.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, string(f))
+		f, err = embeddedScripts.ReadFile("sqlscripts/0002-jaeger-spans.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, string(f))
+		f, err = embeddedScripts.ReadFile("sqlscripts/0003-jaeger-operations.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, string(f))
+	}
+	return executeScripts(sqlStatements, db)
 }
 
 func (s *Store) SpanReader() spanstore.Reader {
@@ -93,8 +125,7 @@ func defaultConnector(datasource string) (*sql.DB, error) {
 	return db, nil
 }
 
-func executeScripts(sqlFiles []string, db *sql.DB) error {
-	sort.Strings(sqlFiles)
+func executeScripts(sqlStatements []string, db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil
@@ -106,13 +137,8 @@ func executeScripts(sqlFiles []string, db *sql.DB) error {
 		}
 	}()
 
-	for _, file := range sqlFiles {
-		sqlStatement, err := ioutil.ReadFile(file)
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.Exec(string(sqlStatement))
+	for _, file := range sqlStatements {
+		_, err = tx.Exec(file)
 		if err != nil {
 			return fmt.Errorf("could not run sql %q: %q", file, err)
 		}

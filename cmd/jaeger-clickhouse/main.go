@@ -35,16 +35,17 @@ func main() {
 		logger.Error("Could not parse config file: %q", err)
 	}
 
-	var store shared.PluginServices
-	s, err := storage.NewStore(logger, cfg, jaegerclickhouse.EmbeddedFiles)
+	var pluginServices shared.PluginServices
+	store, err := storage.NewStore(logger, cfg, jaegerclickhouse.EmbeddedFiles)
 	if err != nil {
 		logger.Error("Failed to crate storage", err)
 		os.Exit(1)
 	}
-	store.Store = s
+	pluginServices.Store = store
+	pluginServices.ArchiveStore = store
 
-	grpc.Serve(&store)
-	if err = s.Close(); err != nil {
+	grpc.Serve(&pluginServices)
+	if err = store.Close(); err != nil {
 		logger.Error("Failed to close store", "error", err)
 		os.Exit(1)
 	}

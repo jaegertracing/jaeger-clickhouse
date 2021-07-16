@@ -52,7 +52,7 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 		cfg.BatchFlushInterval = defaultBatchDelay
 	}
 	if cfg.Encoding == "" {
-		cfg.Encoding = string(clickhousespanstore.EncodingJSON)
+		cfg.Encoding = JsonEncoding
 	}
 	return &Store{
 		db:     db,

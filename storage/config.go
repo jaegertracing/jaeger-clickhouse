@@ -2,6 +2,13 @@ package storage
 
 import "time"
 
+type EncodingType string
+
+const (
+	JsonEncoding     EncodingType = "json"
+	ProtobufEncoding EncodingType = "protobuf"
+)
+
 type Configuration struct {
 	// ClickHouse address e.g. tcp://localhost:9000.
 	Address string `yaml:"address"`
@@ -12,5 +19,5 @@ type Configuration struct {
 	// Batch flush interval. Default is 5s.
 	BatchFlushInterval time.Duration `yaml:"batch_flush_interval"`
 	// Encoding either json or protobuf. Default is json.
-	Encoding string `yaml:"encoding"`
+	Encoding EncodingType `yaml:"encoding"`
 }

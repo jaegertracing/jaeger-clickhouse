@@ -17,5 +17,3 @@ make build
 docker run --rm -it -p9000:9000 --name some-clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:21
 make run
 ```
-
-After each Jaeger run the ClickHouse server has to be restarted or changed `sql_scripts_dir` to a directory with no SLQ scripts.

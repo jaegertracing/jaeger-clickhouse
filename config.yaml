@@ -1,3 +1,9 @@
 address: tcp://some-clickhouse-server:9000
 # When empty the embedded scripts from sqlscripts directory are used
 init_sql_scripts_dir:
+# Batch size. Default 10_000.
+batch_write_size:
+# Batch flush size. Default 5s.
+batch_flush_interval:
+# Encoding of stored data. Either json or protobuf. Default json.
+encoding:

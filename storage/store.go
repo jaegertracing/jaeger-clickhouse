@@ -27,9 +27,11 @@ const (
 )
 
 type Store struct {
-	db     *sql.DB
-	logger hclog.Logger
-	cfg    Configuration
+	db            *sql.DB
+	writer        spanstore.Writer
+	reader        spanstore.Reader
+	archiveWriter spanstore.Writer
+	archiveReader spanstore.Reader
 }
 
 var _ shared.StoragePlugin = (*Store)(nil)
@@ -56,9 +58,11 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 		cfg.Encoding = JSONEncoding
 	}
 	return &Store{
-		db:     db,
-		logger: logger,
-		cfg:    cfg,
+		db:            db,
+		writer:        clickhousespanstore.NewSpanWriter(logger, db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+		reader:        clickhousespanstore.NewTraceReader(db, "jaeger_operations_v2", "jaeger_index_v2", "jaeger_spans_v2"),
+		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", "jaeger_archive_spans_v2", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", "jaeger_archive_spans_v2"),
 	}, nil
 }
 
@@ -103,11 +107,11 @@ func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS
 }
 
 func (s *Store) SpanReader() spanstore.Reader {
-	return clickhousespanstore.NewTraceReader(s.db, "jaeger_operations_v2", "jaeger_index_v2", "jaeger_spans_v2")
+	return s.reader
 }
 
 func (s *Store) SpanWriter() spanstore.Writer {
-	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.Encoding(s.cfg.Encoding), s.cfg.BatchFlushInterval, s.cfg.BatchWriteSize)
+	return s.writer
 }
 
 func (s *Store) DependencyReader() dependencystore.Reader {
@@ -115,11 +119,11 @@ func (s *Store) DependencyReader() dependencystore.Reader {
 }
 
 func (s *Store) ArchiveSpanReader() spanstore.Reader {
-	return clickhousespanstore.NewTraceReader(s.db, "", "", "jaeger_archive_spans_v2")
+	return s.archiveReader
 }
 
 func (s *Store) ArchiveSpanWriter() spanstore.Writer {
-	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "", "jaeger_archive_spans_v2", clickhousespanstore.Encoding(s.cfg.Encoding), s.cfg.BatchFlushInterval, s.cfg.BatchWriteSize)
+	return s.archiveWriter
 }
 
 func (s *Store) Close() error {

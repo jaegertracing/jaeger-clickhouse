@@ -77,12 +77,19 @@ func (w *SpanWriter) backgroundWriter() {
 		case span := <-w.spans:
 			batch = append(batch, span)
 			flush = len(batch) == cap(batch)
+			if flush {
+				w.logger.Debug("Flush due to batch size", "size", len(batch))
+			}
 		case <-timer:
 			timer = time.After(w.delay)
 			flush = time.Since(last) > w.delay && len(batch) > 0
+			if flush {
+				w.logger.Debug("Flush due to timer")
+			}
 		case <-w.finish:
 			finish = true
 			flush = len(batch) > 0
+			w.logger.Debug("Finish channel")
 		}
 
 		if flush {

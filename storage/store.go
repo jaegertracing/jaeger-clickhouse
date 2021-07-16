@@ -33,6 +33,7 @@ type Store struct {
 }
 
 var _ shared.StoragePlugin = (*Store)(nil)
+var _ shared.ArchiveStoragePlugin = (*Store)(nil)
 var _ io.Closer = (*Store)(nil)
 
 func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
@@ -92,6 +93,11 @@ func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS
 			return err
 		}
 		sqlStatements = append(sqlStatements, string(f))
+		f, err = embeddedScripts.ReadFile("sqlscripts/0004-jaeger-spans-archive.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, string(f))
 	}
 	return executeScripts(sqlStatements, db)
 }
@@ -106,6 +112,14 @@ func (s *Store) SpanWriter() spanstore.Writer {
 
 func (s *Store) DependencyReader() dependencystore.Reader {
 	return clickhousedependencystore.NewDependencyStore()
+}
+
+func (s *Store) ArchiveSpanReader() spanstore.Reader {
+	return clickhousespanstore.NewTraceReader(s.db, "", "", "jaeger_archive_spans_v2")
+}
+
+func (s *Store) ArchiveSpanWriter() spanstore.Writer {
+	return clickhousespanstore.NewSpanWriter(s.logger, s.db, "", "jaeger_archive_spans_v2", clickhousespanstore.Encoding(s.cfg.Encoding), s.cfg.BatchFlushInterval, s.cfg.BatchWriteSize)
 }
 
 func (s *Store) Close() error {

@@ -16,4 +16,7 @@ make build
 ```bash
 docker run --rm -it -p9000:9000 --name some-clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:21
 make run
+make run-hotrod
 ```
+
+Open browser [localhost:16686](http://localhost:16686) and [localhost:8080](http://localhost:8080).

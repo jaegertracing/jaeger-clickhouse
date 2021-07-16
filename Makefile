@@ -17,6 +17,10 @@ fmt:
 	go fmt ./...
 	goimports -w  -local github.com/pavolloffay/jaeger-clickhouse ./
 
+.PHONY: lint
+lint:
+	golangci-lint run --allow-parallel-runners ./...
+
 .PHONY: tar
 tar:
 	tar -czvf jaeger-clickhouse-$(GOOS)-$(GOARCH).tar.gz  jaeger-clickhouse-$(GOOS)-$(GOARCH) config.yaml
@@ -24,4 +28,5 @@ tar:
 .PHONY: install-tools
 install-tools:
 	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/cmd/goimports
+	cd $(TOOLS_MOD_DIR) && go install github.com/golangci/golangci-lint/cmd/golangci-lint
 

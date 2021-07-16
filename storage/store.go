@@ -53,7 +53,7 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 		cfg.BatchFlushInterval = defaultBatchDelay
 	}
 	if cfg.Encoding == "" {
-		cfg.Encoding = JsonEncoding
+		cfg.Encoding = JSONEncoding
 	}
 	return &Store{
 		db:     db,
@@ -71,7 +71,7 @@ func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS
 		}
 		sort.Strings(filePaths)
 		for _, f := range filePaths {
-			sqlStatement, err := ioutil.ReadFile(f)
+			sqlStatement, err := ioutil.ReadFile(filepath.Clean(f))
 			if err != nil {
 				return err
 			}
@@ -147,7 +147,7 @@ func executeScripts(sqlStatements []string, db *sql.DB) error {
 	committed := false
 	defer func() {
 		if !committed {
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 

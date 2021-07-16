@@ -1,4 +1,4 @@
-package jaeger_clickhouse
+package jaegerclickhouse
 
 import "embed"
 

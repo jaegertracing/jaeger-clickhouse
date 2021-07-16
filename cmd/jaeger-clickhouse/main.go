@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc"
@@ -24,7 +25,7 @@ func main() {
 		Level: hclog.Warn, // Jaeger only captures >= Warn, so don't bother logging below Warn
 	})
 
-	cfgFile, err := ioutil.ReadFile(configPath)
+	cfgFile, err := ioutil.ReadFile(filepath.Clean(configPath))
 	if err != nil {
 		logger.Error("Could not read config file: %q: %q", configPath, err)
 		os.Exit(1)

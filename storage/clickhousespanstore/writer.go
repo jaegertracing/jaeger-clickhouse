@@ -14,8 +14,6 @@ import (
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 
 	"github.com/gogo/protobuf/proto"
-	"go.uber.org/zap"
-
 	"github.com/jaegertracing/jaeger/model"
 )
 
@@ -89,7 +87,7 @@ func (w *SpanWriter) backgroundWriter() {
 
 		if flush {
 			if err := w.writeBatch(batch); err != nil {
-				w.logger.Error("Could not write a batch of spans", zap.Error(err))
+				w.logger.Error("Could not write a batch of spans", "error", err)
 			}
 
 			batch = make([]*model.Span, 0, w.size)
@@ -105,6 +103,7 @@ func (w *SpanWriter) backgroundWriter() {
 }
 
 func (w *SpanWriter) writeBatch(batch []*model.Span) error {
+	w.logger.Debug("Writing spans", "size", len(batch))
 	if err := w.writeModelBatch(batch); err != nil {
 		return err
 	}

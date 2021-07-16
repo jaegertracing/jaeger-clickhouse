@@ -21,8 +21,11 @@ func main() {
 	flag.Parse()
 
 	logger := hclog.New(&hclog.LoggerOptions{
-		Name:  "jaeger-clickhouse",
-		Level: hclog.Warn, // Jaeger only captures >= Warn, so don't bother logging below Warn
+		Name: "jaeger-clickhouse",
+		// If this is set to e.g. Warn, the debug logs are never sent to Jaeger even despite
+		// --grpc-storage-plugin.log-level=debug
+		Level:      hclog.Trace,
+		JSONFormat: true,
 	})
 
 	cfgFile, err := ioutil.ReadFile(filepath.Clean(configPath))

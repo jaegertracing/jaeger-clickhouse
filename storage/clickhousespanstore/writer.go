@@ -36,7 +36,7 @@ type SpanWriter struct {
 	spansTable string
 	encoding   Encoding
 	delay      time.Duration
-	size       int
+	size       int64
 	spans      chan *model.Span
 	finish     chan bool
 	done       sync.WaitGroup
@@ -45,7 +45,7 @@ type SpanWriter struct {
 var _ spanstore.Writer = (*SpanWriter)(nil)
 
 // NewSpanWriter returns a SpanWriter for the database
-func NewSpanWriter(logger hclog.Logger, db *sql.DB, indexTable string, spansTable string, encoding Encoding, delay time.Duration, size int) *SpanWriter {
+func NewSpanWriter(logger hclog.Logger, db *sql.DB, indexTable string, spansTable string, encoding Encoding, delay time.Duration, size int64) *SpanWriter {
 	writer := &SpanWriter{
 		logger:     logger,
 		db:         db,
@@ -124,10 +124,10 @@ func (w *SpanWriter) writeModelBatch(batch []*model.Span) error {
 		return err
 	}
 
-	commited := false
+	committed := false
 
 	defer func() {
-		if !commited {
+		if !committed {
 			// Clickhouse does not support real rollback
 			_ = tx.Rollback()
 		}
@@ -159,7 +159,7 @@ func (w *SpanWriter) writeModelBatch(batch []*model.Span) error {
 		}
 	}
 
-	commited = true
+	committed = true
 
 	return tx.Commit()
 }
@@ -170,10 +170,10 @@ func (w *SpanWriter) writeIndexBatch(batch []*model.Span) error {
 		return err
 	}
 
-	commited := false
+	committed := false
 
 	defer func() {
-		if !commited {
+		if !committed {
 			// Clickhouse does not support real rollback
 			_ = tx.Rollback()
 		}
@@ -200,7 +200,7 @@ func (w *SpanWriter) writeIndexBatch(batch []*model.Span) error {
 		}
 	}
 
-	commited = true
+	committed = true
 
 	return tx.Commit()
 }
@@ -223,17 +223,17 @@ func uniqueTagsForSpan(span *model.Span) []string {
 
 	buf := &strings.Builder{}
 
-	for _, kv := range span.Tags {
-		uniqueTags[tagString(buf, &kv)] = struct{}{}
+	for i := range span.Tags {
+		uniqueTags[tagString(buf, &span.GetTags()[i])] = struct{}{}
 	}
 
-	for _, kv := range span.Process.Tags {
-		uniqueTags[tagString(buf, &kv)] = struct{}{}
+	for i := range span.Process.Tags {
+		uniqueTags[tagString(buf, &span.GetProcess().GetTags()[i])] = struct{}{}
 	}
 
 	for _, event := range span.Logs {
-		for _, kv := range event.Fields {
-			uniqueTags[tagString(buf, &kv)] = struct{}{}
+		for i := range event.Fields {
+			uniqueTags[tagString(buf, &event.GetFields()[i])] = struct{}{}
 		}
 	}
 

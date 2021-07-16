@@ -1,4 +1,4 @@
-name: Build and format
+name: Build, format and lint
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
       - name: Build binaries
         run: make build
 
-  format:
+  format-lint:
     runs-on: ubuntu-latest
     name: Format
     steps:
@@ -37,3 +37,6 @@ jobs:
 
       - name: Format
         run: make fmt && git diff --quiet
+
+      - name: Lint
+        run: make lint

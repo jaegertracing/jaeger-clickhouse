@@ -65,6 +65,7 @@ func (r *TraceReader) getTraces(ctx context.Context, traceIDs []model.TraceID) (
 
 	// It's more efficient to do PREWHERE on traceID to then only read needed models:
 	// * https://clickhouse.tech/docs/en/sql-reference/statements/select/prewhere/
+	//nolint:gosec  , G201: SQL string formatting
 	query := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (%s)", r.spansTable, "?"+strings.Repeat(",?", len(values)-1))
 
 	span.SetTag("db.statement", query)
@@ -82,7 +83,8 @@ func (r *TraceReader) getTraces(ctx context.Context, traceIDs []model.TraceID) (
 	for rows.Next() {
 		var serialized string
 
-		if err := rows.Scan(&serialized); err != nil {
+		err = rows.Scan(&serialized)
+		if err != nil {
 			return nil, err
 		}
 
@@ -278,7 +280,7 @@ func (r *TraceReader) FindTraceIDs(ctx context.Context, params *spanstore.TraceQ
 		found = append(found, foundInRange...)
 
 		end = start
-		timeSpan = timeSpan * 2
+		timeSpan *= 2
 	}
 
 	return found, nil
@@ -302,33 +304,33 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 	args := []interface{}{params.ServiceName}
 
 	if params.OperationName != "" {
-		query = query + " AND operation = ?"
+		query += " AND operation = ?"
 		args = append(args, params.OperationName)
 	}
 
-	query = query + " AND -toUnixTimestamp(timestamp) <= -toUnixTimestamp(?)"
+	query += " AND -toUnixTimestamp(timestamp) <= -toUnixTimestamp(?)"
 	args = append(args, start.UTC().Format("2006-01-02T15:04:05"))
 
-	query = query + " AND -toUnixTimestamp(timestamp) >= -toUnixTimestamp(?)"
+	query += " AND -toUnixTimestamp(timestamp) >= -toUnixTimestamp(?)"
 	args = append(args, end.UTC().Format("2006-01-02T15:04:05"))
 
 	if params.DurationMin != 0 {
-		query = query + " AND durationUs >= ?"
+		query += " AND durationUs >= ?"
 		args = append(args, params.DurationMin.Microseconds())
 	}
 
 	if params.DurationMax != 0 {
-		query = query + " AND durationUs <= ?"
+		query += " AND durationUs <= ?"
 		args = append(args, params.DurationMax.Microseconds())
 	}
 
 	for key, value := range params.Tags {
-		query = query + " AND has(tags, ?)"
+		query += " AND has(tags, ?)"
 		args = append(args, fmt.Sprintf("%s=%s", key, value))
 	}
 
 	if len(skip) > 0 {
-		query = query + fmt.Sprintf(" AND traceID NOT IN (%s)", "?"+strings.Repeat(",?", len(skip)-1))
+		query += fmt.Sprintf(" AND traceID NOT IN (%s)", "?"+strings.Repeat(",?", len(skip)-1))
 		for _, traceID := range skip {
 			args = append(args, traceID.String())
 		}
@@ -336,7 +338,7 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 
 	// Sorting by service is required for early termination of primary key scan:
 	// * https://github.com/ClickHouse/ClickHouse/issues/7102
-	query = query + " ORDER BY service, -toUnixTimestamp(timestamp) LIMIT ?"
+	query += " ORDER BY service, -toUnixTimestamp(timestamp) LIMIT ?"
 	args = append(args, params.NumTraces-len(skip))
 
 	span.SetTag("db.statement", query)

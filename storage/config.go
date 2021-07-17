@@ -5,12 +5,13 @@ import "time"
 type EncodingType string
 
 const (
-	JSONEncoding        EncodingType = "json"
-	ProtobufEncoding    EncodingType = "protobuf"
-	defaultBatchSize                 = 10_000
-	defaultBatchDelay                = time.Second * 5
-	defaultUsername                  = "default"
-	defaultDatabaseName              = "default"
+	JSONEncoding           EncodingType = "json"
+	ProtobufEncoding       EncodingType = "protobuf"
+	defaultBatchSize                    = 10_000
+	defaultBatchDelay                   = time.Second * 5
+	defaultUsername                     = "default"
+	defaultDatabaseName                 = "default"
+	defaultMetricsEndpoint              = "localhost:9090"
 )
 
 type Configuration struct {
@@ -34,6 +35,8 @@ type Configuration struct {
 	Password string `yaml:"password"`
 	// Database name. Default is "default"
 	Database string `yaml:"database"`
+	// Endpoint for scraping prometheus metrics e.g. localhost:9090.
+	MetricsEndpoint string `yaml:"metrics_endpoint"`
 }
 
 func (cfg *Configuration) setDefaults() {
@@ -51,5 +54,8 @@ func (cfg *Configuration) setDefaults() {
 	}
 	if cfg.Database == "" {
 		cfg.Database = defaultDatabaseName
+	}
+	if cfg.MetricsEndpoint == "" {
+		cfg.MetricsEndpoint = defaultMetricsEndpoint
 	}
 }

@@ -1,9 +1,9 @@
-address: tcp://localhost:9000
+address: tcp://some-clickhouse-server:9000
 # When empty the embedded scripts from sqlscripts directory are used
 init_sql_scripts_dir:
-# Batch size. Default 10_000.
+# Batch write size. Default 10_000.
 batch_write_size:
-# Batch flush size. Default 5s.
+# Batch flush interval. Default 5s.
 batch_flush_interval:
 # Encoding of stored data. Either json or protobuf. Default json.
 encoding:
@@ -17,3 +17,5 @@ username:
 password:
 # Database name. Default is "default".
 database:
+# Endpoint for scraping prometheus metrics. Default localhost:9090
+metrics_endpoint: localhost:9090

@@ -3,12 +3,14 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/yaml.v3"
 
 	jaegerclickhouse "github.com/pavolloffay/jaeger-clickhouse"
@@ -30,14 +32,22 @@ func main() {
 
 	cfgFile, err := ioutil.ReadFile(filepath.Clean(configPath))
 	if err != nil {
-		logger.Error("Could not read config file: %q: %q", configPath, err)
+		logger.Error("Could not read config file", "config", configPath, "error", err)
 		os.Exit(1)
 	}
 	var cfg storage.Configuration
 	err = yaml.Unmarshal(cfgFile, &cfg)
 	if err != nil {
-		logger.Error("Could not parse config file: %q", err)
+		logger.Error("Could not parse config file", "error", err)
 	}
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		err = http.ListenAndServe(cfg.MetricsEndpoint, nil)
+		if err != nil {
+			logger.Error("Failed to listen for metrics endpoint", "error", err)
+		}
+	}()
 
 	var pluginServices shared.PluginServices
 	store, err := storage.NewStore(logger, cfg, jaegerclickhouse.EmbeddedFiles)

@@ -5,17 +5,11 @@ Jaeger ClickHouse gRPC [storage plugin](https://github.com/jaegertracing/jaeger/
 This is WIP and it is based on https://github.com/bobrik/jaeger/tree/ivan/clickhouse/plugin/storage/clickhouse. 
 See as well [jaegertracing/jaeger/issues/1438](https://github.com/jaegertracing/jaeger/issues/1438) for ClickHouse plugin.
 
-## Build
-
-```bash
-make build
-```
-
-## Run 
+## Build & Run
 
 ```bash
 docker run --rm -it -p9000:9000 --name some-clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:21
-make run
+GOOS=linux make build run
 make run-hotrod
 ```
 

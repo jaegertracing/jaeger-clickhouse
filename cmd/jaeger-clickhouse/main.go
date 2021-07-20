@@ -38,11 +38,12 @@ func main() {
 	if err != nil {
 		logger.Error("Could not parse config file: %q", err)
 	}
+	cfg.SetDefaults()
 
 	var pluginServices shared.PluginServices
 	store, err := storage.NewStore(logger, cfg, jaegerclickhouse.EmbeddedFiles)
 	if err != nil {
-		logger.Error("Failed to crate storage", err)
+		logger.Error("Failed to create a storage", err)
 		os.Exit(1)
 	}
 	pluginServices.Store = store

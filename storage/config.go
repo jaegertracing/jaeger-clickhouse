@@ -20,4 +20,32 @@ type Configuration struct {
 	Address string `yaml:"address"`
 	// Directory with .sql files that are run at plugin startup.
 	InitSQLScriptsDir string `yaml:"init_sql_scripts_dir"`
+	// Indicates whether to use TLS
+	TlsConnection bool `yaml:"tls_connection"`
+	// Indicates location of TLS certificate used to connect to database.
+	CertificatePath string `yaml:"certificate_path"`
+	// Username for connection to database. Default is "default".
+	Username string `yaml:"username"`
+	// Password for connection to database.
+	Password string `yaml:"password"`
+	// Database name. Default is "default"
+	Database string `yaml:"database"`
+}
+
+func (cfg *Configuration) SetDefaults() {
+	if cfg.BatchWriteSize == 0 {
+		cfg.BatchWriteSize = defaultBatchSize
+	}
+	if cfg.BatchFlushInterval == 0 {
+		cfg.BatchFlushInterval = defaultBatchDelay
+	}
+	if cfg.Encoding == "" {
+		cfg.Encoding = JSONEncoding
+	}
+	if cfg.Username == "" {
+		cfg.Username = "default"
+	}
+	if cfg.Database == "" {
+		cfg.Database = "default"
+	}
 }

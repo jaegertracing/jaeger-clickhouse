@@ -64,7 +64,7 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 }
 
 func connector(cfg Configuration) (*sql.DB, error) {
-	if cfg.TlsConnection {
+	if cfg.TLSConnection {
 		return tlsConnector(cfg)
 	}
 	return defaultConnector(cfg)
@@ -162,7 +162,7 @@ func tlsConnector(cfg Configuration) (*sql.DB, error) {
 		cfg.Password,
 		tlsConfigKey,
 		cfg.Database,
-		))
+	))
 }
 
 func clickhouseConnector(params string) (*sql.DB, error) {

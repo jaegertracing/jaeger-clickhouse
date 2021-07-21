@@ -21,7 +21,7 @@ type Configuration struct {
 	// Directory with .sql files that are run at plugin startup.
 	InitSQLScriptsDir string `yaml:"init_sql_scripts_dir"`
 	// Indicates whether to use TLS
-	TlsConnection bool `yaml:"tls_connection"`
+	TLSConnection bool `yaml:"tls_connection"`
 	// Indicates location of TLS certificate used to connect to database.
 	CertificatePath string `yaml:"certificate_path"`
 	// Username for connection to database. Default is "default".

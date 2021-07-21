@@ -44,11 +44,7 @@ var _ io.Closer = (*Store)(nil)
 func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
 	var db *sql.DB
 	var err error
-	if cfg.TlsConnection {
-		db, err = tlsConnector(cfg)
-	} else {
-		db, err = defaultConnector(cfg)
-	}
+	db, err = connector(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
@@ -65,6 +61,13 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", "jaeger_archive_spans_v2", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
 		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", "jaeger_archive_spans_v2"),
 	}, nil
+}
+
+func connector(cfg Configuration) (*sql.DB, error) {
+	if cfg.TlsConnection {
+		return tlsConnector(cfg)
+	}
+	return defaultConnector(cfg)
 }
 
 func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS) error {
@@ -133,9 +136,11 @@ func (s *Store) Close() error {
 }
 
 func defaultConnector(cfg Configuration) (*sql.DB, error) {
-	return clickhouseConnector(fmt.Sprintf("%s?database=%s",
+	return clickhouseConnector(fmt.Sprintf("%s?database=%s&username=%s&password=%s",
 		cfg.Address,
 		cfg.Database,
+		cfg.Username,
+		cfg.Password,
 	))
 }
 

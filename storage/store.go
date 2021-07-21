@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -11,7 +13,7 @@ import (
 	"sort"
 	"time"
 
-	_ "github.com/ClickHouse/clickhouse-go" // force SQL driver registration
+	"github.com/ClickHouse/clickhouse-go"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
@@ -24,6 +26,7 @@ import (
 const (
 	defaultBatchSize  = 10_000
 	defaultBatchDelay = time.Second * 5
+	tlsConfigKey      = "clickhouse_tls_config_key"
 )
 
 type Store struct {
@@ -39,24 +42,18 @@ var _ shared.ArchiveStoragePlugin = (*Store)(nil)
 var _ io.Closer = (*Store)(nil)
 
 func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
-	db, err := defaultConnector(cfg.Address)
+	var db *sql.DB
+	var err error
+	db, err = connector(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
 
 	if err := initializeDB(db, cfg.InitSQLScriptsDir, embeddedSQLScripts); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
-	if cfg.BatchWriteSize == 0 {
-		cfg.BatchWriteSize = defaultBatchSize
-	}
-	if cfg.BatchFlushInterval == 0 {
-		cfg.BatchFlushInterval = defaultBatchDelay
-	}
-	if cfg.Encoding == "" {
-		cfg.Encoding = JSONEncoding
-	}
+
 	return &Store{
 		db:            db,
 		writer:        clickhousespanstore.NewSpanWriter(logger, db, "jaeger_index_v2", "jaeger_spans_v2", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
@@ -64,6 +61,13 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", "jaeger_archive_spans_v2", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
 		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", "jaeger_archive_spans_v2"),
 	}, nil
+}
+
+func connector(cfg Configuration) (*sql.DB, error) {
+	if cfg.TlsConnection {
+		return tlsConnector(cfg)
+	}
+	return defaultConnector(cfg)
 }
 
 func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS) error {
@@ -103,6 +107,7 @@ func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS
 		}
 		sqlStatements = append(sqlStatements, string(f))
 	}
+
 	return executeScripts(sqlStatements, db)
 }
 
@@ -130,8 +135,38 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
-func defaultConnector(datasource string) (*sql.DB, error) {
-	db, err := sql.Open("clickhouse", datasource)
+func defaultConnector(cfg Configuration) (*sql.DB, error) {
+	return clickhouseConnector(fmt.Sprintf("%s?database=%s&username=%s&password=%s",
+		cfg.Address,
+		cfg.Database,
+		cfg.Username,
+		cfg.Password,
+	))
+}
+
+func tlsConnector(cfg Configuration) (*sql.DB, error) {
+	caCert, err := ioutil.ReadFile(cfg.CertificatePath)
+	if err != nil {
+		return nil, err
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+	err = clickhouse.RegisterTLSConfig(tlsConfigKey, &tls.Config{RootCAs: caCertPool})
+	if err != nil {
+		return nil, err
+	}
+	return clickhouseConnector(fmt.Sprintf(
+		"%s?username=%s&password=%s&secure=true&tls_config=%s&database=%s",
+		cfg.Address,
+		cfg.Username,
+		cfg.Password,
+		tlsConfigKey,
+		cfg.Database,
+		))
+}
+
+func clickhouseConnector(params string) (*sql.DB, error) {
+	db, err := sql.Open("clickhouse", params)
 	if err != nil {
 		return nil, err
 	}

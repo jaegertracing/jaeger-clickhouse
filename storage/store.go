@@ -6,23 +6,24 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"github.com/ClickHouse/clickhouse-go"
-	"github.com/hashicorp/go-hclog"
-	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
-	"github.com/jaegertracing/jaeger/storage/dependencystore"
-	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 
+	"github.com/ClickHouse/clickhouse-go"
+	"github.com/hashicorp/go-hclog"
+	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
+	"github.com/jaegertracing/jaeger/storage/dependencystore"
+	"github.com/jaegertracing/jaeger/storage/spanstore"
+
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousedependencystore"
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
 )
 
 const (
-	tlsConfigKey      = "clickhouse_tls_config_key"
+	tlsConfigKey = "clickhouse_tls_config_key"
 )
 
 type Store struct {
@@ -61,10 +62,30 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 }
 
 func connector(cfg Configuration) (*sql.DB, error) {
+	params := fmt.Sprintf("%s?database=%s&username=%s&password=%s",
+		cfg.Address,
+		cfg.Database,
+		cfg.Username,
+		cfg.Password,
+	)
+
 	if cfg.TLSConnection {
-		return tlsConnector(cfg)
+		caCert, err := ioutil.ReadFile(cfg.CaFile)
+		if err != nil {
+			return nil, err
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+		err = clickhouse.RegisterTLSConfig(tlsConfigKey, &tls.Config{RootCAs: caCertPool})
+		if err != nil {
+			return nil, err
+		}
+		params += fmt.Sprintf(
+			"&secure=true&tls_config=%s",
+			tlsConfigKey,
+		)
 	}
-	return defaultConnector(cfg)
+	return clickhouseConnector(params)
 }
 
 func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS) error {
@@ -130,36 +151,6 @@ func (s *Store) ArchiveSpanWriter() spanstore.Writer {
 
 func (s *Store) Close() error {
 	return s.db.Close()
-}
-
-func defaultConnector(cfg Configuration) (*sql.DB, error) {
-	return clickhouseConnector(fmt.Sprintf("%s?database=%s&username=%s&password=%s",
-		cfg.Address,
-		cfg.Database,
-		cfg.Username,
-		cfg.Password,
-	))
-}
-
-func tlsConnector(cfg Configuration) (*sql.DB, error) {
-	caCert, err := ioutil.ReadFile(cfg.CaFile)
-	if err != nil {
-		return nil, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-	err = clickhouse.RegisterTLSConfig(tlsConfigKey, &tls.Config{RootCAs: caCertPool})
-	if err != nil {
-		return nil, err
-	}
-	return clickhouseConnector(fmt.Sprintf(
-		"%s?username=%s&password=%s&secure=true&tls_config=%s&database=%s",
-		cfg.Address,
-		cfg.Username,
-		cfg.Password,
-		tlsConfigKey,
-		cfg.Database,
-	))
 }
 
 func clickhouseConnector(params string) (*sql.DB, error) {

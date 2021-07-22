@@ -22,8 +22,6 @@ import (
 )
 
 const (
-	defaultBatchSize  = 10_000
-	defaultBatchDelay = time.Second * 5
 	tlsConfigKey      = "clickhouse_tls_config_key"
 )
 

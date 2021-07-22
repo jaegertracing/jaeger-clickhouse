@@ -41,7 +41,7 @@ type TraceReader struct {
 var _ spanstore.Reader = (*TraceReader)(nil)
 
 // NewTraceReader returns a TraceReader for the database
-func NewTraceReader(logger hclog.Logger, db *sql.DB, operationsTable, indexTable, spansTable string) *TraceReader {
+func NewTraceReader(db *sql.DB, operationsTable, indexTable, spansTable string) *TraceReader {
 	return &TraceReader{
 		db:              db,
 		operationsTable: operationsTable,
@@ -67,7 +67,7 @@ func (r *TraceReader) getTraces(ctx context.Context, traceIDs []model.TraceID) (
 
 	// It's more efficient to do PREWHERE on traceID to then only read needed models:
 	// * https://clickhouse.tech/docs/en/sql-reference/statements/select/prewhere/
-	// nolint:gosec  , G201: SQL string formatting
+	//nolint:gosec  , G201: SQL string formatting
 	query := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (%s)", r.spansTable, "?"+strings.Repeat(",?", len(values)-1))
 
 	span.SetTag("db.statement", query)
@@ -147,7 +147,7 @@ func (r *TraceReader) getStrings(ctx context.Context, sql string, args ...interf
 
 	defer rows.Close()
 
-	var values []string
+	values := []string{}
 
 	for rows.Next() {
 		var value string
@@ -253,7 +253,7 @@ func (r *TraceReader) FindTraceIDs(ctx context.Context, params *spanstore.TraceQ
 		timeSpan = minTimespanForProgressiveSearch
 	}
 
-	var found []model.TraceID
+	found := []model.TraceID{}
 
 	for step := 0; step < maxProgressiveSteps; step++ {
 		if len(found) >= params.NumTraces {
@@ -311,10 +311,10 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 	}
 
 	query += " AND -toUnixTimestamp(timestamp) <= -toUnixTimestamp(?)"
-	args = append(args, start)
+	args = append(args, start.UTC().Format("2006-01-02T15:04:05"))
 
 	query += " AND -toUnixTimestamp(timestamp) >= -toUnixTimestamp(?)"
-	args = append(args, end)
+	args = append(args, end.UTC().Format("2006-01-02T15:04:05"))
 
 	if params.DurationMin != 0 {
 		query += " AND durationUs >= ?"

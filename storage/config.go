@@ -32,7 +32,7 @@ type Configuration struct {
 	Database string `yaml:"database"`
 }
 
-func (cfg *Configuration) SetDefaults() {
+func (cfg *Configuration) setDefaults() {
 	if cfg.BatchWriteSize == 0 {
 		cfg.BatchWriteSize = defaultBatchSize
 	}

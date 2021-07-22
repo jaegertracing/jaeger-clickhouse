@@ -6,18 +6,16 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"sort"
-	"time"
-
 	"github.com/ClickHouse/clickhouse-go"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sort"
 
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousedependencystore"
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
@@ -42,6 +40,7 @@ var _ shared.ArchiveStoragePlugin = (*Store)(nil)
 var _ io.Closer = (*Store)(nil)
 
 func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
+	cfg.setDefaults()
 	var db *sql.DB
 	var err error
 	db, err = connector(cfg)

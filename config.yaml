@@ -1,4 +1,4 @@
-address:
+address: tcp://some-clickhouse-server:9000
 # When empty the embedded scripts from sqlscripts directory are used
 init_sql_scripts_dir:
 # Batch size. Default 10_000.
@@ -10,7 +10,7 @@ encoding:
 # Whether to use TLS connection. Default false.
 tls_connection:
 # Address of TLS certificate.
-certificate_path:
+ca_file:
 # Username for connection. Default is "default".
 username:
 # Password for connection.

@@ -145,7 +145,7 @@ func defaultConnector(cfg Configuration) (*sql.DB, error) {
 }
 
 func tlsConnector(cfg Configuration) (*sql.DB, error) {
-	caCert, err := ioutil.ReadFile(cfg.CertificatePath)
+	caCert, err := ioutil.ReadFile(cfg.CaFile)
 	if err != nil {
 		return nil, err
 	}

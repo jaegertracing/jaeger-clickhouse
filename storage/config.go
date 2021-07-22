@@ -5,12 +5,12 @@ import "time"
 type EncodingType string
 
 const (
-	defaultBatchSize  = 10_000
-	defaultBatchDelay = time.Second * 5
-	defaultUsername = "default"
-	defaultDatabaseName = "default"
-	JSONEncoding     EncodingType = "json"
-	ProtobufEncoding EncodingType = "protobuf"
+	defaultBatchSize                 = 10_000
+	defaultBatchDelay                = time.Second * 5
+	defaultUsername                  = "default"
+	defaultDatabaseName              = "default"
+	JSONEncoding        EncodingType = "json"
+	ProtobufEncoding    EncodingType = "protobuf"
 )
 
 type Configuration struct {

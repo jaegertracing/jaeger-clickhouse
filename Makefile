@@ -5,6 +5,9 @@ GOBUILD=CGO_ENABLED=0 installsuffix=cgo go build -trimpath
 TOOLS_MOD_DIR = ./internal/tools
 JAEGER_VERSION ?= 1.24.0
 
+DOCKER_REPO ?= ghcr.io/pavolloffay/jaeger-clickhouse-plugin
+DOCKER_TAG ?= latest
+
 .PHONY: build
 build:
 	${GOBUILD} -o jaeger-clickhouse-$(GOOS)-$(GOARCH) ./cmd/jaeger-clickhouse/main.go
@@ -29,6 +32,14 @@ lint:
 .PHONY: tar
 tar:
 	tar -czvf jaeger-clickhouse-$(GOOS)-$(GOARCH).tar.gz  jaeger-clickhouse-$(GOOS)-$(GOARCH) config.yaml
+
+.PHONY: docker
+docker: build
+	docker build -t ${DOCKER_REPO}:${DOCKER_TAG} -f Dockerfile .
+
+.PHONY: docker-push
+docker-push: build
+	docker push ${DOCKER_REPO}:${DOCKER_TAG}
 
 .PHONY: install-tools
 install-tools:

@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/opentracing/opentracing-go"
@@ -27,7 +28,6 @@ var (
 	errNoOperationsTable = errors.New("no operations table supplied")
 	errNoIndexTable      = errors.New("no index table supplied")
 	errStartTimeRequired = errors.New("start time is required for search queries")
-	hcLogger hclog.Logger
 )
 
 // TraceReader for reading spans from ClickHouse
@@ -42,9 +42,6 @@ var _ spanstore.Reader = (*TraceReader)(nil)
 
 // NewTraceReader returns a TraceReader for the database
 func NewTraceReader(logger hclog.Logger, db *sql.DB, operationsTable, indexTable, spansTable string) *TraceReader {
-
-	hcLogger = logger
-
 	return &TraceReader{
 		db:              db,
 		operationsTable: operationsTable,

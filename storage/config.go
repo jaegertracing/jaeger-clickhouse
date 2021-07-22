@@ -23,7 +23,7 @@ type Configuration struct {
 	// Indicates whether to use TLS
 	TLSConnection bool `yaml:"tls_connection"`
 	// Indicates location of TLS certificate used to connect to database.
-	CertificatePath string `yaml:"certificate_path"`
+	CaFile string `yaml:"ca_file"`
 	// Username for connection to database. Default is "default".
 	Username string `yaml:"username"`
 	// Password for connection to database.

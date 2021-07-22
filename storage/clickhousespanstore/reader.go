@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/opentracing/opentracing-go"
 

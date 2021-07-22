@@ -5,7 +5,7 @@ GOBUILD=CGO_ENABLED=0 installsuffix=cgo go build -trimpath
 TOOLS_MOD_DIR = ./internal/tools
 JAEGER_VERSION ?= 1.24.0
 
-DOCKER_REPO ?= ghcr.io/pavolloffay/jaeger-clickhouse-plugin
+DOCKER_REPO ?= ghcr.io/pavolloffay/jaeger-clickhouse
 DOCKER_TAG ?= latest
 
 .PHONY: build

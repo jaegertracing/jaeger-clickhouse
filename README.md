@@ -16,6 +16,18 @@ file using ``/data/{path to certificate from project directory}``
 
 ## Build & Run
 
+### Docker database example
+
+```bash
+docker run --rm -it -p9000:9000 --name some-clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:21
+GOOS=linux make build run
+make run-hotrod
+```
+
+Open [localhost:16686](http://localhost:16686) and [localhost:8080](http://localhost:8080).
+
+### Custom database
+
 You need to specify connection options in ``config.yaml`` file, then run 
 ```bash
 GOOS=linux make build run
@@ -28,11 +40,3 @@ make run-hotrod
 ```
 Then you should open [localhost:8080](http://localhost:8080).
 
-### Docker database example
-
-```bash
-docker run --rm -it -p9000:9000 --name some-clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:21
-GOOS=linux make build run
-make run-hotrod
-```
-Address of database should be ``tcp://localhost:9000``, other fields can be left blank.

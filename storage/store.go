@@ -1,29 +1,25 @@
 package storage
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"embed"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"sort"
-	"time"
-
+	"github.com/ClickHouse/clickhouse-go"
 	_ "github.com/ClickHouse/clickhouse-go" // force SQL driver registration
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sort"
 
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousedependencystore"
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
-)
-
-const (
-	defaultBatchSize  = 10_000
-	defaultBatchDelay = time.Second * 5
 )
 
 type Store struct {
@@ -34,12 +30,17 @@ type Store struct {
 	archiveReader spanstore.Reader
 }
 
+const (
+	tlsConfigKey = "clickhouse_tls_config_key"
+)
+
 var _ shared.StoragePlugin = (*Store)(nil)
 var _ shared.ArchiveStoragePlugin = (*Store)(nil)
 var _ io.Closer = (*Store)(nil)
 
 func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
-	db, err := defaultConnector(cfg.Address)
+	cfg.setDefaults()
+	db, err := connector(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
@@ -64,6 +65,33 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", "jaeger_archive_spans_v2", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
 		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", "jaeger_archive_spans_v2"),
 	}, nil
+}
+
+func connector(cfg Configuration) (*sql.DB, error) {
+	params := fmt.Sprintf("%s?database=%s&username=%s&password=%s",
+		cfg.Address,
+		cfg.Database,
+		cfg.Username,
+		cfg.Password,
+	)
+
+	if cfg.TLSConnection {
+		caCert, err := ioutil.ReadFile(cfg.CaFile)
+		if err != nil {
+			return nil, err
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+		err = clickhouse.RegisterTLSConfig(tlsConfigKey, &tls.Config{RootCAs: caCertPool})
+		if err != nil {
+			return nil, err
+		}
+		params += fmt.Sprintf(
+			"&secure=true&tls_config=%s",
+			tlsConfigKey,
+		)
+	}
+	return clickhouseConnector(params)
 }
 
 func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS) error {
@@ -130,8 +158,8 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
-func defaultConnector(datasource string) (*sql.DB, error) {
-	db, err := sql.Open("clickhouse", datasource)
+func clickhouseConnector(params string) (*sql.DB, error) {
+	db, err := sql.Open("clickhouse", params)
 	if err != nil {
 		return nil, err
 	}

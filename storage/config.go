@@ -5,8 +5,12 @@ import "time"
 type EncodingType string
 
 const (
-	JSONEncoding     EncodingType = "json"
-	ProtobufEncoding EncodingType = "protobuf"
+	defaultBatchSize                 = 10_000
+	defaultBatchDelay                = time.Second * 5
+	defaultUsername                  = "default"
+	defaultDatabaseName              = "default"
+	JSONEncoding        EncodingType = "json"
+	ProtobufEncoding    EncodingType = "protobuf"
 )
 
 type Configuration struct {
@@ -20,4 +24,32 @@ type Configuration struct {
 	Address string `yaml:"address"`
 	// Directory with .sql files that are run at plugin startup.
 	InitSQLScriptsDir string `yaml:"init_sql_scripts_dir"`
+	// Indicates whether to use TLS
+	TLSConnection bool `yaml:"tls_connection"`
+	// Indicates location of TLS certificate used to connect to database.
+	CaFile string `yaml:"ca_file"`
+	// Username for connection to database. Default is "default".
+	Username string `yaml:"username"`
+	// Password for connection to database.
+	Password string `yaml:"password"`
+	// Database name. Default is "default"
+	Database string `yaml:"database"`
+}
+
+func (cfg *Configuration) setDefaults() {
+	if cfg.BatchWriteSize == 0 {
+		cfg.BatchWriteSize = defaultBatchSize
+	}
+	if cfg.BatchFlushInterval == 0 {
+		cfg.BatchFlushInterval = defaultBatchDelay
+	}
+	if cfg.Encoding == "" {
+		cfg.Encoding = JSONEncoding
+	}
+	if cfg.Username == "" {
+		cfg.Username = defaultUsername
+	}
+	if cfg.Database == "" {
+		cfg.Database = defaultDatabaseName
+	}
 }

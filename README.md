@@ -19,17 +19,12 @@ Open [localhost:16686](http://localhost:16686) and [localhost:8080](http://local
 
 ### Custom database
 
-You need to specify connection options in ``config.yaml`` file, then run
-```bash
-GOOS=linux make build run
-```
-At this point, you can enter Jaeger UI at [localhost:16686](http://localhost:16686).
+You need to specify connection options in config.yaml file, then you can run 
 
-Then you can try using Jaeger with HotROD by running
 ```bash
-make run-hotrod
+make build
+SPAN_STORAGE_TYPE=grpc-plugin {Jaeger binary adress} --query.ui-config=jaeger-ui.json --grpc-storage-plugin.binary=./{name of built binary} --grpc-storage-plugin.configuration-file=config.yaml --grpc-storage-plugin.log-level=debug
 ```
-Then you should open [localhost:8080](http://localhost:8080).
 
 ### Using TLS connection
 

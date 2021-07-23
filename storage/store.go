@@ -40,9 +40,7 @@ var _ io.Closer = (*Store)(nil)
 
 func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
 	cfg.setDefaults()
-	var db *sql.DB
-	var err error
-	db, err = connector(cfg)
+	db, err := connector(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}

@@ -5,8 +5,8 @@ import "time"
 type EncodingType string
 
 const (
-	JSONEncoding     EncodingType = "json"
-	ProtobufEncoding EncodingType = "protobuf"
+	JSONEncoding        EncodingType = "json"
+	ProtobufEncoding    EncodingType = "protobuf"
 	defaultBatchSize                 = 10_000
 	defaultBatchDelay                = time.Second * 5
 	defaultUsername                  = "default"

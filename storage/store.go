@@ -13,7 +13,6 @@ import (
 	"sort"
 
 	"github.com/ClickHouse/clickhouse-go"
-	_ "github.com/ClickHouse/clickhouse-go" // force SQL driver registration
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
@@ -47,17 +46,8 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 	}
 
 	if err := initializeDB(db, cfg.InitSQLScriptsDir, embeddedSQLScripts); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
-	}
-	if cfg.BatchWriteSize == 0 {
-		cfg.BatchWriteSize = defaultBatchSize
-	}
-	if cfg.BatchFlushInterval == 0 {
-		cfg.BatchFlushInterval = defaultBatchDelay
-	}
-	if cfg.Encoding == "" {
-		cfg.Encoding = JSONEncoding
 	}
 	return &Store{
 		db:            db,

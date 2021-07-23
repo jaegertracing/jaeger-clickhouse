@@ -8,5 +8,6 @@ require (
 	github.com/hashicorp/go-hclog v0.16.1
 	github.com/jaegertracing/jaeger v1.24.0
 	github.com/opentracing/opentracing-go v1.2.0
+	github.com/prometheus/client_golang v1.11.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )

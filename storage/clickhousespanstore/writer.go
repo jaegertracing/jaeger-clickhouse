@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/jaegertracing/jaeger/storage/spanstore"
-
 	"github.com/gogo/protobuf/proto"
+	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/model"
+	"github.com/jaegertracing/jaeger/storage/spanstore"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Encoding string
@@ -24,6 +24,17 @@ const (
 	EncodingJSON Encoding = "json"
 	// EncodingProto is used for spans encoded as Protobuf.
 	EncodingProto Encoding = "protobuf"
+)
+
+var (
+	NumWritesWithBatchSize = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "jaeger_clickhouse_writes_with_batch_size_total",
+		Help: "Number of clickhouse writes due to batch size criteria",
+	})
+	NumWritesWithFlushInterval = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "jaeger_clickhouse_writes_with_flush_interval_total",
+		Help: "Number of clickhouse writes due to flush interval criteria",
+	})
 )
 
 // SpanWriter for writing spans to ClickHouse
@@ -40,6 +51,7 @@ type SpanWriter struct {
 	done       sync.WaitGroup
 }
 
+var registerMetrics sync.Once
 var _ spanstore.Writer = (*SpanWriter)(nil)
 
 // NewSpanWriter returns a SpanWriter for the database
@@ -56,9 +68,17 @@ func NewSpanWriter(logger hclog.Logger, db *sql.DB, indexTable string, spansTabl
 		finish:     make(chan bool),
 	}
 
+	writer.registerMetrics()
 	go writer.backgroundWriter()
 
 	return writer
+}
+
+func (w *SpanWriter) registerMetrics() {
+	registerMetrics.Do(func() {
+		prometheus.MustRegister(NumWritesWithBatchSize)
+		prometheus.MustRegister(NumWritesWithFlushInterval)
+	})
 }
 
 func (w *SpanWriter) backgroundWriter() {
@@ -79,12 +99,14 @@ func (w *SpanWriter) backgroundWriter() {
 			flush = len(batch) == cap(batch)
 			if flush {
 				w.logger.Debug("Flush due to batch size", "size", len(batch))
+				NumWritesWithBatchSize.Inc()
 			}
 		case <-timer:
 			timer = time.After(w.delay)
 			flush = time.Since(last) > w.delay && len(batch) > 0
 			if flush {
 				w.logger.Debug("Flush due to timer")
+				NumWritesWithFlushInterval.Inc()
 			}
 		case <-w.finish:
 			finish = true

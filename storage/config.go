@@ -5,7 +5,7 @@ import "time"
 type EncodingType string
 
 const (
-	defaultEncoding = JSONEncoding
+	defaultEncoding                     = JSONEncoding
 	JSONEncoding           EncodingType = "json"
 	ProtobufEncoding       EncodingType = "protobuf"
 	defaultBatchSize                    = 10_000

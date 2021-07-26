@@ -6,11 +6,11 @@ the storage.
 
 ## Sharding
 
-Sharding is a feature that allows splitting the data into multiple Clickhouse nodes.
+Sharding is a feature that allows splitting the data into multiple Clickhouse nodes to
+increase throughput and decrease latency.
 The sharding feature uses `Distributed` engine that is backed by local tables.
-The distributed engine is a "virtual" table does not store any data. It is used as 
-in interface to insert and query data.
-
+The distributed engine is a "virtual" table that does not store any data. It is used as 
+an interface to insert and query data.
 
 To setup sharding run the following statements on all nodes in the `sharded` cluster.
 The "local" tables have to be created on the nodes before the distributed table.

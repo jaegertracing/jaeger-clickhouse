@@ -7,6 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
+	// Package contains time zone info for connecting to ClickHouse servers with non-UTC time zone
+	_ "time/tzdata"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"

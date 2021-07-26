@@ -16,7 +16,7 @@ To setup sharding run the following statements on all nodes in the `sharded` clu
 The "local" tables have to be created on the nodes before the distributed table.
 
 ```sql
-CREATE TABLE jaeger_spans_global ON CLUSTER sharded AS jaeger_spans ENGINE = Distributed(sharded, default, jaeger_spans, rand());
+CREATE TABLE jaeger_spans_global AS jaeger_spans ENGINE = Distributed(sharded, default, jaeger_spans, rand());
 CREATE TABLE jaeger_index_global AS jaeger_index ENGINE = Distributed(sharded, default, jaeger_index, rand());
 CREATE TABLE jaeger_operations_global AS jaeger_operations ENGINE = Distributed(sharded, default, jaeger_operations, rand());
 ```

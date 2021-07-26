@@ -1,4 +1,4 @@
-address: tcp://some-clickhouse-server:9000
+address: tcp://localhost:9000
 # When empty the embedded scripts from sqlscripts directory are used
 init_sql_scripts_dir:
 # Batch write size. Default 10_000.
@@ -19,3 +19,9 @@ password:
 database:
 # Endpoint for scraping prometheus metrics. Default localhost:9090
 metrics_endpoint: localhost:9090
+# Table with spans. Default "jaeger_spans".
+spans_table:
+# Span index table. Default "jaeger_index".
+spans_index_table:
+# Operations table. Default "jaeger_operations.
+operations_table:

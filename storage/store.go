@@ -51,8 +51,8 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 	}
 	return &Store{
 		db:            db,
-		writer:        clickhousespanstore.NewSpanWriter(logger, db, "jaeger_index", "jaeger_spans", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
-		reader:        clickhousespanstore.NewTraceReader(db, "jaeger_operations", "jaeger_index", "jaeger_spans"),
+		writer:        clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+		reader:        clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable),
 		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", "jaeger_archive_spans", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
 		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", "jaeger_archive_spans"),
 	}, nil

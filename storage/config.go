@@ -12,6 +12,10 @@ const (
 	defaultUsername                     = "default"
 	defaultDatabaseName                 = "default"
 	defaultMetricsEndpoint              = "localhost:9090"
+
+	defaultSpansTable      = "jaeger_spans"
+	defaultSpansIndexTable = "jaeger_index"
+	defaultOperationsTable = "jaeger_operations"
 )
 
 type Configuration struct {
@@ -37,6 +41,12 @@ type Configuration struct {
 	Database string `yaml:"database"`
 	// Endpoint for scraping prometheus metrics e.g. localhost:9090.
 	MetricsEndpoint string `yaml:"metrics_endpoint"`
+	// Table with spans. Default "jaeger_spans".
+	SpansTable string `yaml:"spans_table"`
+	// Span index table. Default "jaeger_index".
+	SpansIndexTable string `yaml:"spans_index_table"`
+	// Operations table. Default "jaeger_operations.
+	OperationsTable string `yaml:"operations_table"`
 }
 
 func (cfg *Configuration) setDefaults() {
@@ -57,5 +67,14 @@ func (cfg *Configuration) setDefaults() {
 	}
 	if cfg.MetricsEndpoint == "" {
 		cfg.MetricsEndpoint = defaultMetricsEndpoint
+	}
+	if cfg.SpansTable == "" {
+		cfg.SpansTable = defaultSpansTable
+	}
+	if cfg.SpansIndexTable == "" {
+		cfg.SpansIndexTable = defaultSpansIndexTable
+	}
+	if cfg.OperationsTable == "" {
+		cfg.OperationsTable = defaultOperationsTable
 	}
 }

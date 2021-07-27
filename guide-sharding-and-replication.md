@@ -154,6 +154,24 @@ spec:
 EOF
 ```
 
+The Clickhouse deployment will look like this
+```bash
+k get statefulsets                                                                                                                                                  1 ↵ ploffay@fedora
+NAME                      READY   AGE
+chi-jaeger-cluster1-0-0   1/1     17m    # shard 0
+chi-jaeger-cluster1-0-1   1/1     17m    # shard 0, replica 1
+chi-jaeger-cluster1-1-0   1/1     16m    # shard 1
+chi-jaeger-cluster1-1-1   1/1     16m    # shard 1, replica 1
+chi-jaeger-cluster1-2-0   1/1     7m43s  # shard 2
+chi-jaeger-cluster1-2-1   1/1     7m26s  # shard 2, replica 1
+```
+
+#### Scaling up
+
+Just increase `shardsCount` number and new Clickhouse node will come up. It will have initialized Jaeger tables so
+no other steps are required. Note that the old data are not re-balanced, only new writes take into the account
+the new node.
+
 ## Useful Commands
 
 ### SQL

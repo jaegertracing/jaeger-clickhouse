@@ -7,9 +7,7 @@ batch_write_size:
 batch_flush_interval:
 # Encoding of stored data. Either json or protobuf. Default json.
 encoding:
-# Whether to use TLS connection. Default false.
-tls_connection:
-# Address of TLS certificate.
+# Path to CA TLS certificate.
 ca_file:
 # Username for connection. Default is "default".
 username:

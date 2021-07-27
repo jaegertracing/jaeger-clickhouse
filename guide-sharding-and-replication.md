@@ -127,32 +127,35 @@ kind: ClickHouseInstallation
 metadata:
   name: jaeger
 spec:
+  defaults:
+    templates:
+      dataVolumeClaimTemplate: data-volume-template
+      logVolumeClaimTemplate: log-volume-template
   configuration:
     zookeeper:
       nodes:
         - host: zookeeper.zoo1ns
     clusters:
       - name: cluster1
-        templates:
-          podTemplate: clickhouse-with-empty-dir-volume-template
         layout:
           shardsCount: 3
           replicasCount: 2
   templates:
-    podTemplates:
-      - name: clickhouse-with-empty-dir-volume-template
+    volumeClaimTemplates:
+      - name: data-volume-template
         spec:
-          containers:
-            - name: clickhouse-pod
-              image: yandex/clickhouse-server:20.7
-              volumeMounts:
-                - name: clickhouse-storage
-                  mountPath: /var/lib/clickhouse
-          volumes:
-            - name: clickhouse-storage
-              emptyDir:
-                medium: "" # accepted values:  empty str (means node's default medium) or "Memory"
-                sizeLimit: 1Gi
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+      - name: log-volume-template
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 100Mi
 EOF
 ```
 

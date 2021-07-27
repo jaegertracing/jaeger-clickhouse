@@ -101,12 +101,12 @@ PARTITION BY toYYYYMM(date) ORDER BY (date, service, operation)
 SETTINGS index_granularity=32
 POPULATE
 AS SELECT
-              toDate(timestamp) AS date,
+  toDate(timestamp) AS date,
   service,
   operation,
   count() as count
-   FROM jaeger_index_local
-   GROUP BY date, service, operation;
+FROM jaeger_index_local
+GROUP BY date, service, operation;
 
 
 CREATE TABLE IF NOT EXISTS jaeger_spans ON CLUSTER '{cluster}' AS jaeger_spans_local ENGINE = Distributed('{cluster}', default, jaeger_spans_local, cityHash64(traceID));

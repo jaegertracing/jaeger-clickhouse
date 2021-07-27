@@ -73,16 +73,16 @@ Therefore the following command can be run only on a single Clickhouse node:
 
 ```sql
 CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER '{cluster}'  (
-                                                                timestamp DateTime CODEC(Delta, ZSTD(1)),
+    timestamp DateTime CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     model String CODEC(ZSTD(3))
-    ) ENGINE ReplicatedMergeTree('/clickhouse/tables/{shard}/jaeger_spans', '{replica}')
-    PARTITION BY toDate(timestamp)
-    ORDER BY traceID
-    SETTINGS index_granularity=1024;
+) ENGINE ReplicatedMergeTree('/clickhouse/tables/{shard}/jaeger_spans', '{replica}')
+PARTITION BY toDate(timestamp)
+ORDER BY traceID
+SETTINGS index_granularity=1024;
 
 CREATE TABLE IF NOT EXISTS jaeger_index_local ON CLUSTER '{cluster}' (
-                                                               timestamp DateTime CODEC(Delta, ZSTD(1)),
+    timestamp DateTime CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     service LowCardinality(String) CODEC(ZSTD(1)),
     operation LowCardinality(String) CODEC(ZSTD(1)),
@@ -90,10 +90,10 @@ CREATE TABLE IF NOT EXISTS jaeger_index_local ON CLUSTER '{cluster}' (
     tags Array(String) CODEC(ZSTD(1)),
     INDEX idx_tags tags TYPE bloom_filter(0.01) GRANULARITY 64,
     INDEX idx_duration durationUs TYPE minmax GRANULARITY 1
-    ) ENGINE ReplicatedMergeTree('/clickhouse/tables/{shard}/jaeger_index', '{replica}')
-    PARTITION BY toDate(timestamp)
-    ORDER BY (service, -toUnixTimestamp(timestamp))
-    SETTINGS index_granularity=1024;
+) ENGINE ReplicatedMergeTree('/clickhouse/tables/{shard}/jaeger_index', '{replica}')
+PARTITION BY toDate(timestamp)
+ORDER BY (service, -toUnixTimestamp(timestamp))
+SETTINGS index_granularity=1024;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS jaeger_operations_local ON CLUSTER '{cluster}'
 ENGINE ReplicatedMergeTree('/clickhouse/tables/{shard}/jaeger_operations', '{replica}')

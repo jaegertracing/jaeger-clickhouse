@@ -12,13 +12,13 @@ The sharding feature uses `Distributed` engine that is backed by local tables.
 The distributed engine is a "virtual" table that does not store any data. It is used as 
 an interface to insert and query data.
 
-To setup sharding run the following statements on all nodes in the `sharded` cluster.
+To setup sharding run the following statements on all nodes in the cluster.
 The "local" tables have to be created on the nodes before the distributed table.
 
 ```sql
-CREATE TABLE IF NOT EXISTS jaeger_spans AS jaeger_spans_local ENGINE = Distributed(sharded, default, jaeger_spans_local, rand());
-CREATE TABLE IF NOT EXISTS jaeger_index AS jaeger_index_local ENGINE = Distributed(sharded, default, jaeger_index_local, rand());
-CREATE TABLE IF NOT EXISTS jaeger_operations AS jaeger_operations_local ENGINE = Distributed(sharded, default, jaeger_operations_local, rand());
+CREATE TABLE IF NOT EXISTS jaeger_spans AS jaeger_spans_local ENGINE = Distributed('{cluster}', default, jaeger_spans_local, cityHash64(traceID));
+CREATE TABLE IF NOT EXISTS jaeger_index AS jaeger_index_local ENGINE = Distributed('{cluster}', default, jaeger_index_local, cityHash64(traceID));
+CREATE TABLE IF NOT EXISTS jaeger_operations AS jaeger_operations_local ENGINE = Distributed('{cluster}', default, jaeger_operations_local, rand());
 ```
 
 The `AS <table-name>` statement creates table with the same schema as the specified one. 
@@ -35,11 +35,11 @@ cat <<EOF | kubectl apply -f -
 apiVersion: "clickhouse.altinity.com/v1"
 kind: "ClickHouseInstallation"
 metadata:
-  name: "simple"
+  name: jaeger
 spec:
   configuration:
     clusters:
-      - name: "sharded"
+      - name: cluster1
         layout:
           shardsCount: 2
 EOF
@@ -47,7 +47,7 @@ EOF
 
 Use the following command to run `clickhouse-client` on Clickhouse nodes and create the distributed tables:
 ```bash
-kubectl exec -it service/chi-simple-sharded-1-0 -- clickhouse-client
+kubectl exec -it statefulset.apps/chi-jaeger-cluster1-0-0 -- clickhouse-client  
 ```
 
 ### Plugin config
@@ -55,7 +55,7 @@ kubectl exec -it service/chi-simple-sharded-1-0 -- clickhouse-client
 The plugin has to be configured to write and read that from the global tables:
 
 ```yaml
-address: tcp://clickhouse-simple:9000
+address: tcp://clickhouse-jaeger:9000
 spans_table: jaeger_spans
 spans_index_table: jaeger_index
 operations_table: jaeger_operations
@@ -72,7 +72,7 @@ Zookeeper allows us to use `ON CLUSTER` to automatically replicate table creatio
 So the following command can be run only on a single Clickhouse node:
 
 ```sql
-CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER sharded  (
+CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER '{cluster}'  (
                                                                 timestamp DateTime CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     model String CODEC(ZSTD(3))
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER sharded  (
     ORDER BY traceID
     SETTINGS index_granularity=1024;
 
-CREATE TABLE IF NOT EXISTS jaeger_index_local ON CLUSTER sharded (
+CREATE TABLE IF NOT EXISTS jaeger_index_local ON CLUSTER '{cluster}' (
                                                                timestamp DateTime CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     service LowCardinality(String) CODEC(ZSTD(1)),
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS jaeger_index_local ON CLUSTER sharded (
     ORDER BY (service, -toUnixTimestamp(timestamp))
     SETTINGS index_granularity=1024;
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS jaeger_operations_local ON CLUSTER sharded
+CREATE MATERIALIZED VIEW IF NOT EXISTS jaeger_operations_local ON CLUSTER '{cluster}'
 ENGINE ReplicatedMergeTree('/clickhouse/tables/{shard}/jaeger_operations', '{replica}')
 PARTITION BY toYYYYMM(date) ORDER BY (date, service, operation)
 SETTINGS index_granularity=32
@@ -105,34 +105,36 @@ AS SELECT
   service,
   operation,
   count() as count
-   FROM jaeger_index
-   GROUP BY date, service, operation
+   FROM jaeger_index_local
+   GROUP BY date, service, operation;
 
 
-CREATE TABLE IF NOT EXISTS jaeger_spans ON CLUSTER sharded AS jaeger_spans_local ENGINE = Distributed(sharded, default, jaeger_spans_local, rand());
-CREATE TABLE IF NOT EXISTS jaeger_index ON CLUSTER sharded AS jaeger_index_local ENGINE = Distributed(sharded, default, jaeger_index_local, rand());
-CREATE TABLE IF NOT EXISTS jaeger_operations on CLUSTER sharded AS jaeger_operations_local ENGINE = Distributed(sharded, default, jaeger_operations_local, rand());
+CREATE TABLE IF NOT EXISTS jaeger_spans ON CLUSTER '{cluster}' AS jaeger_spans_local ENGINE = Distributed('{cluster}', default, jaeger_spans_local, cityHash64(traceID));
+CREATE TABLE IF NOT EXISTS jaeger_index ON CLUSTER '{cluster}' AS jaeger_index_local ENGINE = Distributed('{cluster}', default, jaeger_index_local, cityHash64(traceID));
+CREATE TABLE IF NOT EXISTS jaeger_operations on CLUSTER '{cluster}' AS jaeger_operations_local ENGINE = Distributed('{cluster}', default, jaeger_operations_local, rand());
 ```
 
 ### Deploy Clickhouse
 
-Zookeeper was to be deployed before deploying Clickhouse.
+Before deploying Clickhouse make sure Zookeeper is running in `zoo1ns` namespace.
+
+Deploy Clickhouse with 3 shards and 2 replicas. In total Clickhouse operator will deploy 6 pods.
 
 ```yaml
 cat <<EOF | kubectl apply -f -
 apiVersion: "clickhouse.altinity.com/v1"
 kind: "ClickHouseInstallation"
 metadata:
-  name: "simple"
+  name: jaeger
 spec:
   configuration:
     zookeeper:
       nodes:
         - host: zookeeper.zoo1ns
     clusters:
-      - name: "sharded"
+      - name: cluster1
         layout:
-          shardsCount: 2
+          shardsCount: 3
           replicasCount: 2
   templates:
     podTemplates:
@@ -152,9 +154,18 @@ spec:
 EOF
 ```
 
-## Useful queries
+## Useful Commands
+
+### SQL
 
 ```sql
 show tables
 select count() from jaeger_spans
+```
+
+### Kubectl
+
+```bash
+kubectl port-forward service/clickhouse-jaeger 9000:9000
+kubectl delete clickhouseinstallations.clickhouse.altinity.com jaeger
 ```

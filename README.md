@@ -7,8 +7,8 @@ See as well [jaegertracing/jaeger/issues/1438](https://github.com/jaegertracing/
 
 Refer to the [config.yaml](./config.yaml) for all supported configuration options.
 
-* [Kubernetes deployment documentation](./kubernetes.md)
-* [Sharding and replicaion](./sharding-and-replication.md)
+* [Kubernetes deployment documentation](guide-kubernetes.md)
+* [Sharding and replicaion](guide-sharding-and-replication.md)
 
 ## Build & Run
 

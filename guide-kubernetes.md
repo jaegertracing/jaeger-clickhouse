@@ -80,6 +80,8 @@ spec:
 EOF
 ```
 
+## Delete all
+
 ```bash
 kubectl delete jaeger,cm,chi -l jaeger-clickhouse=demo
 ```

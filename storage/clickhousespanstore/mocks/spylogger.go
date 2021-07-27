@@ -2,9 +2,10 @@ package mocks
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"io"
 	"log"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 var _ hclog.Logger = SpyLogger{}

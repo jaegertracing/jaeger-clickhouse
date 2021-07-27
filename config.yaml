@@ -15,7 +15,7 @@ username:
 password:
 # Database name. Default is "default".
 database:
-# Endpoint for scraping prometheus metrics. Default localhost:9090
+# Endpoint for scraping prometheus metrics. Default localhost:9090.
 metrics_endpoint: localhost:9090
 # Table with spans. Default "jaeger_spans_local".
 spans_table:

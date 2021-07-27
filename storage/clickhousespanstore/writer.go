@@ -27,11 +27,11 @@ const (
 )
 
 var (
-	NumWritesWithBatchSize = prometheus.NewCounter(prometheus.CounterOpts{
+	numWritesWithBatchSize = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "jaeger_clickhouse_writes_with_batch_size_total",
 		Help: "Number of clickhouse writes due to batch size criteria",
 	})
-	NumWritesWithFlushInterval = prometheus.NewCounter(prometheus.CounterOpts{
+	numWritesWithFlushInterval = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "jaeger_clickhouse_writes_with_flush_interval_total",
 		Help: "Number of clickhouse writes due to flush interval criteria",
 	})
@@ -76,8 +76,8 @@ func NewSpanWriter(logger hclog.Logger, db *sql.DB, indexTable string, spansTabl
 
 func (w *SpanWriter) registerMetrics() {
 	registerMetrics.Do(func() {
-		prometheus.MustRegister(NumWritesWithBatchSize)
-		prometheus.MustRegister(NumWritesWithFlushInterval)
+		prometheus.MustRegister(numWritesWithBatchSize)
+		prometheus.MustRegister(numWritesWithFlushInterval)
 	})
 }
 
@@ -99,14 +99,14 @@ func (w *SpanWriter) backgroundWriter() {
 			flush = len(batch) == cap(batch)
 			if flush {
 				w.logger.Debug("Flush due to batch size", "size", len(batch))
-				NumWritesWithBatchSize.Inc()
+				numWritesWithBatchSize.Inc()
 			}
 		case <-timer:
 			timer = time.After(w.delay)
 			flush = time.Since(last) > w.delay && len(batch) > 0
 			if flush {
 				w.logger.Debug("Flush due to timer")
-				NumWritesWithFlushInterval.Inc()
+				numWritesWithFlushInterval.Inc()
 			}
 		case <-w.finish:
 			finish = true

@@ -16,9 +16,9 @@ To setup sharding run the following statements on all nodes in the `sharded` clu
 The "local" tables have to be created on the nodes before the distributed table.
 
 ```sql
-CREATE TABLE jaeger_spans AS jaeger_spans_local ENGINE = Distributed(sharded, default, jaeger_spans, rand());
-CREATE TABLE jaeger_index AS jaeger_index_local ENGINE = Distributed(sharded, default, jaeger_index, rand());
-CREATE TABLE jaeger_operations AS jaeger_operations_local ENGINE = Distributed(sharded, default, jaeger_operations, rand());
+CREATE TABLE IF NOT EXISTS jaeger_spans AS jaeger_spans_local ENGINE = Distributed(sharded, default, jaeger_spans_local, rand());
+CREATE TABLE IF NOT EXISTS jaeger_index AS jaeger_index_local ENGINE = Distributed(sharded, default, jaeger_index_local, rand());
+CREATE TABLE IF NOT EXISTS jaeger_operations AS jaeger_operations_local ENGINE = Distributed(sharded, default, jaeger_operations_local, rand());
 ```
 
 The `AS <table-name>` statement creates table with the same schema as the specified one. 
@@ -107,9 +107,9 @@ AS SELECT
    GROUP BY date, service, operation
 
 
-CREATE TABLE jaeger_spans ON CLUSTER sharded AS jaeger_spans_local ENGINE = Distributed(sharded, default, jaeger_spans, rand());
-CREATE TABLE jaeger_index ON CLUSTER sharded AS jaeger_index_local ENGINE = Distributed(sharded, default, jaeger_index, rand());
-CREATE TABLE jaeger_operations on CLUSTER sharded AS jaeger_operations_local ENGINE = Distributed(sharded, default, jaeger_operations, rand());
+CREATE TABLE IF NOT EXISTS jaeger_spans ON CLUSTER sharded AS jaeger_spans_local ENGINE = Distributed(sharded, default, jaeger_spans_local, rand());
+CREATE TABLE IF NOT EXISTS jaeger_index ON CLUSTER sharded AS jaeger_index_local ENGINE = Distributed(sharded, default, jaeger_index_local, rand());
+CREATE TABLE IF NOT EXISTS jaeger_operations on CLUSTER sharded AS jaeger_operations_local ENGINE = Distributed(sharded, default, jaeger_operations_local, rand());
 ```
 
 ### Deploy Clickhouse

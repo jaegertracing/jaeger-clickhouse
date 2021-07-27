@@ -39,6 +39,8 @@ type Configuration struct {
 	Database string `yaml:"database"`
 	// Endpoint for scraping prometheus metrics e.g. localhost:9090.
 	MetricsEndpoint string `yaml:"metrics_endpoint"`
+	// Whether to use SQL scripts supporting replication and sharding. Default false.
+	Replication bool `yaml:"replication"`
 	// Table with spans. Default "jaeger_spans_local".
 	SpansTable string `yaml:"spans_table"`
 	// Span index table. Default "jaeger_index_local".

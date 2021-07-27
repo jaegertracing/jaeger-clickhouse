@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS jaeger_index (
+CREATE TABLE IF NOT EXISTS jaeger_index_local (
                                  timestamp DateTime CODEC(Delta, ZSTD(1)),
                                  traceID String CODEC(ZSTD(1)),
                                  service LowCardinality(String) CODEC(ZSTD(1)),

@@ -8,5 +8,5 @@ AS SELECT
     service,
     operation,
     count() as count
-FROM jaeger_index
+FROM jaeger_index_local
 GROUP BY date, service, operation

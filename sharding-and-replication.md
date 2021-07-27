@@ -21,10 +21,10 @@ CREATE TABLE IF NOT EXISTS jaeger_index AS jaeger_index_local ENGINE = Distribut
 CREATE TABLE IF NOT EXISTS jaeger_operations AS jaeger_operations_local ENGINE = Distributed('{cluster}', default, jaeger_operations_local, rand());
 ```
 
-The `AS <table-name>` statement creates table with the same schema as the specified one. 
-The `Distributed` engine takes as parameters cluster , database, table name and sharding key.
+* The `AS <table-name>` statement creates table with the same schema as the specified one. 
+* The `Distributed` engine takes as parameters cluster , database, table name and sharding key.
 
-If the distributed table is not created on all ClickHouse nodes the Jaeger query fails to get the data from the storage.
+If the distributed table is not created on all Clickhouse nodes the Jaeger query fails to get the data from the storage.
 
 ### Deploy Clickhouse
 
@@ -50,7 +50,7 @@ Use the following command to run `clickhouse-client` on Clickhouse nodes and cre
 kubectl exec -it statefulset.apps/chi-jaeger-cluster1-0-0 -- clickhouse-client  
 ```
 
-### Plugin config
+### Plugin configuration
 
 The plugin has to be configured to write and read that from the global tables:
 
@@ -66,10 +66,10 @@ operations_table: jaeger_operations
 Replication as the name suggest automatically replicates the data across multiple Clickhouse nodes.
 It is used to accomplish high availability, load scaling and migration/updates.
 
-The replication uses Zookeeper. Refer to the Clickhouse operator on how to deploy Zookeeper.
+The replication uses Zookeeper. Refer to the Clickhouse operator how to deploy Zookeeper.
 
 Zookeeper allows us to use `ON CLUSTER` to automatically replicate table creation on all nodes.
-So the following command can be run only on a single Clickhouse node:
+Therefore the following command can be run only on a single Clickhouse node:
 
 ```sql
 CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER '{cluster}'  (
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS jaeger_operations on CLUSTER '{cluster}' AS jaeger_op
 
 Before deploying Clickhouse make sure Zookeeper is running in `zoo1ns` namespace.
 
-Deploy Clickhouse with 3 shards and 2 replicas. In total Clickhouse operator will deploy 6 pods.
+Deploy Clickhouse with 3 shards and 2 replicas. In total Clickhouse operator will deploy 6 pods:
 
 ```yaml
 cat <<EOF | kubectl apply -f -

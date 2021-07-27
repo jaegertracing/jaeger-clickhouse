@@ -154,9 +154,9 @@ spec:
 EOF
 ```
 
-The Clickhouse deployment will look like this
+The Clickhouse deployment will look like this:
 ```bash
-k get statefulsets                                                                                                                                                  1 ↵ ploffay@fedora
+k get statefulsets
 NAME                      READY   AGE
 chi-jaeger-cluster1-0-0   1/1     17m    # shard 0
 chi-jaeger-cluster1-0-1   1/1     17m    # shard 0, replica 1

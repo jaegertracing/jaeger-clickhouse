@@ -16,9 +16,9 @@ To setup sharding run the following statements on all nodes in the `sharded` clu
 The "local" tables have to be created on the nodes before the distributed table.
 
 ```sql
-CREATE TABLE jaeger_spans_global AS jaeger_spans ENGINE = Distributed(sharded, default, jaeger_spans, rand());
-CREATE TABLE jaeger_index_global AS jaeger_index ENGINE = Distributed(sharded, default, jaeger_index, rand());
-CREATE TABLE jaeger_operations_global AS jaeger_operations ENGINE = Distributed(sharded, default, jaeger_operations, rand());
+CREATE TABLE jaeger_spans AS jaeger_spans_local ENGINE = Distributed(sharded, default, jaeger_spans, rand());
+CREATE TABLE jaeger_index AS jaeger_index_local ENGINE = Distributed(sharded, default, jaeger_index, rand());
+CREATE TABLE jaeger_operations AS jaeger_operations_local ENGINE = Distributed(sharded, default, jaeger_operations, rand());
 ```
 
 The `AS <table-name>` statement creates table with the same schema as the specified one. 
@@ -54,8 +54,8 @@ The plugin has to be configured to write and read that from the global tables:
 
 ```yaml
 address: tcp://clickhouse-simple:9000
-spans_table: jaeger_spans_global
-spans_index_table: jaeger_index_global
+spans_table: jaeger_spans
+spans_index_table: jaeger_index
 operations_table: jaeger_operations
 ```
 
@@ -70,7 +70,7 @@ Zookeeper allows us to use `ON CLUSTER` to automatically replicate table creatio
 So the following command can be run only on a single Clickhouse node:
 
 ```sql
-CREATE TABLE IF NOT EXISTS jaeger_spans ON CLUSTER sharded  (
+CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER sharded  (
                                                                 timestamp DateTime CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     model String CODEC(ZSTD(3))
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS jaeger_spans ON CLUSTER sharded  (
     ORDER BY traceID
     SETTINGS index_granularity=1024;
 
-CREATE TABLE IF NOT EXISTS jaeger_index ON CLUSTER sharded (
+CREATE TABLE IF NOT EXISTS jaeger_index_local ON CLUSTER sharded (
                                                                timestamp DateTime CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     service LowCardinality(String) CODEC(ZSTD(1)),
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS jaeger_index ON CLUSTER sharded (
     ORDER BY (service, -toUnixTimestamp(timestamp))
     SETTINGS index_granularity=1024;
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS jaeger_operations ON CLUSTER sharded
+CREATE MATERIALIZED VIEW IF NOT EXISTS jaeger_operations_local ON CLUSTER sharded
 ENGINE ReplicatedMergeTree('/clickhouse/tables/{shard}/jaeger_operations', '{replica}')
 PARTITION BY toYYYYMM(date) ORDER BY (date, service, operation)
 SETTINGS index_granularity=32
@@ -107,9 +107,9 @@ AS SELECT
    GROUP BY date, service, operation
 
 
-CREATE TABLE jaeger_spans_global ON CLUSTER sharded AS jaeger_spans ENGINE = Distributed(sharded, default, jaeger_spans, rand());
-CREATE TABLE jaeger_index_global ON CLUSTER sharded AS jaeger_index ENGINE = Distributed(sharded, default, jaeger_index, rand());
-CREATE TABLE jaeger_operations_global on CLUSTER sharded AS jaeger_operations ENGINE = Distributed(sharded, default, jaeger_operations, rand());
+CREATE TABLE jaeger_spans ON CLUSTER sharded AS jaeger_spans_local ENGINE = Distributed(sharded, default, jaeger_spans, rand());
+CREATE TABLE jaeger_index ON CLUSTER sharded AS jaeger_index_local ENGINE = Distributed(sharded, default, jaeger_index, rand());
+CREATE TABLE jaeger_operations on CLUSTER sharded AS jaeger_operations_local ENGINE = Distributed(sharded, default, jaeger_operations, rand());
 ```
 
 ### Deploy Clickhouse
@@ -152,5 +152,5 @@ spec:
 
 ```sql
 show tables
-select count() from jaeger_spans_global
+select count() from jaeger_spans
 ```

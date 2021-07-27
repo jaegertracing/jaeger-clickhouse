@@ -66,7 +66,7 @@ func connector(cfg Configuration) (*sql.DB, error) {
 		cfg.Password,
 	)
 
-	if cfg.TLSConnection {
+	if cfg.CaFile != "" {
 		caCert, err := ioutil.ReadFile(cfg.CaFile)
 		if err != nil {
 			return nil, err

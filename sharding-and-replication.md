@@ -31,6 +31,7 @@ If the distributed table is not created on all ClickHouse nodes the Jaeger query
 Deploy Clickhouse with 2 shards:
 
 ```yaml
+cat <<EOF | kubectl apply -f -
 apiVersion: "clickhouse.altinity.com/v1"
 kind: "ClickHouseInstallation"
 metadata:
@@ -41,6 +42,7 @@ spec:
       - name: "sharded"
         layout:
           shardsCount: 2
+EOF
 ```
 
 Use the following command to run `clickhouse-client` on Clickhouse nodes and create the distributed tables:
@@ -117,6 +119,7 @@ CREATE TABLE IF NOT EXISTS jaeger_operations on CLUSTER sharded AS jaeger_operat
 Zookeeper was to be deployed before deploying Clickhouse.
 
 ```yaml
+cat <<EOF | kubectl apply -f -
 apiVersion: "clickhouse.altinity.com/v1"
 kind: "ClickHouseInstallation"
 metadata:
@@ -146,6 +149,7 @@ spec:
               emptyDir:
                 medium: "" # accepted values:  empty str (means node's default medium) or "Memory"
                 sizeLimit: 1Gi
+EOF
 ```
 
 ## Useful queries

@@ -1,9 +1,14 @@
 # Jaeger ClickHouse
 
-Jaeger ClickHouse gRPC [storage plugin](https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/grpc).
+This is implementation of Jaeger ClickHouse [storage plugin](https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/grpc).
+See as well [jaegertracing/jaeger/issues/1438](https://github.com/jaegertracing/jaeger/issues/1438) for historical discussion regarding Clickhouse plugin.
 
-This is WIP and it is based on https://github.com/bobrik/jaeger/tree/ivan/clickhouse/plugin/storage/clickhouse. 
-See as well [jaegertracing/jaeger/issues/1438](https://github.com/jaegertracing/jaeger/issues/1438) for ClickHouse plugin.
+## Documentation
+
+Refer to the [config.yaml](./config.yaml) for all supported configuration options.
+
+* [Kubernetes deployment documentation](./kubernetes.md)
+* [Sharding and replicaion](./sharding-and-replication.md)
 
 ## Build & Run
 
@@ -26,7 +31,6 @@ make build
 SPAN_STORAGE_TYPE=grpc-plugin {Jaeger binary adress} --query.ui-config=jaeger-ui.json --grpc-storage-plugin.binary=./{name of built binary} --grpc-storage-plugin.configuration-file=config.yaml --grpc-storage-plugin.log-level=debug
 ```
 
-### Using TLS connection
+## Credits
 
-For TLS connection, you need to put CA-certificate to project directory and specify path to it in ``config.yaml``
-file using ``/data/{path to certificate from project directory}``
+This project is based on https://github.com/bobrik/jaeger/tree/ivan/clickhouse/plugin/storage/clickhouse.

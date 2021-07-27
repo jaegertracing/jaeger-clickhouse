@@ -133,6 +133,8 @@ spec:
         - host: zookeeper.zoo1ns
     clusters:
       - name: cluster1
+        templates:
+          podTemplate: clickhouse-with-empty-dir-volume-template
         layout:
           shardsCount: 3
           replicasCount: 2

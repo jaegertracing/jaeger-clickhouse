@@ -32,8 +32,8 @@ Deploy Clickhouse with 2 shards:
 
 ```yaml
 cat <<EOF | kubectl apply -f -
-apiVersion: "clickhouse.altinity.com/v1"
-kind: "ClickHouseInstallation"
+apiVersion: clickhouse.altinity.com/v1
+kind: ClickHouseInstallation
 metadata:
   name: jaeger
 spec:
@@ -122,8 +122,8 @@ Deploy Clickhouse with 3 shards and 2 replicas. In total Clickhouse operator wil
 
 ```yaml
 cat <<EOF | kubectl apply -f -
-apiVersion: "clickhouse.altinity.com/v1"
-kind: "ClickHouseInstallation"
+apiVersion: clickhouse.altinity.com/v1
+kind: ClickHouseInstallation
 metadata:
   name: jaeger
 spec:
@@ -166,6 +166,7 @@ select count() from jaeger_spans
 ### Kubectl
 
 ```bash
+kubectl get chi -o wide
 kubectl port-forward service/clickhouse-jaeger 9000:9000
-kubectl delete clickhouseinstallations.clickhouse.altinity.com jaeger
+kubectl delete chi jaeger
 ```

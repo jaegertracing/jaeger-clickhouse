@@ -13,9 +13,9 @@ const (
 	defaultDatabaseName                 = "default"
 	defaultMetricsEndpoint              = "localhost:9090"
 
-	defaultSpansTable      = "jaeger_spans"
-	defaultSpansIndexTable = "jaeger_index"
-	defaultOperationsTable = "jaeger_operations"
+	defaultSpansTable      = "jaeger_spans_local"
+	defaultSpansIndexTable = "jaeger_index_local"
+	defaultOperationsTable = "jaeger_operations_local"
 )
 
 type Configuration struct {
@@ -39,11 +39,11 @@ type Configuration struct {
 	Database string `yaml:"database"`
 	// Endpoint for scraping prometheus metrics e.g. localhost:9090.
 	MetricsEndpoint string `yaml:"metrics_endpoint"`
-	// Table with spans. Default "jaeger_spans".
+	// Table with spans. Default "jaeger_spans_local".
 	SpansTable string `yaml:"spans_table"`
-	// Span index table. Default "jaeger_index".
+	// Span index table. Default "jaeger_index_local".
 	SpansIndexTable string `yaml:"spans_index_table"`
-	// Operations table. Default "jaeger_operations".
+	// Operations table. Default "jaeger_operations_local.
 	OperationsTable string `yaml:"operations_table"`
 }
 

@@ -17,9 +17,9 @@ password:
 database:
 # Endpoint for scraping prometheus metrics. Default localhost:9090.
 metrics_endpoint: localhost:9090
-# Table with spans. Default "jaeger_spans".
+# Table with spans. Default "jaeger_spans_local".
 spans_table:
-# Span index table. Default "jaeger_index".
+# Span index table. Default "jaeger_index_local".
 spans_index_table:
-# Operations table. Default "jaeger_operations".
+# Operations table. Default "jaeger_operations_local".
 operations_table:

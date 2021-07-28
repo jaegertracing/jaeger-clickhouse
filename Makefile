@@ -34,6 +34,10 @@ fmt:
 lint:
 	golangci-lint run --allow-parallel-runners ./...
 
+.PHONY: unit-tests
+test:
+	go test ./...
+
 .PHONY: tar
 tar:
 	tar -czvf jaeger-clickhouse-$(GOOS)-$(GOARCH).tar.gz  jaeger-clickhouse-$(GOOS)-$(GOARCH) config.yaml

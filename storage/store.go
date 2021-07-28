@@ -30,26 +30,29 @@ type Store struct {
 	archiveReader spanstore.Reader
 }
 
-type customStatement struct {
-	query  string
-	params []string
+// Represents query with C-style placeholders and params for this placeholders
+type customStmt struct {
+	query string
+	args  []interface{}
 }
 
-func newCustomStatement(query string, params ...string) customStatement {
-	return customStatement{query: query, params: params}
+func newCustomStmt(query string, params ...interface{}) customStmt {
+	return customStmt{query: query, args: params}
 }
 
-func (statement *customStatement) exec(tx *sql.Tx) (sql.Result, error) {
-	return tx.Exec(statement.query, statement.params)
+func (stmt *customStmt) getQuery() string {
+	return fmt.Sprintf(stmt.query, stmt.args...)
 }
 
 const (
 	tlsConfigKey = "clickhouse_tls_config_key"
 )
 
-var _ shared.StoragePlugin = (*Store)(nil)
-var _ shared.ArchiveStoragePlugin = (*Store)(nil)
-var _ io.Closer = (*Store)(nil)
+var (
+	_ shared.StoragePlugin        = (*Store)(nil)
+	_ shared.ArchiveStoragePlugin = (*Store)(nil)
+	_ io.Closer                   = (*Store)(nil)
+)
 
 func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
 	cfg.setDefaults()
@@ -99,7 +102,7 @@ func connector(cfg Configuration) (*sql.DB, error) {
 }
 
 func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error {
-	var sqlStatements []customStatement
+	var sqlStatements []customStmt
 	if cfg.InitSQLScriptsDir != "" {
 		filePaths, err := walkMatch(cfg.InitSQLScriptsDir, "*.sql")
 		if err != nil {
@@ -111,29 +114,29 @@ func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error
 			if err != nil {
 				return err
 			}
-			sqlStatements = append(sqlStatements, newCustomStatement(string(sqlStatement)))
+			sqlStatements = append(sqlStatements, newCustomStmt(string(sqlStatement)))
 		}
 	} else {
-		f, err := embeddedScripts.ReadFile("sqlscripts/0001-jaeger-index.sql")
+		f, err := embeddedScripts.ReadFile("sqlscripts/no_replication/0001-jaeger-index.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, newCustomStatement(string(f), cfg.SpansIndexTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/0002-jaeger-spans.sql")
+		sqlStatements = append(sqlStatements, newCustomStmt(string(f), cfg.SpansIndexTable))
+		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0002-jaeger-spans.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, newCustomStatement(string(f), cfg.SpansTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/0003-jaeger-operations.sql")
+		sqlStatements = append(sqlStatements, newCustomStmt(string(f), cfg.SpansTable))
+		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0003-jaeger-operations.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, newCustomStatement(string(f), cfg.OperationsTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/0004-jaeger-spans-archive.sql")
+		sqlStatements = append(sqlStatements, newCustomStmt(string(f), cfg.OperationsTable, cfg.SpansIndexTable))
+		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0004-jaeger-spans-archive.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, newCustomStatement(string(f), cfg.getSpansArchiveTable()))
+		sqlStatements = append(sqlStatements, newCustomStmt(string(f), cfg.getSpansArchiveTable()))
 	}
 	return executeScripts(sqlStatements, db)
 }
@@ -175,7 +178,7 @@ func clickhouseConnector(params string) (*sql.DB, error) {
 	return db, nil
 }
 
-func executeScripts(sqlStatements []customStatement, db *sql.DB) error {
+func executeScripts(sqlStatements []customStmt, db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil
@@ -188,7 +191,7 @@ func executeScripts(sqlStatements []customStatement, db *sql.DB) error {
 	}()
 
 	for _, statement := range sqlStatements {
-		_, err = statement.exec(tx)
+		_, err = tx.Exec(statement.getQuery())
 		if err != nil {
 			return fmt.Errorf("could not run sql %q: %q", statement, err)
 		}

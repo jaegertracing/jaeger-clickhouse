@@ -1,4 +1,4 @@
-CREATE MATERIALIZED VIEW IF NOT EXISTS ?
+CREATE MATERIALIZED VIEW IF NOT EXISTS %s
 ENGINE SummingMergeTree
 PARTITION BY toYYYYMM(date) ORDER BY (date, service, operation)
 SETTINGS index_granularity=32
@@ -8,5 +8,5 @@ AS SELECT
     service,
     operation,
     count() as count
-FROM jaeger_index_local
+FROM %s
 GROUP BY date, service, operation

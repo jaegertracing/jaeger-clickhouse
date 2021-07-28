@@ -17,8 +17,6 @@ password:
 database:
 # Endpoint for scraping prometheus metrics. Default localhost:9090.
 metrics_endpoint: localhost:9090
-# Whether to use sql scripts supporting replication and sharding. Default false.
-replication:
 # Table with spans. Default "jaeger_spans".
 spans_table:
 # Span index table. Default "jaeger_index".

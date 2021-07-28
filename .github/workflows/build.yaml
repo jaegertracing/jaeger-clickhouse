@@ -1,25 +1,10 @@
-name: Build, format and lint
+name: Test, format and lint
 
 on:
   push:
   pull_request:
 
 jobs:
-  build-binaries:
-    runs-on: ubuntu-latest
-    name: Build binaries
-    steps:
-      - uses: actions/checkout@v2.3.4
-        with:
-          submodules: true
-
-      - uses: actions/setup-go@v2
-        with:
-          go-version: ^1.16
-
-      - name: Build binaries
-        run: make build
-
   format-lint:
     runs-on: ubuntu-latest
     name: Format and lint
@@ -40,3 +25,18 @@ jobs:
 
       - name: Lint
         run: make lint
+
+  e2e-test:
+    runs-on: ubuntu-latest
+    name: E2E Test
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          submodules: true
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
+
+      - name: Run e2e test
+        run: make e2e-tests

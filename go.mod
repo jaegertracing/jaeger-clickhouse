@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/ClickHouse/clickhouse-go v1.4.5
+	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/ecodia/golang-awaitility v0.0.0-20180710094957-fb55e59708c7
 	github.com/gogo/protobuf v1.3.2
 	github.com/hashicorp/go-hclog v0.16.1

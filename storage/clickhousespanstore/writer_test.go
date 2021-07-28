@@ -3,14 +3,16 @@ package clickhousespanstore
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/gogo/protobuf/proto"
-	"github.com/jaegertracing/jaeger/model"
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 	"math/rand"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/gogo/protobuf/proto"
+	"github.com/jaegertracing/jaeger/model"
+
+	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 )
 
 func TestSpanWriter_WriteModelBatchJSON(t *testing.T) {
@@ -28,7 +30,7 @@ func testSpanWriterWriteModelBatch(t *testing.T, encoding Encoding, marshal func
 	}
 	defer db.Close()
 
-	spyLogger := mocks.SpyLogger{}
+	spyLogger := mocks.NewSpyLogger()
 	spansTable := "test_spans_table"
 	spanWriter := NewSpanWriter(
 		spyLogger,
@@ -51,7 +53,8 @@ func testSpanWriterWriteModelBatch(t *testing.T, encoding Encoding, marshal func
 			StartTime:     time.Unix(rand.Int63n(time.Now().Unix()), 0),
 		}
 		spans[i] = &span
-		serializedSpan, err := marshal(&span)
+		var serializedSpan []byte
+		serializedSpan, err = marshal(&span)
 		if err != nil {
 			t.Fatalf("Could not marshal %s due to %s", fmt.Sprint(span), err)
 		}
@@ -70,4 +73,6 @@ func testSpanWriterWriteModelBatch(t *testing.T, encoding Encoding, marshal func
 	if err = spanWriter.writeModelBatch(spans); err != nil {
 		t.Fatalf("Could not write spans due to error: %s", err)
 	}
+
+	spyLogger.AssertLogsEmpty(t)
 }

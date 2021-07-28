@@ -30,20 +30,6 @@ type Store struct {
 	archiveReader spanstore.Reader
 }
 
-// Represents query with C-style placeholders and params for this placeholders
-type customStmt struct {
-	query string
-	args  []interface{}
-}
-
-func newCustomStmt(query string, params ...interface{}) customStmt {
-	return customStmt{query: query, args: params}
-}
-
-func (stmt *customStmt) getQuery() string {
-	return fmt.Sprintf(stmt.query, stmt.args...)
-}
-
 const (
 	tlsConfigKey = "clickhouse_tls_config_key"
 )
@@ -102,7 +88,7 @@ func connector(cfg Configuration) (*sql.DB, error) {
 }
 
 func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error {
-	var sqlStatements []customStmt
+	var sqlStatements []string
 	if cfg.InitSQLScriptsDir != "" {
 		filePaths, err := walkMatch(cfg.InitSQLScriptsDir, "*.sql")
 		if err != nil {
@@ -114,29 +100,29 @@ func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error
 			if err != nil {
 				return err
 			}
-			sqlStatements = append(sqlStatements, newCustomStmt(string(sqlStatement)))
+			sqlStatements = append(sqlStatements, string(sqlStatement))
 		}
 	} else {
 		f, err := embeddedScripts.ReadFile("sqlscripts/no_replication/0001-jaeger-index.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, newCustomStmt(string(f), cfg.SpansIndexTable))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable))
 		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0002-jaeger-spans.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, newCustomStmt(string(f), cfg.SpansTable))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable))
 		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0003-jaeger-operations.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, newCustomStmt(string(f), cfg.OperationsTable, cfg.SpansIndexTable))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, cfg.SpansIndexTable))
 		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0004-jaeger-spans-archive.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, newCustomStmt(string(f), cfg.getSpansArchiveTable()))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.getSpansArchiveTable()))
 	}
 	return executeScripts(sqlStatements, db)
 }
@@ -178,7 +164,7 @@ func clickhouseConnector(params string) (*sql.DB, error) {
 	return db, nil
 }
 
-func executeScripts(sqlStatements []customStmt, db *sql.DB) error {
+func executeScripts(sqlStatements []string, db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil
@@ -191,7 +177,7 @@ func executeScripts(sqlStatements []customStmt, db *sql.DB) error {
 	}()
 
 	for _, statement := range sqlStatements {
-		_, err = tx.Exec(statement.getQuery())
+		_, err = tx.Exec(statement)
 		if err != nil {
 			return fmt.Errorf("could not run sql %q: %q", statement, err)
 		}

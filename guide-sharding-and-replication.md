@@ -59,7 +59,7 @@ The plugin has to be configured to write and read that from the global tables:
 
 ```yaml
 address: tcp://clickhouse-jaeger:9000
-database: jaeger
+# database: jaeger
 spans_table: jaeger_spans
 spans_index_table: jaeger_index
 operations_table: jaeger_operations
@@ -141,7 +141,7 @@ spec:
     clusters:
       - name: cluster1
         layout:
-          shardsCount: 2
+          shardsCount: 3
           replicasCount: 2
   templates:
     podTemplates:

@@ -3,11 +3,11 @@ package e2etests
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -99,9 +99,16 @@ func TestE2E(t *testing.T) {
 		require.NoError(t, errHTTP)
 		body, errHTTP := ioutil.ReadAll(response.Body)
 		require.NoError(t, errHTTP)
-		return strings.Contains(string(body), "jaeger-query")
+		var r result
+		errHTTP = json.Unmarshal(body, &r)
+		require.NoError(t, errHTTP)
+		return len(r.Data) == 1 && r.Data[0] == "jaeger-query"
 	})
 	assert.NoError(t, err)
+}
+
+type result struct {
+	Data []string `json:"data"`
 }
 
 type clickhouseWaitStrategy struct {

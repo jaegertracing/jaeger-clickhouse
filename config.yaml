@@ -19,9 +19,9 @@ database:
 metrics_endpoint: localhost:9090
 # Whether to use sql scripts supporting replication and sharding. Default false.
 replication:
-# Table with spans. Default "jaeger_spans_local".
+# Table with spans. Default "jaeger_spans".
 spans_table:
-# Span index table. Default "jaeger_index_local".
+# Span index table. Default "jaeger_index".
 spans_index_table:
-# Operations table. Default "jaeger_operations_local".
+# Operations table. Default "jaeger_operations".
 operations_table:

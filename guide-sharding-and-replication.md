@@ -116,9 +116,9 @@ FROM jaeger.jaeger_index_local
 GROUP BY date, service, operation;
 
 
-CREATE TABLE IF NOT EXISTS jaeger_spans ON CLUSTER '{cluster}' AS jaeger.jaeger_spans_local ENGINE = Distributed('{cluster}', jaeger, jaeger.jaeger_spans_local, cityHash64(traceID));
-CREATE TABLE IF NOT EXISTS jaeger_index ON CLUSTER '{cluster}' AS jaeger.jaeger_index_local ENGINE = Distributed('{cluster}', jaeger, jaeger.jaeger_index_local, cityHash64(traceID));
-CREATE TABLE IF NOT EXISTS jaeger_operations on CLUSTER '{cluster}' AS jaeger.jaeger_operations_local ENGINE = Distributed('{cluster}', jaeger, jaeger.jaeger_operations_local, rand());
+CREATE TABLE IF NOT EXISTS jaeger_spans ON CLUSTER '{cluster}' AS jaeger.jaeger_spans_local ENGINE = Distributed('{cluster}', jaeger, jaeger_spans_local, cityHash64(traceID));
+CREATE TABLE IF NOT EXISTS jaeger_index ON CLUSTER '{cluster}' AS jaeger.jaeger_index_local ENGINE = Distributed('{cluster}', jaeger, jaeger_index_local, cityHash64(traceID));
+CREATE TABLE IF NOT EXISTS jaeger_operations on CLUSTER '{cluster}' AS jaeger.jaeger_operations_local ENGINE = Distributed('{cluster}', jaeger, jaeger_operations_local, rand());
 ```
 
 ### Deploy Clickhouse

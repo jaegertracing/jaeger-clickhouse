@@ -53,7 +53,7 @@ func main() {
 	}()
 
 	var pluginServices shared.PluginServices
-	store, err := storage.NewStore(logger, cfg, jaegerclickhouse.EmbeddedFilesNoReplication)
+	store, err := storage.NewStore(logger, cfg, jaegerclickhouse.EmbeddedFiles)
 	if err != nil {
 		logger.Error("Failed to create a storage", err)
 		os.Exit(1)

@@ -103,22 +103,22 @@ func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error
 			sqlStatements = append(sqlStatements, string(sqlStatement))
 		}
 	} else {
-		f, err := embeddedScripts.ReadFile("sqlscripts/no_replication/0001-jaeger-index.sql")
+		f, err := embeddedScripts.ReadFile("sqlscripts/0001-jaeger-index.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0002-jaeger-spans.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/0002-jaeger-spans.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0003-jaeger-operations.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/0003-jaeger-operations.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, cfg.SpansIndexTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0004-jaeger-spans-archive.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/0004-jaeger-spans-archive.sql")
 		if err != nil {
 			return err
 		}

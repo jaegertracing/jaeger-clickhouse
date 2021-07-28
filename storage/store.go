@@ -34,9 +34,11 @@ const (
 	tlsConfigKey = "clickhouse_tls_config_key"
 )
 
-var _ shared.StoragePlugin = (*Store)(nil)
-var _ shared.ArchiveStoragePlugin = (*Store)(nil)
-var _ io.Closer = (*Store)(nil)
+var (
+	_ shared.StoragePlugin        = (*Store)(nil)
+	_ shared.ArchiveStoragePlugin = (*Store)(nil)
+	_ io.Closer                   = (*Store)(nil)
+)
 
 func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
 	cfg.setDefaults()
@@ -45,7 +47,7 @@ func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.F
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
 
-	if err := initializeDB(db, cfg.InitSQLScriptsDir, embeddedSQLScripts); err != nil {
+	if err := initializeDB(db, cfg, embeddedSQLScripts); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -85,10 +87,10 @@ func connector(cfg Configuration) (*sql.DB, error) {
 	return clickhouseConnector(params)
 }
 
-func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS) error {
+func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error {
 	var sqlStatements []string
-	if initSQLScriptsDir != "" {
-		filePaths, err := walkMatch(initSQLScriptsDir, "*.sql")
+	if cfg.InitSQLScriptsDir != "" {
+		filePaths, err := walkMatch(cfg.InitSQLScriptsDir, "*.sql")
 		if err != nil {
 			return fmt.Errorf("could not list sql files: %q", err)
 		}
@@ -105,22 +107,22 @@ func initializeDB(db *sql.DB, initSQLScriptsDir string, embeddedScripts embed.FS
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, string(f))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable))
 		f, err = embeddedScripts.ReadFile("sqlscripts/0002-jaeger-spans.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, string(f))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable))
 		f, err = embeddedScripts.ReadFile("sqlscripts/0003-jaeger-operations.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, string(f))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, cfg.SpansIndexTable))
 		f, err = embeddedScripts.ReadFile("sqlscripts/0004-jaeger-spans-archive.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, string(f))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.getSpansArchiveTable()))
 	}
 	return executeScripts(sqlStatements, db)
 }
@@ -174,10 +176,10 @@ func executeScripts(sqlStatements []string, db *sql.DB) error {
 		}
 	}()
 
-	for _, file := range sqlStatements {
-		_, err = tx.Exec(file)
+	for _, statement := range sqlStatements {
+		_, err = tx.Exec(statement)
 		if err != nil {
-			return fmt.Errorf("could not run sql %q: %q", file, err)
+			return fmt.Errorf("could not run sql %q: %q", statement, err)
 		}
 	}
 	committed = true

@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS jaeger_spans_local (
+CREATE TABLE IF NOT EXISTS %s (
     timestamp DateTime CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     model String CODEC(ZSTD(3))

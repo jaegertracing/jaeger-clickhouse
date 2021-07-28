@@ -78,3 +78,7 @@ func (cfg *Configuration) setDefaults() {
 		cfg.OperationsTable = defaultOperationsTable
 	}
 }
+
+func (cfg *Configuration) getSpansArchiveTable() string {
+	return cfg.SpansTable + "_archive"
+}

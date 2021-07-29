@@ -14,22 +14,27 @@ const levelCount = 5
 
 var _ hclog.Logger = SpyLogger{}
 
+type LogMock struct {
+	Msg  string
+	Args []interface{}
+}
+
 type SpyLogger struct {
-	logs [][]string
+	logs [][]LogMock
 }
 
 func NewSpyLogger() SpyLogger {
-	return SpyLogger{logs: make([][]string, levelCount)}
+	return SpyLogger{logs: make([][]LogMock, levelCount)}
 }
 
-func (logger *SpyLogger) AssertLogsOfLevelEqual(t *testing.T, level hclog.Level, want []string) {
+func (logger *SpyLogger) AssertLogsOfLevelEqual(t *testing.T, level hclog.Level, want []LogMock) {
 	got := logger.getLogs(level)
 	if !reflect.DeepEqual(want, got) {
 		t.Fatalf("Incorrect logs of the %s level, want %s, got %s", level, fmt.Sprint(want), fmt.Sprint(got))
 	}
 }
 
-func (logger *SpyLogger) getLogs(level hclog.Level) []string {
+func (logger *SpyLogger) getLogs(level hclog.Level) []LogMock {
 	return logger.logs[level-1]
 }
 
@@ -42,7 +47,7 @@ func (logger *SpyLogger) AssertLogsEmpty(t *testing.T) {
 }
 
 func (logger SpyLogger) Log(level hclog.Level, msg string, args ...interface{}) {
-	logger.logs[level-1] = append(logger.getLogs(level), fmt.Sprintf(msg, args...))
+	logger.logs[level-1] = append(logger.getLogs(level), LogMock{msg, args})
 }
 
 func (logger SpyLogger) Trace(msg string, args ...interface{}) {

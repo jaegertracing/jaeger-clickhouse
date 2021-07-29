@@ -106,8 +106,8 @@ func TestSpanWriter_WriteIndexBatch(t *testing.T) {
 			SpanID:        model.NewSpanID(rand.Uint64()),
 			OperationName: "operation" + strconv.FormatUint(rand.Uint64(), 10),
 			StartTime:     time.Unix(rand.Int63n(time.Now().Unix()), 0),
-			Process: &process,
-			Duration: time.Unix(rand.Int63n(1 << 32), 0).Sub(time.Unix(0, 0)),
+			Process:       &process,
+			Duration:      time.Unix(rand.Int63n(1<<32), 0).Sub(time.Unix(0, 0)),
 		}
 		spans[i] = &span
 

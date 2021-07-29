@@ -134,6 +134,10 @@ kind: ClickHouseInstallation
 metadata:
   name: jaeger
 spec:
+  defaults:
+    templates:
+      dataVolumeClaimTemplate: data-volume-template
+      logVolumeClaimTemplate: log-volume-template
   configuration:
     zookeeper:
       nodes:
@@ -144,22 +148,41 @@ spec:
           shardsCount: 3
           replicasCount: 2
   templates:
-    podTemplates:
-      - name: clickhouse-with-empty-dir-volume-template
+    volumeClaimTemplates:
+      - name: data-volume-template
         spec:
-          containers:
-            - name: clickhouse-pod
-              image: yandex/clickhouse-server:20.7
-              volumeMounts:
-                - name: clickhouse-storage
-                  mountPath: /var/lib/clickhouse
-          volumes:
-            - name: clickhouse-storage
-              emptyDir:
-                medium: "" # accepted values:  empty str (means node's default medium) or "Memory"
-                sizeLimit: 1Gi
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+      - name: log-volume-template
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 100Mi
 EOF
 ```
+
+The Clickhouse deployment will look like this:
+```bash
+k get statefulsets
+NAME                      READY   AGE
+chi-jaeger-cluster1-0-0   1/1     17m    # shard 0
+chi-jaeger-cluster1-0-1   1/1     17m    # shard 0, replica 1
+chi-jaeger-cluster1-1-0   1/1     16m    # shard 1
+chi-jaeger-cluster1-1-1   1/1     16m    # shard 1, replica 1
+chi-jaeger-cluster1-2-0   1/1     7m43s  # shard 2
+chi-jaeger-cluster1-2-1   1/1     7m26s  # shard 2, replica 1
+```
+
+#### Scaling up
+
+Just increase `shardsCount` number and new Clickhouse node will come up. It will have initialized Jaeger tables so
+no other steps are required. Note that the old data are not re-balanced, only new writes take into the account
+the new node.
 
 ## Useful Commands
 

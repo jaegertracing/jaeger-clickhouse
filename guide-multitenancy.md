@@ -1,14 +1,15 @@
 # Multi-tenant deployment
 
-Multi-tenant deployment requires using a separate databases for each tenant.
+Multi-tenant deployment requires using a database per tenant. Each tenant will talk
+to a separate Jaeger query and collector (or all-in-one).
 
 Create a database:
 
 ```sql
-CREATE DATABASE tenant_1;
+CREATE DATABASE tenant_1 ENGINE=Atomic;
 ```
 
-Then configure plugin to use a specific database:
+Then configure the plugin to use tenant's database:
 
 ```yaml
 database: tenant_1

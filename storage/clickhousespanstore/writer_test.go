@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"sort"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/assert"
 
 	"github.com/hashicorp/go-hclog"
@@ -51,10 +51,11 @@ func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
 		for tag := range uniqueTags {
 			want = append(want, tag)
 		}
+		sort.Strings(want)
 
 		got := uniqueTagsForSpan(span)
 
-		assert.DeepEqual(t, want, got, cmpopts.SortSlices(func(x, y string) bool { return x < y }))
+		assert.DeepEqual(t, want, got)
 	}
 }
 

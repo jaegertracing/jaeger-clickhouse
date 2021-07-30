@@ -2,9 +2,9 @@ package mocks
 
 import (
 	"fmt"
+	"gotest.tools/assert"
 	"io"
 	"log"
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
@@ -28,10 +28,7 @@ func NewSpyLogger() SpyLogger {
 }
 
 func (logger *SpyLogger) AssertLogsOfLevelEqual(t *testing.T, level hclog.Level, want []LogMock) {
-	got := logger.getLogs(level)
-	if !reflect.DeepEqual(want, got) {
-		t.Fatalf("Incorrect logs of the %s level, want %s, got %s", level, fmt.Sprint(want), fmt.Sprint(got))
-	}
+	assert.DeepEqual(t, want, logger.getLogs(level))
 }
 
 func (logger *SpyLogger) getLogs(level hclog.Level) []LogMock {

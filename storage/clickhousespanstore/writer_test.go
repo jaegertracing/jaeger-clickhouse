@@ -18,18 +18,16 @@ import (
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 )
 
-const testSpanCount = 100
+const (
+	testSpanCount = 100
+	testTagCount  = 1000
+)
 
 func TestSpanWriter_TagString(t *testing.T) {
-	const testRepetitionCount = 1000
-
-	for i := 0; i < testRepetitionCount; i++ {
-		key := "key" + strconv.FormatUint(rand.Uint64(), 16)
-		value := "key" + strconv.FormatUint(rand.Uint64(), 16)
-		kv := model.KeyValue{Key: key, VType: model.ValueType_STRING, VStr: value}
-
-		want := fmt.Sprintf("%s=%s", key, value)
-		got := tagString(&kv)
+	tags := generateRandomTags()
+	for _, kv := range tags {
+		want := fmt.Sprintf("%s=%s", kv.Key, kv.AsString())
+		got := tagString(kv)
 		if got != want {
 			t.Fatalf("Incorrect tag string, want %s, got %s", want, got)
 		}
@@ -275,6 +273,18 @@ func generateRandomSpan() model.Span {
 		Duration:      time.Unix(rand.Int63n(1<<32), 0).Sub(time.Unix(0, 0)),
 	}
 	return span
+}
+
+func generateRandomTags() []*model.KeyValue {
+	tags := make([]*model.KeyValue, 0, testTagCount)
+	for i := 0; i < testTagCount; i++ {
+		key := "key" + strconv.FormatUint(rand.Uint64(), 16)
+		value := "key" + strconv.FormatUint(rand.Uint64(), 16)
+		kv := model.KeyValue{Key: key, VType: model.ValueType_STRING, VStr: value}
+		tags = append(tags, &kv)
+	}
+
+	return tags
 }
 
 func assertExpectationsWereMet(t *testing.T, mock sqlmock.Sqlmock) {

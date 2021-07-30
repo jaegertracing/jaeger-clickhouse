@@ -26,7 +26,6 @@ const (
 	testTagCount        = 100
 	testIndexTable      = "test_index_table"
 	testSpansTable      = "test_spans_table"
-	testOperationsTable = "test_operations_table"
 )
 
 func TestSpanWriter_TagString(t *testing.T) {

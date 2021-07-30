@@ -63,7 +63,7 @@ func (r *TraceReader) getTraces(ctx context.Context, traceIDs []model.TraceID) (
 		values[i] = traceID.String()
 	}
 
-	// It's more efficient to do PREWHERE on traceID to then only read needed models:
+	// It's more efficient to do PREWHERE on traceID to the only read needed models:
 	// * https://clickhouse.tech/docs/en/sql-reference/statements/select/prewhere/
 	//nolint:gosec  , G201: SQL string formatting
 	query := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (%s)", r.spansTable, "?"+strings.Repeat(",?", len(values)-1))
@@ -145,7 +145,7 @@ func (r *TraceReader) getStrings(ctx context.Context, sql string, args ...interf
 
 	defer rows.Close()
 
-	values := []string{}
+	values := make([]string, 0)
 
 	for rows.Next() {
 		var value string
@@ -251,7 +251,7 @@ func (r *TraceReader) FindTraceIDs(ctx context.Context, params *spanstore.TraceQ
 		timeSpan = minTimespanForProgressiveSearch
 	}
 
-	found := []model.TraceID{}
+	found := make([]model.TraceID, 0)
 
 	for step := 0; step < maxProgressiveSteps; step++ {
 		if len(found) >= params.NumTraces {

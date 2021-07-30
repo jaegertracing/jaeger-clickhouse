@@ -79,15 +79,7 @@ func testSpanWriterWriteBatchNoIndex(t *testing.T, encoding Encoding, marshal fu
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
-	spanWriter := NewSpanWriter(
-		spyLogger,
-		db,
-		testIndexTable,
-		testSpansTable,
-		encoding,
-		0,
-		0,
-	)
+	spanWriter := getSpanWriter(spyLogger, db, encoding)
 
 	spans := generateRandomSpans()
 	if err = expectModelWritten(mock, spans, marshal, spanWriter); err != nil {
@@ -123,16 +115,7 @@ func testSpanWriterWriteBatch(t *testing.T, encoding Encoding, marshal func(span
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
-	spanWriter := NewSpanWriter(
-		spyLogger,
-		db,
-		testIndexTable,
-		testSpansTable,
-		encoding,
-		0,
-		0,
-	)
-
+	spanWriter := getSpanWriter(spyLogger, db, encoding)
 	spans := generateRandomSpans()
 	if err = expectModelWritten(mock, spans, marshal, spanWriter); err != nil {
 		t.Fatalf("could not expect queries due to %s", err)
@@ -168,15 +151,7 @@ func testSpanWriterWriteModelBatch(t *testing.T, encoding Encoding, marshal func
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
-	spanWriter := NewSpanWriter(
-		spyLogger,
-		db,
-		testIndexTable,
-		testSpansTable,
-		encoding,
-		0,
-		0,
-	)
+	spanWriter := getSpanWriter(spyLogger, db, encoding)
 
 	spans := generateRandomSpans()
 	if err = expectModelWritten(mock, spans, marshal, spanWriter); err != nil {
@@ -197,15 +172,7 @@ func TestSpanWriter_WriteIndexBatch(t *testing.T) {
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
-	spanWriter := NewSpanWriter(
-		spyLogger,
-		db,
-		testIndexTable,
-		testSpansTable,
-		EncodingJSON,
-		0,
-		0,
-	)
+	spanWriter := getSpanWriter(spyLogger, db, EncodingJSON)
 
 	spans := generateRandomSpans()
 	expectIndexWritten(mock, spans, spanWriter)
@@ -273,6 +240,18 @@ func getDbMock() (*sql.DB, sqlmock.Sqlmock, error) {
 	return sqlmock.New(
 		sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual),
 		sqlmock.ValueConverterOption(mocks.ConverterMock{}),
+	)
+}
+
+func getSpanWriter(spyLogger mocks.SpyLogger, db *sql.DB, encoding Encoding) *SpanWriter {
+	return NewSpanWriter(
+		spyLogger,
+		db,
+		testIndexTable,
+		testSpansTable,
+		encoding,
+		0,
+		0,
 	)
 }
 

@@ -3,8 +3,9 @@ package mocks
 import (
 	"database/sql/driver"
 	"fmt"
-	"github.com/jaegertracing/jaeger/model"
 	"time"
+
+	"github.com/jaegertracing/jaeger/model"
 )
 
 var _ driver.ValueConverter = ConverterMock{}

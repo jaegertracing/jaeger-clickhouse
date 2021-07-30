@@ -1,10 +1,11 @@
 package mocks
 
 import (
-	"github.com/hashicorp/go-hclog"
 	"math/rand"
 	"strconv"
 	"testing"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestSpyLogger_AssertLogsEmpty(t *testing.T) {

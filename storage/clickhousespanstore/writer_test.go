@@ -23,7 +23,7 @@ import (
 
 const (
 	testSpanCount = 100
-	testTagCount  = 1000
+	testTagCount  = 100
 )
 
 func TestSpanWriter_TagString(t *testing.T) {

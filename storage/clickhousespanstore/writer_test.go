@@ -24,6 +24,9 @@ import (
 const (
 	testSpanCount = 100
 	testTagCount  = 100
+	testIndexTable = "test_index_table"
+	testSpansTable = "test_spans_table"
+	testOperationsTable = "test_operations_table"
 )
 
 func TestSpanWriter_TagString(t *testing.T) {
@@ -76,13 +79,11 @@ func testSpanWriterWriteBatchNoIndex(t *testing.T, encoding Encoding, marshal fu
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
-	indexTable := ""
-	spansTable := "test_spans_table"
 	spanWriter := NewSpanWriter(
 		spyLogger,
 		db,
-		indexTable,
-		spansTable,
+		testIndexTable,
+		testSpansTable,
 		encoding,
 		0,
 		0,
@@ -122,13 +123,11 @@ func testSpanWriterWriteBatch(t *testing.T, encoding Encoding, marshal func(span
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
-	indexTable := "test_index_table"
-	spansTable := "test_spans_table"
 	spanWriter := NewSpanWriter(
 		spyLogger,
 		db,
-		indexTable,
-		spansTable,
+		testIndexTable,
+		testSpansTable,
 		encoding,
 		0,
 		0,
@@ -169,12 +168,11 @@ func testSpanWriterWriteModelBatch(t *testing.T, encoding Encoding, marshal func
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
-	spansTable := "test_spans_table"
 	spanWriter := NewSpanWriter(
 		spyLogger,
 		db,
-		"",
-		spansTable,
+		testIndexTable,
+		testSpansTable,
 		encoding,
 		0,
 		0,
@@ -199,12 +197,11 @@ func TestSpanWriter_WriteIndexBatch(t *testing.T) {
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
-	indexTable := "test_index_table"
 	spanWriter := NewSpanWriter(
 		spyLogger,
 		db,
-		indexTable,
-		"",
+		testIndexTable,
+		testSpansTable,
 		EncodingJSON,
 		0,
 		0,

@@ -35,7 +35,7 @@ lint:
 	golangci-lint run --allow-parallel-runners ./...
 
 .PHONY: unit-tests
-test:
+unit-tests:
 	go test ./...
 
 .PHONY: tar

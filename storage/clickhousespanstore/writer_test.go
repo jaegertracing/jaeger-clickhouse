@@ -28,7 +28,8 @@ const (
 
 func TestSpanWriter_TagString(t *testing.T) {
 	tags := generateRandomTags()
-	for _, kv := range tags {
+	for i := range tags {
+		kv := tags[i]
 		want := fmt.Sprintf("%s=%s", kv.Key, kv.AsString())
 		got := tagString(&kv)
 		if got != want {
@@ -41,11 +42,11 @@ func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
 	spans := generateRandomSpans()
 	for _, span := range spans {
 		uniqueTags := make(map[string]struct{}, len(span.Tags)+len(span.Process.Tags))
-		for _, tag := range span.Tags {
-			uniqueTags[tagString(&tag)] = struct{}{}
+		for i := range span.Tags {
+			uniqueTags[tagString(&span.Tags[i])] = struct{}{}
 		}
-		for _, tag := range span.Process.Tags {
-			uniqueTags[tagString(&tag)] = struct{}{}
+		for i := range span.Process.Tags {
+			uniqueTags[tagString(&span.Process.Tags[i])] = struct{}{}
 		}
 		want := make([]string, 0, len(uniqueTags))
 		for tag := range uniqueTags {

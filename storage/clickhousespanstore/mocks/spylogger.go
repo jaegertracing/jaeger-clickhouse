@@ -2,10 +2,11 @@ package mocks
 
 import (
 	"fmt"
-	"gotest.tools/assert"
 	"io"
 	"log"
 	"testing"
+
+	"gotest.tools/assert"
 
 	"github.com/hashicorp/go-hclog"
 )

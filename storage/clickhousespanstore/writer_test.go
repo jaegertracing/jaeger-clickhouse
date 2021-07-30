@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +20,23 @@ import (
 )
 
 const testSpanCount = 100
+
+func TestSpanWriter_TagString(t *testing.T) {
+	const testRepetitionCount = 1000
+	buf := strings.Builder{}
+
+	for i := 0; i < testRepetitionCount; i++ {
+		key := "key" + strconv.FormatUint(rand.Uint64(), 16)
+		value := "key" + strconv.FormatUint(rand.Uint64(), 16)
+		kv := model.KeyValue{Key: key, VType: model.ValueType_STRING, VStr: value}
+
+		want := fmt.Sprintf("%s=%s", key, value)
+		got := tagString(&buf, &kv)
+		if got != want {
+			t.Fatalf("Incorrect tag string, want %s, got %s", want, got)
+		}
+	}
+}
 
 func TestSpanWriter_WriteBatchNoIndexJSON(t *testing.T) {
 	testSpanWriterWriteBatchNoIndex(t, EncodingJSON, func(span *model.Span) ([]byte, error) { return json.Marshal(span) })

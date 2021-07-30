@@ -248,17 +248,17 @@ func (w *SpanWriter) Close() error {
 func uniqueTagsForSpan(span *model.Span) []string {
 	uniqueTags := make(map[string]struct{}, len(span.Tags)+len(span.Process.Tags))
 
-	for i := range span.Tags {
-		uniqueTags[tagString(&span.GetTags()[i])] = struct{}{}
+	for _, tag := range span.Tags {
+		uniqueTags[tagString(&tag)] = struct{}{}
 	}
 
-	for i := range span.Process.Tags {
-		uniqueTags[tagString(&span.GetProcess().GetTags()[i])] = struct{}{}
+	for _, tag := range span.Process.Tags {
+		uniqueTags[tagString(&tag)] = struct{}{}
 	}
 
 	for _, event := range span.Logs {
-		for i := range event.Fields {
-			uniqueTags[tagString(&event.GetFields()[i])] = struct{}{}
+		for _, field := range event.Fields {
+			uniqueTags[tagString(&field)] = struct{}{}
 		}
 	}
 

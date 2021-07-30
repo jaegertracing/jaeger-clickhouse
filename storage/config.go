@@ -1,6 +1,9 @@
 package storage
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type EncodingType string
 
@@ -14,6 +17,7 @@ const (
 	defaultDatabaseName                 = "default"
 	defaultMetricsEndpoint              = "localhost:9090"
 
+	databaseName           = "jaeger"
 	defaultSpansTable      = "jaeger_spans"
 	defaultSpansIndexTable = "jaeger_index"
 	defaultOperationsTable = "jaeger_operations"
@@ -80,6 +84,14 @@ func (cfg *Configuration) setDefaults() {
 	}
 }
 
-func (cfg *Configuration) getSpansArchiveTable() string {
+func (cfg *Configuration) GetSpansArchiveTable() string {
 	return cfg.SpansTable + "_archive"
+}
+
+func addDbName(tableName string) string {
+	return fmt.Sprintf("%s.%s", databaseName, tableName)
+}
+
+func toLocal(tableName string) string {
+	return tableName + "_local"
 }

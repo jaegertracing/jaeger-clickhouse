@@ -30,19 +30,6 @@ type Store struct {
 	archiveReader spanstore.Reader
 }
 
-type customStatement struct {
-	query  string
-	params []string
-}
-
-func newCustomStatement(query string, params ...string) customStatement {
-	return customStatement{query: query, params: params}
-}
-
-func (statement *customStatement) exec(tx *sql.Tx) (sql.Result, error) {
-	return tx.Exec(statement.query, statement.params)
-}
-
 const (
 	tlsConfigKey = "clickhouse_tls_config_key"
 )
@@ -113,7 +100,7 @@ func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error
 			if err != nil {
 				return err
 			}
-			sqlStatements = append(sqlStatements, newCustomStatement(string(sqlStatement)))
+			sqlStatements = append(sqlStatements, string(sqlStatement))
 		}
 	} else {
 		f, err := embeddedScripts.ReadFile("sqlscripts/0001-jaeger-index.sql")
@@ -177,7 +164,7 @@ func clickhouseConnector(params string) (*sql.DB, error) {
 	return db, nil
 }
 
-func executeScripts(sqlStatements []customStatement, db *sql.DB) error {
+func executeScripts(sqlStatements []string, db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil

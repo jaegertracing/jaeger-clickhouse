@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -163,7 +162,7 @@ func (w *SpanWriter) writeModelBatch(batch []*model.Span) error {
 
 	statement, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (timestamp, traceID, model) VALUES (?, ?, ?)", w.spansTable))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	defer statement.Close()
@@ -249,19 +248,17 @@ func (w *SpanWriter) Close() error {
 func uniqueTagsForSpan(span *model.Span) []string {
 	uniqueTags := make(map[string]struct{}, len(span.Tags)+len(span.Process.Tags))
 
-	buf := &strings.Builder{}
-
 	for i := range span.Tags {
-		uniqueTags[tagString(buf, &span.GetTags()[i])] = struct{}{}
+		uniqueTags[tagString(&span.GetTags()[i])] = struct{}{}
 	}
 
 	for i := range span.Process.Tags {
-		uniqueTags[tagString(buf, &span.GetProcess().GetTags()[i])] = struct{}{}
+		uniqueTags[tagString(&span.GetProcess().GetTags()[i])] = struct{}{}
 	}
 
 	for _, event := range span.Logs {
 		for i := range event.Fields {
-			uniqueTags[tagString(buf, &event.GetFields()[i])] = struct{}{}
+			uniqueTags[tagString(&event.GetFields()[i])] = struct{}{}
 		}
 	}
 
@@ -276,12 +273,6 @@ func uniqueTagsForSpan(span *model.Span) []string {
 	return tags
 }
 
-func tagString(buf *strings.Builder, kv *model.KeyValue) string {
-	buf.Reset()
-
-	buf.WriteString(kv.Key)
-	buf.WriteByte('=')
-	buf.WriteString(kv.AsString())
-
-	return buf.String()
+func tagString(kv *model.KeyValue) string {
+	return fmt.Sprintf("%s=%s", kv.Key, kv.AsString())
 }

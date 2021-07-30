@@ -22,10 +22,10 @@ import (
 )
 
 const (
-	testSpanCount       = 100
-	testTagCount        = 100
-	testIndexTable      = "test_index_table"
-	testSpansTable      = "test_spans_table"
+	testSpanCount  = 100
+	testTagCount   = 100
+	testIndexTable = "test_index_table"
+	testSpansTable = "test_spans_table"
 )
 
 func TestSpanWriter_TagString(t *testing.T) {

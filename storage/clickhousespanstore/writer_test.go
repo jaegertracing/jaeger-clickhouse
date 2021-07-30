@@ -22,10 +22,10 @@ import (
 )
 
 const (
-	testSpanCount = 100
-	testTagCount  = 100
-	testIndexTable = "test_index_table"
-	testSpansTable = "test_spans_table"
+	testSpanCount       = 100
+	testTagCount        = 100
+	testIndexTable      = "test_index_table"
+	testSpansTable      = "test_spans_table"
 	testOperationsTable = "test_operations_table"
 )
 
@@ -79,7 +79,15 @@ func testSpanWriterWriteBatchNoIndex(t *testing.T, encoding Encoding, marshal fu
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
-	spanWriter := getSpanWriter(spyLogger, db, encoding)
+	spanWriter := NewSpanWriter(
+		spyLogger,
+		db,
+		"",
+		testSpansTable,
+		encoding,
+		0,
+		0,
+	)
 
 	spans := generateRandomSpans()
 	if err = expectModelWritten(mock, spans, marshal, spanWriter); err != nil {

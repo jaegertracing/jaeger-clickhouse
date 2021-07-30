@@ -9,6 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"gotest.tools/assert"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -31,6 +34,27 @@ func TestSpanWriter_TagString(t *testing.T) {
 		if got != want {
 			t.Fatalf("Incorrect tag string, want %s, got %s", want, got)
 		}
+	}
+}
+
+func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
+	spans := generateRandomSpans()
+	for _, span := range spans {
+		uniqueTags := make(map[string]struct{}, len(span.Tags)+len(span.Process.Tags))
+		for _, tag := range span.Tags {
+			uniqueTags[tagString(&tag)] = struct{}{}
+		}
+		for _, tag := range span.Process.Tags {
+			uniqueTags[tagString(&tag)] = struct{}{}
+		}
+		want := make([]string, 0, len(uniqueTags))
+		for tag := range uniqueTags {
+			want = append(want, tag)
+		}
+
+		got := uniqueTagsForSpan(span)
+
+		assert.DeepEqual(t, want, got, cmpopts.SortSlices(func(x, y string) bool { return x < y }))
 	}
 }
 

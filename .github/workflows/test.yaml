@@ -7,6 +7,6 @@ on:
 jobs:
   example-run:
     runs-on: ubuntu-latest
-    name: Example run
+    name: Example run2
     steps:
       - uses: pavolloffay/github-actions/helloworld-composite/@main

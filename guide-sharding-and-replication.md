@@ -76,7 +76,7 @@ Zookeeper allows us to use `ON CLUSTER` to automatically replicate table creatio
 Therefore the following command can be run only on a single Clickhouse node:
 
 ```sql
-CREATE DATABASE jaeger ON CLUSTER '{cluster}' ENGINE=Atomic;
+CREATE DATABASE IF NOT EXISTS jaeger ON CLUSTER '{cluster}' ENGINE=Atomic;
 USE jaeger;
 
 CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER '{cluster}' (

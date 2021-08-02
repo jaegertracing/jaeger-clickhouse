@@ -53,9 +53,7 @@ func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
 		}
 		sort.Strings(want)
 
-		got := uniqueTagsForSpan(span)
-
-		assert.Equal(t, want, got)
+		assert.Equal(t, want, uniqueTagsForSpan(span))
 	}
 }
 
@@ -69,9 +67,7 @@ func TestSpanWriter_WriteBatchNoIndexProto(t *testing.T) {
 
 func testSpanWriterWriteBatchNoIndex(t *testing.T, encoding Encoding, marshal func(span *model.Span) ([]byte, error)) {
 	db, mock, err := getDbMock()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
@@ -86,13 +82,9 @@ func testSpanWriterWriteBatchNoIndex(t *testing.T, encoding Encoding, marshal fu
 	)
 
 	spans := generateRandomSpans()
-	if err = expectModelWritten(mock, spans, marshal, spanWriter); err != nil {
-		t.Fatalf("could not expect queries due to %s", err)
-	}
-	if err = spanWriter.writeBatch(spans); err != nil {
-		t.Fatalf("Could not write spans due to error: %s", err)
-	}
-	require.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	require.NoError(t, expectModelWritten(mock, spans, marshal, spanWriter), "could not expect queries due to %s", err)
+	assert.NoError(t, spanWriter.writeBatch(spans), "Could not write spans")
+	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 
 	spyLogger.AssertLogsOfLevelEqual(
 		t,
@@ -113,22 +105,16 @@ func TestSpanWriter_WriteBatchProto(t *testing.T) {
 
 func testSpanWriterWriteBatch(t *testing.T, encoding Encoding, marshal func(span *model.Span) ([]byte, error)) {
 	db, mock, err := getDbMock()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
 	spanWriter := getSpanWriter(spyLogger, db, encoding)
 	spans := generateRandomSpans()
-	if err = expectModelWritten(mock, spans, marshal, spanWriter); err != nil {
-		t.Fatalf("could not expect queries due to %s", err)
-	}
+	require.NoError(t, expectModelWritten(mock, spans, marshal, spanWriter), "could not expect queries due to %s", err)
 	expectIndexWritten(mock, spans, spanWriter)
-	if err = spanWriter.writeBatch(spans); err != nil {
-		t.Fatalf("Could not write spans due to error: %s", err)
-	}
-	require.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	assert.NoError(t, spanWriter.writeBatch(spans), "Could not write spans")
+	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 
 	spyLogger.AssertLogsOfLevelEqual(
 		t,
@@ -149,30 +135,22 @@ func TestSpanWriter_WriteModelBatchProtobuf(t *testing.T) {
 
 func testSpanWriterWriteModelBatch(t *testing.T, encoding Encoding, marshal func(span *model.Span) ([]byte, error)) {
 	db, mock, err := getDbMock()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
 	spanWriter := getSpanWriter(spyLogger, db, encoding)
 
 	spans := generateRandomSpans()
-	if err = expectModelWritten(mock, spans, marshal, spanWriter); err != nil {
-		t.Fatalf("could not expect queries due to %s", err)
-	}
-	if err = spanWriter.writeModelBatch(spans); err != nil {
-		t.Fatalf("could not write spans due to error: %s", err)
-	}
-	require.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	require.NoError(t, expectModelWritten(mock, spans, marshal, spanWriter), "could not expect queries due to %s", err)
+	assert.NoError(t, spanWriter.writeModelBatch(spans), "Could not write spans")
+	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 	spyLogger.AssertLogsEmpty(t)
 }
 
 func TestSpanWriter_WriteIndexBatch(t *testing.T) {
 	db, mock, err := getDbMock()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
@@ -180,10 +158,8 @@ func TestSpanWriter_WriteIndexBatch(t *testing.T) {
 
 	spans := generateRandomSpans()
 	expectIndexWritten(mock, spans, spanWriter)
-	if err = spanWriter.writeIndexBatch(spans); err != nil {
-		t.Fatalf("Could not write spans due to error: %s", err)
-	}
-	require.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	assert.NoError(t, spanWriter.writeIndexBatch(spans), "Could not write spans")
+	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 	spyLogger.AssertLogsEmpty(t)
 }
 

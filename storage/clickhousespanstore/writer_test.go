@@ -95,7 +95,7 @@ func testSpanWriterWriteBatchNoIndex(t *testing.T, encoding Encoding, marshal fu
 	if err = spanWriter.writeBatch(spans); err != nil {
 		t.Fatalf("Could not write spans due to error: %s", err)
 	}
-	assertExpectationsWereMet(t, mock)
+	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 
 	spyLogger.AssertLogsOfLevelEqual(
 		t,
@@ -131,7 +131,7 @@ func testSpanWriterWriteBatch(t *testing.T, encoding Encoding, marshal func(span
 	if err = spanWriter.writeBatch(spans); err != nil {
 		t.Fatalf("Could not write spans due to error: %s", err)
 	}
-	assertExpectationsWereMet(t, mock)
+	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 
 	spyLogger.AssertLogsOfLevelEqual(
 		t,
@@ -167,7 +167,7 @@ func testSpanWriterWriteModelBatch(t *testing.T, encoding Encoding, marshal func
 	if err = spanWriter.writeModelBatch(spans); err != nil {
 		t.Fatalf("could not write spans due to error: %s", err)
 	}
-	assertExpectationsWereMet(t, mock)
+	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 	spyLogger.AssertLogsEmpty(t)
 }
 
@@ -186,7 +186,7 @@ func TestSpanWriter_WriteIndexBatch(t *testing.T) {
 	if err = spanWriter.writeIndexBatch(spans); err != nil {
 		t.Fatalf("Could not write spans due to error: %s", err)
 	}
-	assertExpectationsWereMet(t, mock)
+	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 	spyLogger.AssertLogsEmpty(t)
 }
 
@@ -299,10 +299,4 @@ func generateRandomTags() []model.KeyValue {
 	}
 
 	return tags
-}
-
-func assertExpectationsWereMet(t *testing.T, mock sqlmock.Sqlmock) {
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("Not all expected queries were made")
-	}
 }

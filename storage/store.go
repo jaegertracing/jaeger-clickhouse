@@ -53,12 +53,21 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
+	if cfg.Replication {
+		return &Store{
+			db:            db,
+			writer:        clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+			reader:        clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable),
+			archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", cfg.GetSpansArchiveTable(), clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+			archiveReader: clickhousespanstore.NewTraceReader(db, "", "", cfg.GetSpansArchiveTable()),
+		}, nil
+	}
 	return &Store{
 		db:            db,
-		writer:        clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
-		reader:        clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable),
-		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", "jaeger_archive_spans", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
-		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", "jaeger_archive_spans"),
+		writer:        clickhousespanstore.NewSpanWriter(logger, db, toLocal(cfg.SpansIndexTable), toLocal(cfg.SpansTable), clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+		reader:        clickhousespanstore.NewTraceReader(db, toLocal(cfg.OperationsTable), toLocal(cfg.SpansIndexTable), toLocal(cfg.SpansTable)),
+		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", toLocal(cfg.GetSpansArchiveTable()), clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", toLocal(cfg.GetSpansArchiveTable())),
 	}, nil
 }
 

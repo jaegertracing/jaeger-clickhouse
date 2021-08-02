@@ -9,7 +9,7 @@ import (
 )
 
 func TestDependencyStore_GetDependencies(t *testing.T) {
-	dependencyStore := DependencyStore{}
+	dependencyStore := NewDependencyStore()
 
 	dependencies, err := dependencyStore.GetDependencies(context.Background(), time.Now(), time.Hour)
 

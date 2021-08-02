@@ -136,7 +136,7 @@ func initializeDB(db *sql.DB, cfg Configuration) error {
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), toLocal(cfg.OperationsTable), toLocal(cfg.SpansIndexTable)))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), toLocal(cfg.OperationsTable), addDbName(toLocal(cfg.SpansIndexTable))))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0006-jaeger-spans-archive-local.sql")
 		if err != nil {
 			return err

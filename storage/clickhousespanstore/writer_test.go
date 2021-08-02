@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -58,7 +58,7 @@ func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
 
 		got := uniqueTagsForSpan(span)
 
-		assert.DeepEqual(t, want, got)
+		assert.Equal(t, want, got)
 	}
 }
 

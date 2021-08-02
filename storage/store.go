@@ -6,12 +6,13 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	jaegerclickhouse "github.com/pavolloffay/jaeger-clickhouse"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
+
+	jaegerclickhouse "github.com/pavolloffay/jaeger-clickhouse"
 
 	"github.com/ClickHouse/clickhouse-go"
 	"github.com/hashicorp/go-hclog"

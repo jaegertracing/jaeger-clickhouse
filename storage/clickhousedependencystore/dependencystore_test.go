@@ -2,7 +2,7 @@ package clickhousedependencystore
 
 import (
 	"context"
-	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -10,13 +10,8 @@ import (
 func TestDependencyStore_GetDependencies(t *testing.T) {
 	dependencyStore := DependencyStore{}
 
-	dependencies, err := dependencyStore.GetDependencies(context.TODO(), time.Now(), time.Hour)
+	dependencies, err := dependencyStore.GetDependencies(context.Background(), time.Now(), time.Hour)
 
-	if err != errNotImplemented {
-		t.Errorf("Expected GetDependencies not to be implemented, got %s", err)
-	}
-
-	if dependencies != nil {
-		t.Error(fmt.Sprint("Expected GetDependencies result to be nil, got", dependencies))
-	}
+	assert.EqualError(t, err, errNotImplemented.Error())
+	assert.Nil(t, dependencies)
 }

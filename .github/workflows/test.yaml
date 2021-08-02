@@ -9,6 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Example run
     steps:
-      - uses: pavolloffay/github-actions@main
+      - uses: pavolloffay/github-actions/helloworld-composite/@main
         with:
           inputString: John Doe

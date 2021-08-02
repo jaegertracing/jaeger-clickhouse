@@ -34,8 +34,8 @@ fmt:
 lint:
 	golangci-lint run --allow-parallel-runners ./...
 
-.PHONY: unit-tests
-unit-tests:
+.PHONY: test
+test:
 	go test ./...
 
 .PHONY: tar

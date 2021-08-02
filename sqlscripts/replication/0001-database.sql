@@ -1,2 +1,1 @@
-CREATE DATABASE jaeger ON CLUSTER '{cluster}' ENGINE = Atomic;
-USE jaeger;
+CREATE DATABASE IF NOT EXISTS jaeger ON CLUSTER '{cluster}' ENGINE = Atomic;

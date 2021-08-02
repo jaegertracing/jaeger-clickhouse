@@ -1,0 +1,14 @@
+name: Test my actions
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  example-run:
+    runs-on: ubuntu-latest
+    name: Example run
+    steps:
+      - uses: pavolloffay/github-actions@main
+        with:
+          inputString: John Doe

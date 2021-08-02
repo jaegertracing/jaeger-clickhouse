@@ -76,10 +76,10 @@ Zookeeper allows us to use `ON CLUSTER` to automatically replicate table creatio
 Therefore the following command can be run only on a single Clickhouse node:
 
 ```sql
-CREATE DATABASE jaeger ON CLUSTER '{cluster}' ENGINE=Atomic
-USE jaeger
+CREATE DATABASE IF NOT EXISTS jaeger ON CLUSTER '{cluster}' ENGINE=Atomic;
+USE jaeger;
 
-CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER cluster1 (
+CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER '{cluster}' (
     timestamp DateTime CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     model String CODEC(ZSTD(3))
@@ -189,8 +189,8 @@ the new node.
 ### SQL
 
 ```sql
-show tables
-select count() from jaeger_spans
+show tables;
+select count() from jaeger_spans;
 ```
 
 ### Kubectl

@@ -1,12 +1,11 @@
 package mocks
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"testing"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/go-hclog"
 )
@@ -29,7 +28,7 @@ func NewSpyLogger() SpyLogger {
 }
 
 func (logger *SpyLogger) AssertLogsOfLevelEqual(t *testing.T, level hclog.Level, want []LogMock) {
-	assert.DeepEqual(t, want, logger.getLogs(level))
+	assert.Equal(t, want, logger.getLogs(level))
 }
 
 func (logger *SpyLogger) getLogs(level hclog.Level) []LogMock {
@@ -37,11 +36,7 @@ func (logger *SpyLogger) getLogs(level hclog.Level) []LogMock {
 }
 
 func (logger *SpyLogger) AssertLogsEmpty(t *testing.T) {
-	for level, logs := range logger.logs {
-		if len(logs) != 0 {
-			t.Fatalf("Want logs to be empty, got %s on level %s", fmt.Sprint(logs), hclog.Level(level+1))
-		}
-	}
+	assert.Equal(t, logger.logs, make([][]LogMock, levelCount))
 }
 
 func (logger SpyLogger) Log(level hclog.Level, msg string, args ...interface{}) {

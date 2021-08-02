@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	jaegerclickhouse "github.com/pavolloffay/jaeger-clickhouse"
 	"io"
 	"io/ioutil"
 	"os"
@@ -40,14 +41,14 @@ var (
 	_ io.Closer                   = (*Store)(nil)
 )
 
-func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
+func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 	cfg.setDefaults()
 	db, err := connector(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
 
-	if err := initializeDB(db, cfg, embeddedSQLScripts); err != nil {
+	if err := initializeDB(db, cfg); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -87,7 +88,14 @@ func connector(cfg Configuration) (*sql.DB, error) {
 	return clickhouseConnector(params)
 }
 
-func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error {
+func initializeDB(db *sql.DB, cfg Configuration) error {
+	var embeddedScripts embed.FS
+	if cfg.Replication {
+		embeddedScripts = jaegerclickhouse.EmbeddedFilesReplication
+	} else {
+		embeddedScripts = jaegerclickhouse.EmbeddedFilesNoReplication
+	}
+
 	var sqlStatements []string
 	switch {
 	case cfg.InitSQLScriptsDir != "":

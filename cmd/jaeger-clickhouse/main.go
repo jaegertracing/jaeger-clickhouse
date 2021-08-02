@@ -16,7 +16,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/yaml.v3"
 
-	jaegerclickhouse "github.com/pavolloffay/jaeger-clickhouse"
 	"github.com/pavolloffay/jaeger-clickhouse/storage"
 )
 
@@ -53,7 +52,7 @@ func main() {
 	}()
 
 	var pluginServices shared.PluginServices
-	store, err := storage.NewStore(logger, cfg, jaegerclickhouse.EmbeddedFilesNoReplication)
+	store, err := storage.NewStore(logger, cfg)
 	if err != nil {
 		logger.Error("Failed to create a storage", err)
 		os.Exit(1)

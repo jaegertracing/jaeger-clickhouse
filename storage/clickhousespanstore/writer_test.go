@@ -33,11 +33,7 @@ func TestSpanWriter_TagString(t *testing.T) {
 	tags := generateRandomTags()
 	for i := range tags {
 		kv := tags[i]
-		want := fmt.Sprintf("%s=%s", kv.Key, kv.AsString())
-		got := tagString(&kv)
-		if got != want {
-			t.Fatalf("Incorrect tag string, want %s, got %s", want, got)
-		}
+		assert.Equal(t, fmt.Sprintf("%s=%s", kv.Key, kv.AsString()), tagString(&kv), "Incorrect tag string")
 	}
 }
 

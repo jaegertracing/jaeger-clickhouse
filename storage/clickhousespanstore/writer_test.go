@@ -30,10 +30,23 @@ const (
 )
 
 func TestSpanWriter_TagString(t *testing.T) {
-	tags := generateRandomTags()
-	for i := range tags {
-		kv := tags[i]
-		assert.Equal(t, fmt.Sprintf("%s=%s", kv.Key, kv.AsString()), tagString(&kv), "Incorrect tag string")
+	type test struct {
+		kv       model.KeyValue
+		expected string
+	}
+
+	tests := map[string]test{
+		"string value":       {kv: model.KeyValue{Key: "tag_key", VStr: "tag_string_value"}, expected: "tag_key=tag_string_value"},
+		"true value":         {kv: model.KeyValue{Key: "tag_key", VBool: true}, expected: "tag_key=true"},
+		"false value":        {kv: model.KeyValue{Key: "tag_key", VBool: false}, expected: "tag_key=false"},
+		"positive int value": {kv: model.KeyValue{Key: "tag_key", VInt64: 1203912}, expected: "tag_key=1203912"},
+		"negative int value": {kv: model.KeyValue{Key: "tag_key", VInt64: -1203912}, expected: "tag_key=-1203912"},
+		"float value":        {kv: model.KeyValue{Key: "tag_key", VFloat64: 0.005009}, expected: "tag_key=0.005009"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, fmt.Sprintf("%s=%s", test.kv.Key, test.kv.AsString()), tagString(&test.kv), "Incorrect tag string")
+		})
 	}
 }
 

@@ -14,15 +14,15 @@ func TestSetDefaults(t *testing.T) {
 		field    interface{}
 		expected interface{}
 	}{
-		"username":              {config.Username, defaultUsername},
-		"database name":         {config.Database, defaultDatabaseName},
-		"encoding":              {config.Encoding, defaultEncoding},
-		"batch write size":      {config.BatchWriteSize, defaultBatchSize},
-		"batch flush interval":  {config.BatchFlushInterval, defaultBatchDelay},
-		"metrics endpoint":      {config.MetricsEndpoint, defaultMetricsEndpoint},
-		"spans table name":      {config.SpansTable, defaultSpansTable},
-		"index table name":      {config.SpansIndexTable, defaultSpansIndexTable},
-		"operations table name": {config.OperationsTable, defaultOperationsTable},
+		"username":              {field: config.Username, expected: defaultUsername},
+		"database name":         {field: config.Database, expected: defaultDatabaseName},
+		"encoding":              {field: config.Encoding, expected: defaultEncoding},
+		"batch write size":      {field: config.BatchWriteSize, expected: defaultBatchSize},
+		"batch flush interval":  {field: config.BatchFlushInterval, expected: defaultBatchDelay},
+		"metrics endpoint":      {field: config.MetricsEndpoint, expected: defaultMetricsEndpoint},
+		"spans table name":      {field: config.SpansTable, expected: defaultSpansTable},
+		"index table name":      {field: config.SpansIndexTable, expected: defaultSpansIndexTable},
+		"operations table name": {field: config.OperationsTable, expected: defaultOperationsTable},
 	}
 
 	for name, test := range tests {

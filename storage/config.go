@@ -5,6 +5,7 @@ import "time"
 type EncodingType string
 
 const (
+	defaultEncoding                     = JSONEncoding
 	JSONEncoding           EncodingType = "json"
 	ProtobufEncoding       EncodingType = "protobuf"
 	defaultBatchSize                    = 10_000
@@ -55,7 +56,7 @@ func (cfg *Configuration) setDefaults() {
 		cfg.BatchFlushInterval = defaultBatchDelay
 	}
 	if cfg.Encoding == "" {
-		cfg.Encoding = JSONEncoding
+		cfg.Encoding = defaultEncoding
 	}
 	if cfg.Username == "" {
 		cfg.Username = defaultUsername

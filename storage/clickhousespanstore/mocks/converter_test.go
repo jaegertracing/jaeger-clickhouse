@@ -12,12 +12,10 @@ import (
 func TestConverterMock_ConvertValue(t *testing.T) {
 	converter := ConverterMock{}
 
-	type test struct {
+	testCases := map[string]struct {
 		valueToConvert interface{}
 		expectedResult driver.Value
-	}
-
-	testCases := map[string]test{
+	}{
 		"string value":       {"some string value", driver.Value("some string value")},
 		"string slice value": {[]string{"some", "slice", "of", "strings"}, driver.Value("[some slice of strings]")},
 		"time value": {

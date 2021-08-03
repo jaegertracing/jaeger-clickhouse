@@ -16,8 +16,8 @@ To setup sharding run the following statements on all nodes in the cluster.
 The "local" tables have to be created on the nodes before the distributed table.
 
 ```sql
-CREATE DATABASE jaeger ENGINE=Atomic
-USE jaeger
+CREATE DATABASE jaeger ENGINE=Atomic;
+USE jaeger;
 
 CREATE TABLE IF NOT EXISTS jaeger_spans AS jaeger_spans_local ENGINE = Distributed('{cluster}', default, jaeger_spans_local, cityHash64(traceID));
 CREATE TABLE IF NOT EXISTS jaeger_index AS jaeger_index_local ENGINE = Distributed('{cluster}', default, jaeger_index_local, cityHash64(traceID));

@@ -338,7 +338,7 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 
 	// Sorting by service is required for early termination of primary key scan:
 	// * https://github.com/ClickHouse/ClickHouse/issues/7102
-	query += " ORDER BY service, -toUnixTimestamp(timestamp) LIMIT ?"
+	query += " ORDER BY service, timestamp DESC LIMIT ?"
 	args = append(args, params.NumTraces-len(skip))
 
 	span.SetTag("db.statement", query)

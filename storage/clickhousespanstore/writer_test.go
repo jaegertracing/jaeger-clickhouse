@@ -31,12 +31,10 @@ const (
 )
 
 func TestSpanWriter_TagString(t *testing.T) {
-	type test struct {
+	tests := map[string]struct {
 		kv       model.KeyValue
 		expected string
-	}
-
-	tests := map[string]test{
+	}{
 		"string value":       {kv: model.String("tag_key", "tag_string_value"), expected: "tag_key=tag_string_value"},
 		"true value":         {kv: model.Bool("tag_key", true), expected: "tag_key=true"},
 		"false value":        {kv: model.Bool("tag_key", false), expected: "tag_key=false"},

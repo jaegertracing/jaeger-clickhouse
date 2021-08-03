@@ -290,7 +290,7 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 	span, ctx := opentracing.StartSpanFromContext(ctx, "findTraceIDsInRange")
 	defer span.Finish()
 
-	if end.Before(start) || end.UTC() == start.UTC() {
+	if end.Before(start) || end == start {
 		return []model.TraceID{}, nil
 	}
 

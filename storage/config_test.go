@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,14 +10,24 @@ import (
 func TestSetDefaults(t *testing.T) {
 	config := Configuration{}
 	config.setDefaults()
+	tests := map[string]struct{
+		field interface{}
+		expected interface{}
+	} {
+		"username": {config.Username, defaultUsername},
+		"database name": {config.Database, defaultDatabaseName},
+		"encoding": {config.Encoding, defaultEncoding},
+		"batch write size": {config.BatchWriteSize, defaultBatchSize},
+		"batch flush interval": {config.BatchFlushInterval, defaultBatchDelay},
+		"metrics endpoint": {config.MetricsEndpoint, defaultMetricsEndpoint},
+		"spans table name": {config.SpansTable, defaultSpansTable},
+		"index table name": {config.SpansIndexTable, defaultSpansIndexTable},
+		"operations table name": {config.OperationsTable, defaultOperationsTable},
+	}
 
-	assert.Equal(t, defaultUsername, config.Username, "Incorrect default username")
-	assert.Equal(t, defaultDatabaseName, config.Database, "Incorrect default database name")
-	assert.Equal(t, defaultEncoding, config.Encoding, "Incorrect default encoding")
-	assert.EqualValues(t, defaultBatchSize, config.BatchWriteSize, "Incorrect default batch write size")
-	assert.Equal(t, defaultBatchDelay, config.BatchFlushInterval, "Incorrect default batch flush interval")
-	assert.Equal(t, defaultMetricsEndpoint, config.MetricsEndpoint, "Incorrect default metrics endpoint")
-	assert.Equal(t, defaultSpansTable, config.SpansTable, "Incorrect default spans table name")
-	assert.Equal(t, defaultSpansIndexTable, config.SpansIndexTable, "Incorrect default index table name")
-	assert.Equal(t, defaultOperationsTable, config.OperationsTable, "Incorrect default operations table name")
+	for name, test := range tests {
+		t.Run(fmt.Sprintf("default %s", name), func(t *testing.T) {
+			assert.EqualValues(t, test.expected, test.field)
+		})
+	}
 }

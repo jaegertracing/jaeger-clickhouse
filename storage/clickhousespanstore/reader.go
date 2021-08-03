@@ -290,7 +290,7 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 	span, ctx := opentracing.StartSpanFromContext(ctx, "findTraceIDsInRange")
 	defer span.Finish()
 
-	if end.Before(start) || end.UTC() == start.UTC() {
+	if end.Before(start) || end == start {
 		return []model.TraceID{}, nil
 	}
 
@@ -308,10 +308,10 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 		args = append(args, params.OperationName)
 	}
 
-	query += " AND -toUnixTimestamp(timestamp) <= -toUnixTimestamp(?)"
+	query += " AND timestamp >= ?"
 	args = append(args, start)
 
-	query += " AND -toUnixTimestamp(timestamp) >= -toUnixTimestamp(?)"
+	query += " AND timestamp <= ?"
 	args = append(args, end)
 
 	if params.DurationMin != 0 {
@@ -338,7 +338,7 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 
 	// Sorting by service is required for early termination of primary key scan:
 	// * https://github.com/ClickHouse/ClickHouse/issues/7102
-	query += " ORDER BY service, -toUnixTimestamp(timestamp) LIMIT ?"
+	query += " ORDER BY service, timestamp DESC LIMIT ?"
 	args = append(args, params.NumTraces-len(skip))
 
 	span.SetTag("db.statement", query)

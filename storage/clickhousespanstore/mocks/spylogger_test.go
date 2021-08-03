@@ -8,6 +8,11 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+const (
+	maxLogCount = 80
+	maxArgCount = 10
+)
+
 func TestSpyLogger_AssertLogsEmpty(t *testing.T) {
 	logger := NewSpyLogger()
 	logger.AssertLogsEmpty(t)
@@ -17,7 +22,7 @@ func TestSpyLogger_AssertLogsOfLevelEqualNoArgs(t *testing.T) {
 	logger := NewSpyLogger()
 	var logs = make([][]LogMock, levelCount)
 	for level, levelLogs := range logs {
-		logsCount := rand.Intn(80)
+		logsCount := rand.Intn(maxLogCount)
 		for i := 0; i < logsCount; i++ {
 			msg := "msg" + strconv.FormatUint(rand.Uint64(), 10)
 			levelLogs = append(levelLogs, LogMock{Msg: msg})
@@ -35,10 +40,10 @@ func TestSpyLogger_AssertLogsOfLevelEqualArgs(t *testing.T) {
 	logger := NewSpyLogger()
 	var logs = make([][]LogMock, levelCount)
 	for level, levelLogs := range logs {
-		logsCount := rand.Intn(80)
+		logsCount := rand.Intn(maxLogCount)
 		for i := 0; i < logsCount; i++ {
 			msg := "msg" + strconv.FormatUint(rand.Uint64(), 10)
-			args := generateArgs(rand.Intn(10))
+			args := generateArgs(rand.Intn(maxArgCount))
 			levelLogs = append(levelLogs, LogMock{Msg: msg, Args: args})
 			logger.Log(hclog.Level(level+1), msg, args...)
 		}
@@ -52,11 +57,11 @@ func TestSpyLogger_AssertLogsOfLevelEqualArgs(t *testing.T) {
 
 func TestSpyLogger_Trace(t *testing.T) {
 	logger := NewSpyLogger()
-	logsCount := rand.Intn(80)
+	logsCount := rand.Intn(maxLogCount)
 	logs := make([]LogMock, 0, logsCount)
 	for i := 0; i < logsCount; i++ {
 		msg := "msg" + strconv.FormatUint(rand.Uint64(), 10)
-		args := generateArgs(rand.Intn(10))
+		args := generateArgs(rand.Intn(maxArgCount))
 		logs = append(logs, LogMock{Msg: msg, Args: args})
 		logger.Trace(msg, args...)
 	}
@@ -66,11 +71,11 @@ func TestSpyLogger_Trace(t *testing.T) {
 
 func TestSpyLogger_Debug(t *testing.T) {
 	logger := NewSpyLogger()
-	logsCount := rand.Intn(80)
+	logsCount := rand.Intn(maxLogCount)
 	logs := make([]LogMock, 0, logsCount)
 	for i := 0; i < logsCount; i++ {
 		msg := "msg" + strconv.FormatUint(rand.Uint64(), 10)
-		args := generateArgs(rand.Intn(10))
+		args := generateArgs(rand.Intn(maxArgCount))
 		logs = append(logs, LogMock{Msg: msg, Args: args})
 		logger.Debug(msg, args...)
 	}
@@ -80,11 +85,11 @@ func TestSpyLogger_Debug(t *testing.T) {
 
 func TestSpyLogger_Info(t *testing.T) {
 	logger := NewSpyLogger()
-	logsCount := rand.Intn(80)
+	logsCount := rand.Intn(maxLogCount)
 	logs := make([]LogMock, 0, logsCount)
 	for i := 0; i < logsCount; i++ {
 		msg := "msg" + strconv.FormatUint(rand.Uint64(), 10)
-		args := generateArgs(rand.Intn(10))
+		args := generateArgs(rand.Intn(maxArgCount))
 		logs = append(logs, LogMock{Msg: msg, Args: args})
 		logger.Info(msg, args...)
 	}
@@ -94,11 +99,11 @@ func TestSpyLogger_Info(t *testing.T) {
 
 func TestSpyLogger_Warn(t *testing.T) {
 	logger := NewSpyLogger()
-	logsCount := rand.Intn(80)
+	logsCount := rand.Intn(maxLogCount)
 	logs := make([]LogMock, 0, logsCount)
 	for i := 0; i < logsCount; i++ {
 		msg := "msg" + strconv.FormatUint(rand.Uint64(), 10)
-		args := generateArgs(rand.Intn(10))
+		args := generateArgs(rand.Intn(maxArgCount))
 		logs = append(logs, LogMock{Msg: msg, Args: args})
 		logger.Warn(msg, args...)
 	}
@@ -108,11 +113,11 @@ func TestSpyLogger_Warn(t *testing.T) {
 
 func TestSpyLogger_Error(t *testing.T) {
 	logger := NewSpyLogger()
-	logsCount := rand.Intn(80)
+	logsCount := rand.Intn(maxLogCount)
 	logs := make([]LogMock, 0, logsCount)
 	for i := 0; i < logsCount; i++ {
 		msg := "msg" + strconv.FormatUint(rand.Uint64(), 10)
-		args := generateArgs(rand.Intn(10))
+		args := generateArgs(rand.Intn(maxArgCount))
 		logs = append(logs, LogMock{Msg: msg, Args: args})
 		logger.Error(msg, args...)
 	}

@@ -2,8 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"math/rand"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,13 +33,18 @@ func TestSetDefaults(t *testing.T) {
 }
 
 func TestConfiguration_GetSpansArchiveTable(t *testing.T) {
-	const repetitionCount = 100
-	defaultConfig := Configuration{}
-	defaultConfig.setDefaults()
-	assert.Equal(t, defaultSpansTable+"_archive", defaultConfig.getSpansArchiveTable())
-	for i := 0; i < repetitionCount; i++ {
-		tableName := "table_" + strconv.FormatUint(rand.Uint64(), 16)
-		config := Configuration{SpansTable: tableName}
-		assert.Equal(t, tableName+"_archive", config.getSpansArchiveTable())
+	tests := map[string]struct {
+		config Configuration
+		expectedSpansArchiveTableName string
+	}{
+		"default_config": {config: Configuration{}, expectedSpansArchiveTableName: defaultSpansTable + "_archive"},
+		"custom_spans_table": {config: Configuration{SpansTable: "custom_table_name"}, expectedSpansArchiveTableName: "custom_table_name_archive"},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			test.config.setDefaults()
+			assert.Equal(t, test.expectedSpansArchiveTableName, test.config.getSpansArchiveTable())
+		})
 	}
 }

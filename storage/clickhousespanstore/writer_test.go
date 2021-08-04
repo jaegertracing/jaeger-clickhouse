@@ -63,6 +63,11 @@ func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
 		for i := range span.Process.Tags {
 			uniqueTags[tagString(&span.Process.Tags[i])] = struct{}{}
 		}
+		for _, log := range span.Logs {
+			for i := range log.Fields {
+				uniqueTags[tagString(&log.Fields[i])] = struct{}{}
+			}
+		}
 		want := make([]string, 0, len(uniqueTags))
 		for tag := range uniqueTags {
 			want = append(want, tag)

@@ -195,6 +195,7 @@ func TestSpanWriter_WriteModelBatchPrepareError(t *testing.T) {
 
 	assert.EqualError(t, spanWriter.writeModelBatch([]*model.Span{&span}), errorMock.Error())
 	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	spyLogger.AssertLogsEmpty(t)
 }
 
 func TestSpanWriter_WriteModelBatchJSONExecuteError(t *testing.T) {
@@ -232,6 +233,7 @@ func testSpanWriterWriteModelBatchExecuteError(t *testing.T, encoding Encoding, 
 
 	assert.EqualError(t, spanWriter.writeModelBatch([]*model.Span{&span}), errorMock.Error())
 	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	spyLogger.AssertLogsEmpty(t)
 }
 
 func TestSpanWriter_WriteIndexBatch(t *testing.T) {
@@ -285,6 +287,7 @@ func TestSpanWriter_WriteIndexBatchPrepareError(t *testing.T) {
 
 	assert.EqualError(t, spanWriter.writeIndexBatch([]*model.Span{&span}), errorMock.Error())
 	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	spyLogger.AssertLogsEmpty(t)
 }
 
 func TestSpanWriter_WriteIndexBatchExecuteError(t *testing.T) {
@@ -314,6 +317,7 @@ func TestSpanWriter_WriteIndexBatchExecuteError(t *testing.T) {
 
 	assert.EqualError(t, spanWriter.writeIndexBatch([]*model.Span{&span}), errorMock.Error())
 	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	spyLogger.AssertLogsEmpty(t)
 }
 
 func expectModelWritten(

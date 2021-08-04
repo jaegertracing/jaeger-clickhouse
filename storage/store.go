@@ -185,22 +185,22 @@ func initializeDB(db *sql.DB, cfg Configuration) error {
 			toLocal(cfg.OperationsTable),
 		))
 	default:
-		f, err := embeddedScripts.ReadFile("sqlscripts/no_replication/0001-jaeger-index.sql")
+		f, err := embeddedScripts.ReadFile("sqlscripts/local/0001-jaeger-index.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), toLocal(cfg.SpansIndexTable)))
-		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0002-jaeger-spans.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/local/0002-jaeger-spans.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), toLocal(cfg.SpansTable)))
-		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0003-jaeger-operations.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/local/0003-jaeger-operations.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), toLocal(cfg.OperationsTable), toLocal(cfg.SpansIndexTable)))
-		f, err = embeddedScripts.ReadFile("sqlscripts/no_replication/0004-jaeger-spans-archive.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/local/0004-jaeger-spans-archive.sql")
 		if err != nil {
 			return err
 		}

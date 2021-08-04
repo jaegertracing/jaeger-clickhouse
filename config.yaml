@@ -19,11 +19,9 @@ database:
 metrics_endpoint: localhost:9090
 # Whether to use sql scripts supporting replication and sharding. Default false.
 replication:
-# Config table names are used for global distributed tables.
-# For non-distributed/local tables name is '{config table name}_local'.
-# Table with spans. Default "jaeger_spans".
+# Table with spans. Default "jaeger_spans_local".
 spans_table:
-# Span index table. Default "jaeger_index".
+# Span index table. Default "jaeger_index_local".
 spans_index_table:
-# Operations table. Default "jaeger_operations".
+# Operations table. Default "jaeger_operations_local".
 operations_table:

@@ -17,10 +17,10 @@ const (
 	defaultDatabaseName                 = "default"
 	defaultMetricsEndpoint              = "localhost:9090"
 
+	defaultSpansTable      = "jaeger_spans_local"
+	defaultSpansIndexTable = "jaeger_index_local"
+	defaultOperationsTable = "jaeger_operations_local"
 	databaseName           = "jaeger"
-	defaultSpansTable      = "jaeger_spans"
-	defaultSpansIndexTable = "jaeger_index"
-	defaultOperationsTable = "jaeger_operations"
 )
 
 type Configuration struct {
@@ -46,13 +46,11 @@ type Configuration struct {
 	MetricsEndpoint string `yaml:"metrics_endpoint"`
 	// Whether to use SQL scripts supporting replication and sharding. Default false.
 	Replication bool `yaml:"replication"`
-	// Any table name in config is used for global distributed table.
-	// For non-distributed/local tables '{config table name}_local' is used.
 	// Table with spans. Default "jaeger_spans".
 	SpansTable string `yaml:"spans_table"`
-	// Span index table. Default "jaeger_index".
+	// Span index table. Default "jaeger_index_local".
 	SpansIndexTable string `yaml:"spans_index_table"`
-	// Operations table. Default "jaeger_operations".
+	// Operations table. Default "jaeger_operations_local.
 	OperationsTable string `yaml:"operations_table"`
 }
 

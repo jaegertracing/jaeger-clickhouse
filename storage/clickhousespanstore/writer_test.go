@@ -24,12 +24,12 @@ import (
 )
 
 const (
-	testSpanCount  = 100
-	testTagCount   = 10
-	testLogCount   = 5
+	testSpanCount     = 100
+	testTagCount      = 10
+	testLogCount      = 5
 	testLogFieldCount = 5
-	testIndexTable = "test_index_table"
-	testSpansTable = "test_spans_table"
+	testIndexTable    = "test_index_table"
+	testSpansTable    = "test_spans_table"
 )
 
 var errorMock = fmt.Errorf("error mock")

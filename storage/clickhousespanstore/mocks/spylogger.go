@@ -92,7 +92,7 @@ func (logger SpyLogger) With(args ...interface{}) hclog.Logger {
 }
 
 func (logger SpyLogger) Name() string {
-	panic("implement me")
+	return "spy logger"
 }
 
 func (logger SpyLogger) Named(name string) hclog.Logger {

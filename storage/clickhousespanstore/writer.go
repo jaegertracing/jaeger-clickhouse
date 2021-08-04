@@ -40,8 +40,8 @@ var (
 type SpanWriter struct {
 	logger     hclog.Logger
 	db         *sql.DB
-	indexTable string
-	spansTable string
+	indexTable TableName
+	spansTable TableName
 	encoding   Encoding
 	delay      time.Duration
 	size       int64
@@ -54,7 +54,7 @@ var registerMetrics sync.Once
 var _ spanstore.Writer = (*SpanWriter)(nil)
 
 // NewSpanWriter returns a SpanWriter for the database
-func NewSpanWriter(logger hclog.Logger, db *sql.DB, indexTable string, spansTable string, encoding Encoding, delay time.Duration, size int64) *SpanWriter {
+func NewSpanWriter(logger hclog.Logger, db *sql.DB, indexTable, spansTable TableName, encoding Encoding, delay time.Duration, size int64) *SpanWriter {
 	writer := &SpanWriter{
 		logger:     logger,
 		db:         db,

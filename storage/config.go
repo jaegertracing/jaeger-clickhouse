@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"fmt"
+	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
 	"time"
 )
 
@@ -20,7 +20,6 @@ const (
 	defaultSpansTable      = "jaeger_spans_local"
 	defaultSpansIndexTable = "jaeger_index_local"
 	defaultOperationsTable = "jaeger_operations_local"
-	databaseName           = "jaeger"
 )
 
 type Configuration struct {
@@ -49,11 +48,11 @@ type Configuration struct {
 	// Table names options should end with '_local'.
 	// For global distributed tables name without '_local' is used.
 	// Table with spans. Default "jaeger_spans_local".
-	SpansTable string `yaml:"spans_table"`
+	SpansTable clickhousespanstore.TableName `yaml:"spans_table"`
 	// Span index table. Default "jaeger_index_local".
-	SpansIndexTable string `yaml:"spans_index_table"`
+	SpansIndexTable clickhousespanstore.TableName `yaml:"spans_index_table"`
 	// Operations table. Default "jaeger_operations_local".
-	OperationsTable string `yaml:"operations_table"`
+	OperationsTable clickhousespanstore.TableName `yaml:"operations_table"`
 }
 
 func (cfg *Configuration) setDefaults() {
@@ -86,14 +85,6 @@ func (cfg *Configuration) setDefaults() {
 	}
 }
 
-func (cfg *Configuration) GetSpansArchiveTable() string {
+func (cfg *Configuration) GetSpansArchiveTable() clickhousespanstore.TableName {
 	return cfg.SpansTable + "_archive"
-}
-
-func addDbName(tableName string) string {
-	return fmt.Sprintf("%s.%s", databaseName, tableName)
-}
-
-func toLocal(tableName string) string {
-	return tableName + "_local"
 }

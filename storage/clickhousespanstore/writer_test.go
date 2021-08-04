@@ -26,6 +26,8 @@ import (
 const (
 	testSpanCount  = 100
 	testTagCount   = 10
+	testLogCount   = 5
+	testLogFieldCount = 5
 	testIndexTable = "test_index_table"
 	testSpansTable = "test_spans_table"
 )
@@ -489,14 +491,21 @@ func generateRandomSpan() model.Span {
 		StartTime:     getRandomTime(),
 		Process:       &process,
 		Tags:          generateRandomKeyValues(testTagCount),
+		Logs:          generateRandomLogs(),
 		Duration:      time.Unix(rand.Int63n(1<<32), 0).Sub(time.Unix(0, 0)),
 	}
 	return span
 }
 
-func generateRandomTags() []model.KeyValue {
-	tags := make([]model.KeyValue, 0, testTagCount)
-	for i := 0; i < testTagCount; i++ {
+func generateRandomLogs() []model.Log {
+	logs := make([]model.Log, 0, testLogCount)
+	for i := 0; i < testLogCount; i++ {
+		timestamp := getRandomTime()
+		logs = append(logs, model.Log{Timestamp: timestamp, Fields: generateRandomKeyValues(testLogFieldCount)})
+	}
+	return logs
+}
+
 func getRandomTime() time.Time {
 	return time.Unix(rand.Int63n(time.Now().Unix()), 0)
 }

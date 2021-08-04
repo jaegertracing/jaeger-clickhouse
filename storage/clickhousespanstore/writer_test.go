@@ -25,7 +25,7 @@ import (
 
 const (
 	testSpanCount  = 100
-	testTagCount   = 100
+	testTagCount   = 10
 	testIndexTable = "test_index_table"
 	testSpansTable = "test_spans_table"
 )
@@ -477,7 +477,7 @@ func generateRandomSpans() []*model.Span {
 }
 
 func generateRandomSpan() model.Span {
-	processTags := generateRandomTags()
+	processTags := generateRandomKeyValues(testTagCount)
 	process := model.Process{
 		ServiceName: "service" + strconv.FormatUint(rand.Uint64(), 10),
 		Tags:        processTags,
@@ -488,7 +488,7 @@ func generateRandomSpan() model.Span {
 		OperationName: "operation" + strconv.FormatUint(rand.Uint64(), 10),
 		StartTime:     time.Unix(rand.Int63n(time.Now().Unix()), 0),
 		Process:       &process,
-		Tags:          generateRandomTags(),
+		Tags:          generateRandomKeyValues(testTagCount),
 		Duration:      time.Unix(rand.Int63n(1<<32), 0).Sub(time.Unix(0, 0)),
 	}
 	return span
@@ -497,6 +497,9 @@ func generateRandomSpan() model.Span {
 func generateRandomTags() []model.KeyValue {
 	tags := make([]model.KeyValue, 0, testTagCount)
 	for i := 0; i < testTagCount; i++ {
+func generateRandomKeyValues(count int) []model.KeyValue {
+	tags := make([]model.KeyValue, 0, count)
+	for i := 0; i < count; i++ {
 		key := "key" + strconv.FormatUint(rand.Uint64(), 16)
 		value := "key" + strconv.FormatUint(rand.Uint64(), 16)
 		kv := model.KeyValue{Key: key, VType: model.ValueType_STRING, VStr: value}

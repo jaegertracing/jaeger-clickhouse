@@ -486,7 +486,7 @@ func generateRandomSpan() model.Span {
 		TraceID:       model.NewTraceID(rand.Uint64(), rand.Uint64()),
 		SpanID:        model.NewSpanID(rand.Uint64()),
 		OperationName: "operation" + strconv.FormatUint(rand.Uint64(), 10),
-		StartTime:     time.Unix(rand.Int63n(time.Now().Unix()), 0),
+		StartTime:     getRandomTime(),
 		Process:       &process,
 		Tags:          generateRandomKeyValues(testTagCount),
 		Duration:      time.Unix(rand.Int63n(1<<32), 0).Sub(time.Unix(0, 0)),
@@ -497,6 +497,10 @@ func generateRandomSpan() model.Span {
 func generateRandomTags() []model.KeyValue {
 	tags := make([]model.KeyValue, 0, testTagCount)
 	for i := 0; i < testTagCount; i++ {
+func getRandomTime() time.Time {
+	return time.Unix(rand.Int63n(time.Now().Unix()), 0)
+}
+
 func generateRandomKeyValues(count int) []model.KeyValue {
 	tags := make([]model.KeyValue, 0, count)
 	for i := 0; i < count; i++ {

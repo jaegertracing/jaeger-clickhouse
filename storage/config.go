@@ -1,8 +1,9 @@
 package storage
 
 import (
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
 	"time"
+
+	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
 )
 
 type EncodingType string

@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -123,6 +124,10 @@ func TestSpyLogger_Error(t *testing.T) {
 	}
 
 	logger.AssertLogsOfLevelEqual(t, hclog.Error, logs)
+}
+
+func TestSpyLogger_Name(t *testing.T) {
+	assert.Equal(t, "spy logger", NewSpyLogger().Name())
 }
 
 func generateArgs(count int) []interface{} {

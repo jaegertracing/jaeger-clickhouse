@@ -40,3 +40,23 @@ func TestConverterMock_ConvertValue(t *testing.T) {
 		})
 	}
 }
+
+func TestConverterMock_Fail(t *testing.T) {
+	converter := ConverterMock{}
+
+	tests := map[string]struct {
+		valueToConvert   interface{}
+		expectedErrorMsg string
+	}{
+		"float64 value": {valueToConvert: float64(1e-4), expectedErrorMsg: "unknown type float64"},
+		"int32 value":   {valueToConvert: int32(12831), expectedErrorMsg: "unknown type int32"},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			val, err := converter.ConvertValue(test.valueToConvert)
+			assert.Equal(t, nil, val)
+			assert.EqualError(t, err, test.expectedErrorMsg)
+		})
+	}
+}

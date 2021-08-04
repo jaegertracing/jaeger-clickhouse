@@ -1,10 +1,11 @@
 package mocks
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/go-hclog"
 )
@@ -128,6 +129,33 @@ func TestSpyLogger_Error(t *testing.T) {
 
 func TestSpyLogger_Name(t *testing.T) {
 	assert.Equal(t, "spy logger", NewSpyLogger().Name())
+}
+
+func TestNotImplemented(t *testing.T) {
+	logger := NewSpyLogger()
+
+	tests := map[string]struct {
+		function assert.PanicTestFunc
+	}{
+		"is_trace":        {function: func() { _ = logger.IsTrace() }},
+		"is_debug":        {function: func() { _ = logger.IsDebug() }},
+		"is_info":         {function: func() { _ = logger.IsInfo() }},
+		"is_warn":         {function: func() { _ = logger.IsWarn() }},
+		"is_error":        {function: func() { _ = logger.IsError() }},
+		"implied_args":    {function: func() { _ = logger.ImpliedArgs() }},
+		"with":            {function: func() { _ = logger.With() }},
+		"named":           {function: func() { _ = logger.Named("") }},
+		"reset_named":     {function: func() { _ = logger.ResetNamed("") }},
+		"set_level":       {function: func() { logger.SetLevel(hclog.NoLevel) }},
+		"standard_logger": {function: func() { _ = logger.StandardLogger(nil) }},
+		"standard_writer": {function: func() { _ = logger.StandardWriter(nil) }},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Panics(t, test.function, "implement me")
+		})
+	}
 }
 
 func generateArgs(count int) []interface{} {

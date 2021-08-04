@@ -46,11 +46,13 @@ type Configuration struct {
 	MetricsEndpoint string `yaml:"metrics_endpoint"`
 	// Whether to use SQL scripts supporting replication and sharding. Default false.
 	Replication bool `yaml:"replication"`
-	// Table with spans. Default "jaeger_spans".
+	// Table names options should end with '_local'.
+	// For global distributed tables name without '_local' is used.
+	// Table with spans. Default "jaeger_spans_local".
 	SpansTable string `yaml:"spans_table"`
 	// Span index table. Default "jaeger_index_local".
 	SpansIndexTable string `yaml:"spans_index_table"`
-	// Operations table. Default "jaeger_operations_local.
+	// Operations table. Default "jaeger_operations_local".
 	OperationsTable string `yaml:"operations_table"`
 }
 

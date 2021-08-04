@@ -38,10 +38,10 @@ func TestConfiguration_GetSpansArchiveTable(t *testing.T) {
 	const repetitionCount = 100
 	defaultConfig := Configuration{}
 	defaultConfig.setDefaults()
-	assert.Equal(t, defaultSpansTable + "_archive", defaultConfig.getSpansArchiveTable())
-	for i := 0; i < 100; i++ {
+	assert.Equal(t, defaultSpansTable+"_archive", defaultConfig.getSpansArchiveTable())
+	for i := 0; i < repetitionCount; i++ {
 		tableName := "table_" + strconv.FormatUint(rand.Uint64(), 16)
 		config := Configuration{SpansTable: tableName}
-		assert.Equal(t, tableName + "_archive", config.getSpansArchiveTable())
+		assert.Equal(t, tableName+"_archive", config.getSpansArchiveTable())
 	}
 }

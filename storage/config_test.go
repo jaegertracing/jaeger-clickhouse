@@ -34,10 +34,10 @@ func TestSetDefaults(t *testing.T) {
 
 func TestConfiguration_GetSpansArchiveTable(t *testing.T) {
 	tests := map[string]struct {
-		config Configuration
+		config                        Configuration
 		expectedSpansArchiveTableName string
 	}{
-		"default_config": {config: Configuration{}, expectedSpansArchiveTableName: defaultSpansTable + "_archive"},
+		"default_config":     {config: Configuration{}, expectedSpansArchiveTableName: defaultSpansTable + "_archive"},
 		"custom_spans_table": {config: Configuration{SpansTable: "custom_table_name"}, expectedSpansArchiveTableName: "custom_table_name_archive"},
 	}
 

@@ -106,7 +106,7 @@ func connector(cfg Configuration) (*sql.DB, error) {
 func initializeDB(cfg Configuration) (*sql.DB, error) {
 	cfgToDefault := cfg
 	cfgToDefault.Database = "default"
-	db, err := connector(cfg)
+	db, err := connector(cfgToDefault)
 	if err != nil {
 		return nil, err
 	}

@@ -2,8 +2,9 @@ package storage
 
 import (
 	"fmt"
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
 	"testing"
+
+	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
 
 	"github.com/stretchr/testify/assert"
 )

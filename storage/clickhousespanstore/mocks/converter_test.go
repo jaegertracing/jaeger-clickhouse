@@ -27,6 +27,7 @@ func TestConverterMock_ConvertValue(t *testing.T) {
 			expectedResult: driver.Value(int64(12340123456789)),
 		},
 		"int64 value":         {valueToConvert: int64(1823), expectedResult: driver.Value(int64(1823))},
+		"int value":         {valueToConvert: 1823, expectedResult: driver.Value(1823)},
 		"model.SpanID value":  {valueToConvert: model.SpanID(318148), expectedResult: driver.Value(model.SpanID(318148))},
 		"model.TraceID value": {valueToConvert: model.TraceID{Low: 0xabd5, High: 0xa31}, expectedResult: driver.Value("0000000000000a31000000000000abd5")},
 		"uint8 slice value":   {valueToConvert: []uint8("asdkja"), expectedResult: driver.Value([]uint8{0x61, 0x73, 0x64, 0x6b, 0x6a, 0x61})},

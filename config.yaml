@@ -13,7 +13,7 @@ ca_file:
 username:
 # Password for connection.
 password:
-# Database name. Default is "default".
+# Database name. The database has to be created manually before Jaeger starts. Default is "default".
 database:
 # Endpoint for scraping prometheus metrics. Default localhost:9090.
 metrics_endpoint: localhost:9090

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jaegertracing/jaeger/model"
+	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -14,9 +15,56 @@ import (
 
 const (
 	testOperationsTable = "test_operations_table"
+	testNumTraces       = 10
 )
 
-var errorMock = fmt.Errorf("error mock")
+func TestSpanReader_findTraceIDsInRangeDefault(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+
+	service := "test_service"
+	params := spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces}
+	start := time.Unix(0, 0)
+	end := time.Now()
+	queryResult := sqlmock.NewRows([]string{"traceID"})
+	rowValues := []driver.Value{
+		"1",
+		"2",
+		"3",
+	}
+	rows := []model.TraceID{
+		{High: 0, Low: 1},
+		{High: 0, Low: 2},
+		{High: 0, Low: 3},
+	}
+	for _, row := range rowValues {
+		queryResult.AddRow(row)
+	}
+	mock.
+		ExpectQuery(fmt.Sprintf(
+			"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+			testIndexTable,
+		)).
+		WithArgs(
+			service,
+			start,
+			end,
+			testNumTraces,
+		).
+		WillReturnRows(queryResult)
+
+	res, err := traceReader.findTraceIDsInRange(
+		context.Background(),
+		&params,
+		start,
+		end,
+		make([]model.TraceID, 0))
+	require.NoError(t, err)
+	assert.Equal(t, rows, res)
+}
 
 func TestSpanReader_findTraceIDsInRangeNoIndexTable(t *testing.T) {
 	db, _, err := getDbMock()

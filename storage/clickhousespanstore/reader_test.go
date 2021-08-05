@@ -9,6 +9,7 @@ import (
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"strings"
 	"testing"
 	"time"
 )
@@ -18,18 +19,33 @@ const (
 	testNumTraces       = 10
 )
 
-func TestSpanReader_findTraceIDsInRangeDefault(t *testing.T) {
+var errorMock = fmt.Errorf("error mock")
+
+func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
 	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
-
 	service := "test_service"
-	params := spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces}
 	start := time.Unix(0, 0)
 	end := time.Now()
-	queryResult := sqlmock.NewRows([]string{"traceID"})
+	minDuration := time.Minute
+	maxDuration := time.Hour
+	tags := map[string]string{
+		"key": "value",
+	}
+	skip := []model.TraceID{
+		{High: 1, Low: 1},
+		{High: 0, Low: 0},
+	}
+	tagArgs := func(tags map[string]string) []string {
+		res := make([]string, 0, len(tags))
+		for key, value := range tags {
+			res = append(res, fmt.Sprintf("%s=%s", key, value))
+		}
+		return res
+	}(tags)
 	rowValues := []driver.Value{
 		"1",
 		"2",
@@ -40,30 +56,114 @@ func TestSpanReader_findTraceIDsInRangeDefault(t *testing.T) {
 		{High: 0, Low: 2},
 		{High: 0, Low: 3},
 	}
-	for _, row := range rowValues {
-		queryResult.AddRow(row)
-	}
-	mock.
-		ExpectQuery(fmt.Sprintf(
-			"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
-			testIndexTable,
-		)).
-		WithArgs(
-			service,
-			start,
-			end,
-			testNumTraces,
-		).
-		WillReturnRows(queryResult)
 
-	res, err := traceReader.findTraceIDsInRange(
-		context.Background(),
-		&params,
-		start,
-		end,
-		make([]model.TraceID, 0))
-	require.NoError(t, err)
-	assert.Equal(t, rows, res)
+	tests := map[string]struct {
+		queryParams   spanstore.TraceQueryParameters
+		skip          []model.TraceID
+		expectedQuery string
+		expectedArgs  []driver.Value
+	}{
+		"default": {
+			queryParams: spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces},
+			skip:        make([]model.TraceID, 0),
+			expectedQuery: fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+			),
+			expectedArgs: []driver.Value{
+				service,
+				start,
+				end,
+				testNumTraces,
+			},
+		},
+		"maxDuration": {
+			queryParams: spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces, DurationMax: maxDuration},
+			skip:        make([]model.TraceID, 0),
+			expectedQuery: fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? AND durationUs <= ? ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+			),
+			expectedArgs: []driver.Value{
+				service,
+				start,
+				end,
+				maxDuration.Microseconds(),
+				testNumTraces,
+			},
+		},
+		"minDuration": {
+			queryParams: spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces, DurationMin: minDuration},
+			skip:        make([]model.TraceID, 0),
+			expectedQuery: fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? AND durationUs >= ? ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+			),
+			expectedArgs: []driver.Value{
+				service,
+				start,
+				end,
+				minDuration.Microseconds(),
+				testNumTraces,
+			},
+		},
+		"tags": {
+			queryParams: spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces, Tags: tags},
+			skip:        make([]model.TraceID, 0),
+			expectedQuery: fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ?%s ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+				strings.Repeat(" AND has(tags, ?)", len(tags)),
+			),
+			expectedArgs: []driver.Value{
+				service,
+				start,
+				end,
+				tagArgs[0],
+				testNumTraces,
+			},
+		},
+		"skip": {
+			queryParams: spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces},
+			skip:        skip,
+			expectedQuery: fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? AND traceID NOT IN (?,?) ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+			),
+			expectedArgs: []driver.Value{
+				service,
+				start,
+				end,
+				skip[0].String(),
+				skip[1].String(),
+				testNumTraces - len(skip),
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			queryResult := sqlmock.NewRows([]string{"traceID"})
+			for _, row := range rowValues {
+				queryResult.AddRow(row)
+			}
+
+			mock.
+				ExpectQuery(test.expectedQuery).
+				WithArgs(test.expectedArgs...).
+				WillReturnRows(queryResult)
+
+			res, err := traceReader.findTraceIDsInRange(
+				context.Background(),
+				&test.queryParams,
+				start,
+				end,
+				test.skip)
+			require.NoError(t, err)
+			assert.Equal(t, rows, res)
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }
 
 func TestSpanReader_findTraceIDsInRangeNoIndexTable(t *testing.T) {

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,7 +36,7 @@ func TestSetDefaults(t *testing.T) {
 func TestConfiguration_GetSpansArchiveTable(t *testing.T) {
 	tests := map[string]struct {
 		config                        Configuration
-		expectedSpansArchiveTableName string
+		expectedSpansArchiveTableName clickhousespanstore.TableName
 	}{
 		"default_config":     {config: Configuration{}, expectedSpansArchiveTableName: defaultSpansTable + "_archive"},
 		"custom_spans_table": {config: Configuration{SpansTable: "custom_table_name"}, expectedSpansArchiveTableName: "custom_table_name_archive"},
@@ -44,7 +45,7 @@ func TestConfiguration_GetSpansArchiveTable(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			test.config.setDefaults()
-			assert.Equal(t, test.expectedSpansArchiveTableName, test.config.getSpansArchiveTable())
+			assert.Equal(t, test.expectedSpansArchiveTableName, test.config.GetSpansArchiveTable())
 		})
 	}
 }

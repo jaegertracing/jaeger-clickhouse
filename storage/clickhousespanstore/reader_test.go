@@ -4,22 +4,21 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"testing"
-	"time"
 )
 
 const (
 	testOperationsTable = "test_operations_table"
 	testNumTraces       = 10
 )
-
-var errorMock = fmt.Errorf("error mock")
 
 func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 	db, mock, err := getDbMock()

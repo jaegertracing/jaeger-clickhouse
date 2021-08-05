@@ -44,12 +44,12 @@ var (
 
 func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 	cfg.setDefaults()
-	db, err := connector(cfg)
+	db, err := initializeDB(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
 
-	if err := initializeDB(db, cfg); err != nil {
+	if err := runInitScripts(db, cfg); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -103,7 +103,21 @@ func connector(cfg Configuration) (*sql.DB, error) {
 	return clickhouseConnector(params)
 }
 
-func initializeDB(db *sql.DB, cfg Configuration) error {
+func initializeDB(cfg Configuration) (*sql.DB, error) {
+	cfgToDefault := cfg
+	cfgToDefault.Database = "default"
+	db, err := connector(cfg)
+	if err != nil {
+		return nil, err
+	}
+	_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", cfg.Database))
+	if err != nil {
+		return nil, err
+	}
+	return connector(cfg)
+}
+
+func runInitScripts(db *sql.DB, cfg Configuration) error {
 	var embeddedScripts embed.FS
 	if cfg.Replication {
 		embeddedScripts = jaegerclickhouse.EmbeddedFilesReplication

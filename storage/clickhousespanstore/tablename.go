@@ -1,15 +1,18 @@
 package clickhousespanstore
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 const databaseName = "jaeger"
 
 type TableName string
 
 func (tableName TableName) ToGlobal() TableName {
-	return tableName[:len(tableName)-6]
+	return TableName(strings.ReplaceAll(string(tableName), "_local", ""))
 }
 
 func (tableName TableName) AddDbName() TableName {
-	return TableName(fmt.Sprintf("%s_%s", databaseName, tableName))
+	return TableName(fmt.Sprintf("%s.%s", databaseName, tableName))
 }

@@ -31,3 +31,20 @@ func TestSetDefaults(t *testing.T) {
 		})
 	}
 }
+
+func TestConfiguration_GetSpansArchiveTable(t *testing.T) {
+	tests := map[string]struct {
+		config                        Configuration
+		expectedSpansArchiveTableName string
+	}{
+		"default_config":     {config: Configuration{}, expectedSpansArchiveTableName: defaultSpansTable + "_archive"},
+		"custom_spans_table": {config: Configuration{SpansTable: "custom_table_name"}, expectedSpansArchiveTableName: "custom_table_name_archive"},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			test.config.setDefaults()
+			assert.Equal(t, test.expectedSpansArchiveTableName, test.config.getSpansArchiveTable())
+		})
+	}
+}

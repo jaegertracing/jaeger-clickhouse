@@ -199,6 +199,49 @@ func TestSpanReader_findTraceIDsInRangeEndBeforeStart(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestSpanReader_findTraceIDsInRangeIncorrectData(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	service := "test_service"
+	start := time.Unix(0, 0)
+	end := time.Now()
+	rowValues := []driver.Value{
+		"1",
+		"incorrect value",
+		"3",
+	}
+	queryResult := sqlmock.NewRows([]string{"traceID"})
+	for _, row := range rowValues {
+		queryResult.AddRow(row)
+	}
+
+	mock.
+		ExpectQuery(fmt.Sprintf(
+			"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+			testIndexTable,
+		)).
+		WithArgs(
+			service,
+			start,
+			end,
+			testNumTraces,
+		).
+		WillReturnRows(queryResult)
+
+	res, err := traceReader.findTraceIDsInRange(
+		context.Background(),
+		&spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces},
+		start,
+		end,
+		make([]model.TraceID, 0))
+	assert.Error(t, err)
+	assert.Equal(t, []model.TraceID(nil), res)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestSpanReader_getStrings(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")

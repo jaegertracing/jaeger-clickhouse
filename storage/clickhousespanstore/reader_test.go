@@ -21,7 +21,75 @@ import (
 const (
 	testOperationsTable = "test_operations_table"
 	testNumTraces       = 10
+	testSpansInTrace       = 2
 )
+
+func TestTraceReader_GetTrace(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceID := model.TraceID{High: 0, Low: 1}
+	spanRefs := generateRandomSpans(testSpansInTrace)
+	trace := model.Trace{}
+	for _, span := range spanRefs {
+		span.TraceID = traceID
+		trace.Spans = append(trace.Spans, span)
+	}
+	spans := make([]model.Span, len(spanRefs))
+	for i := range spanRefs {
+		spans[i] = *spanRefs[i]
+	}
+
+	tests := map[string]struct{
+		queryResult *sqlmock.Rows
+		expectedTrace *model.Trace
+		expectedError error
+	} {
+		"json": {
+			queryResult: getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
+			expectedTrace: &trace,
+			expectedError: nil,
+		},
+		"protobuf": {
+			queryResult: getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
+			expectedTrace: &trace,
+			expectedError: nil,
+		},
+		"trace not found": {
+			queryResult: sqlmock.NewRows([]string{"model"}),
+			expectedTrace: nil,
+			expectedError: spanstore.ErrTraceNotFound,
+		},
+		"query error": {
+			queryResult: getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }).RowError(0, errorMock),
+			expectedTrace: nil,
+			expectedError: errorMock,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mock.
+				ExpectQuery(
+					fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?)", testSpansTable),
+				).
+				WithArgs(traceID).
+				WillReturnRows(test.queryResult)
+
+			trace, err := traceReader.GetTrace(context.Background(), traceID)
+			require.ErrorIs(t, err, test.expectedError)
+			if trace != nil {
+				model.SortTrace(trace)
+			}
+			if test.expectedTrace != nil {
+				model.SortTrace(test.expectedTrace)
+			}
+			assert.Equal(t, test.expectedTrace, trace)
+		})
+	}
+}
 
 func TestSpanWriter_getTraces(t *testing.T) {
 	db, mock, err := getDbMock()
@@ -35,8 +103,8 @@ func TestSpanWriter_getTraces(t *testing.T) {
 		{High: 1, Low: 3},
 		{High: 0, Low: 4},
 	}
-	spans := make([]model.Span, 2*len(traceIDs))
-	for i := 0; i < 2*len(traceIDs); i++ {
+	spans := make([]model.Span, testSpansInTrace*len(traceIDs))
+	for i := 0; i < testSpansInTrace*len(traceIDs); i++ {
 		traceID := traceIDs[i%len(traceIDs)]
 		spans[i] = generateRandomSpan()
 		spans[i].TraceID = traceID

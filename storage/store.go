@@ -141,37 +141,27 @@ func runInitScripts(db *sql.DB, cfg Configuration) error {
 			sqlStatements = append(sqlStatements, string(sqlStatement))
 		}
 	case cfg.Replication:
-		f, err := embeddedScripts.ReadFile("sqlscripts/replication/0001-database.sql")
-		if err != nil {
-			return err
-		}
-		sqlStatements = append(sqlStatements, string(f))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0002-use-jaeger.sql")
-		if err != nil {
-			return err
-		}
-		sqlStatements = append(sqlStatements, string(f))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0003-jaeger-index-local.sql")
+		f, err := embeddedScripts.ReadFile("sqlscripts/replication/0001-jaeger-index-local.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0004-jaeger-spans-local.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0002-jaeger-spans-local.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0005-jaeger-operations-local.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0003-jaeger-operations-local.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, cfg.SpansIndexTable.AddDbName(cfg.Database)))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0006-jaeger-spans-archive-local.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0004-jaeger-spans-archive-local.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable()))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0007-distributed-city-hash.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0005-distributed-city-hash.sql")
 		if err != nil {
 			return err
 		}
@@ -193,7 +183,7 @@ func runInitScripts(db *sql.DB, cfg Configuration) error {
 			cfg.GetSpansArchiveTable().AddDbName(cfg.Database),
 			cfg.GetSpansArchiveTable(),
 		))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0008-distributed-rand.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0006-distributed-rand.sql")
 		if err != nil {
 			return err
 		}

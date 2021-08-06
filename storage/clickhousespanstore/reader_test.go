@@ -21,7 +21,7 @@ import (
 const (
 	testOperationsTable = "test_operations_table"
 	testNumTraces       = 10
-	testSpansInTrace       = 2
+	testSpansInTrace    = 2
 )
 
 func TestTraceReader_GetTrace(t *testing.T) {
@@ -42,28 +42,28 @@ func TestTraceReader_GetTrace(t *testing.T) {
 		spans[i] = *spanRefs[i]
 	}
 
-	tests := map[string]struct{
-		queryResult *sqlmock.Rows
+	tests := map[string]struct {
+		queryResult   *sqlmock.Rows
 		expectedTrace *model.Trace
 		expectedError error
-	} {
+	}{
 		"json": {
-			queryResult: getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
+			queryResult:   getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
 			expectedTrace: &trace,
 			expectedError: nil,
 		},
 		"protobuf": {
-			queryResult: getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
+			queryResult:   getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
 			expectedTrace: &trace,
 			expectedError: nil,
 		},
 		"trace not found": {
-			queryResult: sqlmock.NewRows([]string{"model"}),
+			queryResult:   sqlmock.NewRows([]string{"model"}),
 			expectedTrace: nil,
 			expectedError: spanstore.ErrTraceNotFound,
 		},
 		"query error": {
-			queryResult: getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }).RowError(0, errorMock),
+			queryResult:   getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }).RowError(0, errorMock),
 			expectedTrace: nil,
 			expectedError: errorMock,
 		},

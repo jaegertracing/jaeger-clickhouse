@@ -44,7 +44,7 @@ var (
 
 func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 	cfg.setDefaults()
-	db, err := initializeDB(cfg)
+	db, err := connector(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
@@ -101,20 +101,6 @@ func connector(cfg Configuration) (*sql.DB, error) {
 		)
 	}
 	return clickhouseConnector(params)
-}
-
-func initializeDB(cfg Configuration) (*sql.DB, error) {
-	cfgToDefault := cfg
-	cfgToDefault.Database = "default"
-	db, err := connector(cfgToDefault)
-	if err != nil {
-		return nil, err
-	}
-	_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", cfg.Database))
-	if err != nil {
-		return nil, err
-	}
-	return connector(cfg)
 }
 
 func runInitScripts(db *sql.DB, cfg Configuration) error {

@@ -63,7 +63,7 @@ func TestSpanWriter_TagString(t *testing.T) {
 }
 
 func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
-	spans := generateRandomSpans()
+	spans := generateRandomSpans(testSpanCount)
 	for _, span := range spans {
 		uniqueTags := make(map[string]struct{}, len(span.Tags)+len(span.Process.Tags))
 		for i := range span.Tags {
@@ -318,7 +318,7 @@ func TestSpanWriter_WriteIndexBatch(t *testing.T) {
 	spyLogger := mocks.NewSpyLogger()
 	spanWriter := getSpanWriter(spyLogger, db, EncodingJSON)
 
-	spans := generateRandomSpans()
+	spans := generateRandomSpans(testSpanCount)
 	expectIndexWritten(mock, spans, spanWriter)
 	assert.NoError(t, spanWriter.writeIndexBatch(spans), "Could not write spans")
 	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
@@ -466,9 +466,9 @@ func getSpanWriter(spyLogger mocks.SpyLogger, db *sql.DB, encoding Encoding) *Sp
 	)
 }
 
-func generateRandomSpans() []*model.Span {
-	spans := make([]*model.Span, testSpanCount)
-	for i := 0; i < testSpanCount; i++ {
+func generateRandomSpans(count int) []*model.Span {
+	spans := make([]*model.Span, count)
+	for i := 0; i < count; i++ {
 		span := generateRandomSpan()
 		spans[i] = &span
 	}

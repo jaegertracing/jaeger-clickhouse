@@ -168,22 +168,22 @@ func runInitScripts(db *sql.DB, cfg Configuration) error {
 		sqlStatements = append(sqlStatements, fmt.Sprintf(
 			string(f),
 			cfg.SpansTable.ToGlobal(),
-			cfg.Database,
 			cfg.SpansTable.AddDbName(cfg.Database),
+			cfg.Database,
 			cfg.SpansTable,
 		))
 		sqlStatements = append(sqlStatements, fmt.Sprintf(
 			string(f),
 			cfg.SpansIndexTable.ToGlobal(),
-			cfg.Database,
 			cfg.SpansIndexTable.AddDbName(cfg.Database),
+			cfg.Database,
 			cfg.SpansIndexTable,
 		))
 		sqlStatements = append(sqlStatements, fmt.Sprintf(
 			string(f),
 			cfg.GetSpansArchiveTable().ToGlobal(),
-			cfg.Database,
 			cfg.GetSpansArchiveTable().AddDbName(cfg.Database),
+			cfg.Database,
 			cfg.GetSpansArchiveTable(),
 		))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0006-distributed-rand.sql")
@@ -193,8 +193,8 @@ func runInitScripts(db *sql.DB, cfg Configuration) error {
 		sqlStatements = append(sqlStatements, fmt.Sprintf(
 			string(f),
 			cfg.OperationsTable.ToGlobal(),
-			cfg.Database,
 			cfg.OperationsTable.AddDbName(cfg.Database),
+			cfg.Database,
 			cfg.OperationsTable,
 		))
 	default:

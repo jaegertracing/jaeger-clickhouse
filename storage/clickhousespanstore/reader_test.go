@@ -118,12 +118,12 @@ func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
 		"JSON encoding incorrect data": {
 			queryResult:    getRows([]driver.Value{[]byte{'{', 'n', 'o', 't', '_', 'a', '_', 'k', 'e', 'y', '}'}}),
 			expectedResult: []*model.Trace(nil),
-			expectedError: fmt.Errorf("invalid character 'n' looking for beginning of object key string"),
+			expectedError:  fmt.Errorf("invalid character 'n' looking for beginning of object key string"),
 		},
 		"Protobuf encoding incorrect data": {
 			queryResult:    getRows([]driver.Value{[]byte{'i', 'n', 'c', 'o', 'r', 'r', 'e', 'c', 't'}}),
 			expectedResult: []*model.Trace{},
-			expectedError: nil,
+			expectedError:  nil,
 		},
 	}
 

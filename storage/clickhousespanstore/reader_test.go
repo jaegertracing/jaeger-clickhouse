@@ -5,6 +5,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +24,34 @@ const (
 	testOperationsTable = "test_operations_table"
 	testNumTraces       = 10
 	testSpansInTrace    = 2
+	testOperationCount  = 10
 )
+
+func TestTraceReader_GetServices(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	service := "test service"
+	params := spanstore.OperationQueryParameters{ServiceName: service}
+	operationValues := make([]driver.Value, testOperationCount)
+	expectedOperations := make([]spanstore.Operation, testOperationCount)
+	for i := range operationValues {
+		operationName := "operation_" + strconv.FormatUint(rand.Uint64(), 16)
+		operationValues[i] = operationName
+		expectedOperations[i].Name = operationName
+	}
+	rows := getRows(operationValues)
+	mock.
+		ExpectQuery(fmt.Sprintf("SELECT operation FROM %s WHERE service = ? GROUP BY operation", testOperationsTable)).
+		WithArgs(service).
+		WillReturnRows(rows)
+
+	operations, err := traceReader.GetOperations(context.Background(), params)
+	require.NoError(t, err)
+	assert.Equal(t, expectedOperations, operations)
+}
 
 func TestTraceReader_GetTrace(t *testing.T) {
 	db, mock, err := getDbMock()

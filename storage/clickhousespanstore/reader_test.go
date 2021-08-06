@@ -3,10 +3,13 @@ package clickhousespanstore
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jaegertracing/jaeger/model"
@@ -19,6 +22,98 @@ const (
 	testOperationsTable = "test_operations_table"
 	testNumTraces       = 10
 )
+
+func TestSpanWriter_getTraces(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceIDs := []model.TraceID{
+		{High: 0, Low: 1},
+		{High: 2, Low: 2},
+		{High: 1, Low: 3},
+		{High: 0, Low: 4},
+	}
+	spans := make([]model.Span, 2*len(traceIDs))
+	for i := 0; i < 2*len(traceIDs); i++ {
+		traceID := traceIDs[i%len(traceIDs)]
+		spans[i] = generateRandomSpan()
+		spans[i].TraceID = traceID
+	}
+
+	traceIDStrings := make([]driver.Value, 4)
+	for i, traceID := range traceIDs {
+		traceIDStrings[i] = traceID.String()
+	}
+
+	tests := map[string]struct {
+		queryResult    *sqlmock.Rows
+		expectedTraces []*model.Trace
+	}{
+		"JSON encoded traces one span per trace": {
+			queryResult:    getEncodedSpans(spans[:len(traceIDs)], func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
+			expectedTraces: getTracesFromSpans(spans[:len(traceIDs)]),
+		},
+		"Protobuf encoded traces one span per trace": {
+			queryResult:    getEncodedSpans(spans[:len(traceIDs)], func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
+			expectedTraces: getTracesFromSpans(spans[:len(traceIDs)]),
+		},
+		"JSON encoded traces many spans per trace": {
+			queryResult:    getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
+			expectedTraces: getTracesFromSpans(spans),
+		},
+		"Protobuf encoded traces many spans per trace": {
+			queryResult:    getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
+			expectedTraces: getTracesFromSpans(spans),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mock.
+				ExpectQuery(
+					fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?,?,?,?)", testSpansTable),
+				).
+				WithArgs(traceIDStrings...).
+				WillReturnRows(test.queryResult)
+
+			traces, err := traceReader.getTraces(context.Background(), traceIDs)
+			require.NoError(t, err)
+			model.SortTraces(traces)
+			assert.Equal(t, test.expectedTraces, traces)
+		})
+	}
+}
+
+func getEncodedSpans(spans []model.Span, marshal func(span *model.Span) ([]byte, error)) *sqlmock.Rows {
+	rows := sqlmock.NewRows([]string{"model"})
+	for i := range spans {
+		serialized, err := marshal(&spans[i])
+		if err != nil {
+			panic(err)
+		}
+		rows.AddRow(serialized)
+	}
+	return rows
+}
+
+func getTracesFromSpans(spans []model.Span) []*model.Trace {
+	traces := make(map[model.TraceID]*model.Trace)
+	for i, span := range spans {
+		if _, ok := traces[span.TraceID]; !ok {
+			traces[span.TraceID] = &model.Trace{}
+		}
+		traces[span.TraceID].Spans = append(traces[span.TraceID].Spans, &spans[i])
+	}
+
+	res := make([]*model.Trace, 0, len(traces))
+	for _, trace := range traces {
+		res = append(res, trace)
+	}
+	model.SortTraces(res)
+	return res
+}
 
 func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 	db, mock, err := getDbMock()

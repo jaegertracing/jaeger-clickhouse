@@ -142,7 +142,6 @@ func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
 			} else {
 				assert.EqualError(t, err, test.expectedError.Error())
 			}
-			t.Log("error", err)
 			assert.Equal(t, test.expectedResult, traces)
 		})
 	}

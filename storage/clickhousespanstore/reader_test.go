@@ -86,14 +86,84 @@ func TestSpanWriter_getTraces(t *testing.T) {
 	}
 }
 
+func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceIDs := []model.TraceID{
+		{High: 0, Low: 1},
+		{High: 2, Low: 2},
+		{High: 1, Low: 3},
+		{High: 0, Low: 4},
+	}
+	spans := make([]model.Span, 2*len(traceIDs))
+	for i := 0; i < 2*len(traceIDs); i++ {
+		traceID := traceIDs[i%len(traceIDs)]
+		spans[i] = generateRandomSpan()
+		spans[i].TraceID = traceID
+	}
+
+	traceIDStrings := make([]driver.Value, 4)
+	for i, traceID := range traceIDs {
+		traceIDStrings[i] = traceID.String()
+	}
+
+	tests := map[string]struct {
+		queryResult    *sqlmock.Rows
+		expectedResult []*model.Trace
+		expectedError  error
+	}{
+		"JSON encoding incorrect data": {
+			queryResult:    getRows([]driver.Value{[]byte{'{', 'n', 'o', 't', '_', 'a', '_', 'k', 'e', 'y', '}'}}),
+			expectedResult: []*model.Trace(nil),
+			expectedError: fmt.Errorf("invalid character 'n' looking for beginning of object key string"),
+		},
+		"Protobuf encoding incorrect data": {
+			queryResult:    getRows([]driver.Value{[]byte{'i', 'n', 'c', 'o', 'r', 'r', 'e', 'c', 't'}}),
+			expectedResult: []*model.Trace{},
+			expectedError: nil,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mock.
+				ExpectQuery(
+					fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?,?,?,?)", testSpansTable),
+				).
+				WithArgs(traceIDStrings...).
+				WillReturnRows(test.queryResult)
+
+			traces, err := traceReader.getTraces(context.Background(), traceIDs)
+			if test.expectedError == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, test.expectedError.Error())
+			}
+			t.Log("error", err)
+			assert.Equal(t, test.expectedResult, traces)
+		})
+	}
+}
+
 func getEncodedSpans(spans []model.Span, marshal func(span *model.Span) ([]byte, error)) *sqlmock.Rows {
-	rows := sqlmock.NewRows([]string{"model"})
+	serialized := make([]driver.Value, len(spans))
 	for i := range spans {
-		serialized, err := marshal(&spans[i])
+		bytes, err := marshal(&spans[i])
 		if err != nil {
 			panic(err)
 		}
-		rows.AddRow(serialized)
+		serialized[i] = bytes
+	}
+	return getRows(serialized)
+}
+
+func getRows(values []driver.Value) *sqlmock.Rows {
+	rows := sqlmock.NewRows([]string{"model"})
+	for _, value := range values {
+		rows.AddRow(value)
 	}
 	return rows
 }

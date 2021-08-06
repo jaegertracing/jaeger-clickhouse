@@ -15,7 +15,7 @@ const (
 	defaultBatchSize                    = 10_000
 	defaultBatchDelay                   = time.Second * 5
 	defaultUsername                     = "default"
-	defaultDatabaseName                 = "jaeger"
+	defaultDatabaseName                 = "default"
 	defaultMetricsEndpoint              = "localhost:9090"
 
 	defaultSpansTable      = "jaeger_spans_local"

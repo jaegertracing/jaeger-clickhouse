@@ -27,6 +27,7 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 
 	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
 	service := "test_service"
+	operation := "test_operation"
 	start := time.Unix(0, 0)
 	end := time.Now()
 	minDuration := time.Minute
@@ -136,6 +137,21 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 				skip[0].String(),
 				skip[1].String(),
 				testNumTraces - len(skip),
+			},
+		},
+		"operation": {
+			queryParams: spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces, OperationName: operation},
+			skip:        make([]model.TraceID, 0),
+			expectedQuery: fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND operation = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+			),
+			expectedArgs: []driver.Value{
+				service,
+				operation,
+				start,
+				end,
+				testNumTraces,
 			},
 		},
 	}

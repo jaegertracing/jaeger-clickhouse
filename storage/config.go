@@ -46,13 +46,11 @@ type Configuration struct {
 	MetricsEndpoint string `yaml:"metrics_endpoint"`
 	// Whether to use SQL scripts supporting replication and sharding. Default false.
 	Replication bool `yaml:"replication"`
-	// Table names options should end with '_local'.
-	// For global distributed tables name without '_local' is used.
-	// Table with spans. Default "jaeger_spans_local".
+	// Table with spans. Default "jaeger_spans_local" or "jaeger_spans" when replication is enabled.
 	SpansTable clickhousespanstore.TableName `yaml:"spans_table"`
-	// Span index table. Default "jaeger_index_local".
+	// Span index table. Default "jaeger_index_local" or "jaeger_index" when replication is enabled.
 	SpansIndexTable clickhousespanstore.TableName `yaml:"spans_index_table"`
-	// Operations table. Default "jaeger_operations_local".
+	// Operations table. Default "jaeger_operations_local" or "jaeger_operations" when replication is enabled.
 	OperationsTable clickhousespanstore.TableName `yaml:"operations_table"`
 }
 

@@ -1,6 +1,10 @@
 package storage
 
-import "time"
+import (
+	"time"
+
+	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
+)
 
 type EncodingType string
 
@@ -40,12 +44,14 @@ type Configuration struct {
 	Database string `yaml:"database"`
 	// Endpoint for scraping prometheus metrics e.g. localhost:9090.
 	MetricsEndpoint string `yaml:"metrics_endpoint"`
-	// Table with spans. Default "jaeger_spans_local".
-	SpansTable string `yaml:"spans_table"`
-	// Span index table. Default "jaeger_index_local".
-	SpansIndexTable string `yaml:"spans_index_table"`
-	// Operations table. Default "jaeger_operations_local.
-	OperationsTable string `yaml:"operations_table"`
+	// Whether to use SQL scripts supporting replication and sharding. Default false.
+	Replication bool `yaml:"replication"`
+	// Table with spans. Default "jaeger_spans_local" or "jaeger_spans" when replication is enabled.
+	SpansTable clickhousespanstore.TableName `yaml:"spans_table"`
+	// Span index table. Default "jaeger_index_local" or "jaeger_index" when replication is enabled.
+	SpansIndexTable clickhousespanstore.TableName `yaml:"spans_index_table"`
+	// Operations table. Default "jaeger_operations_local" or "jaeger_operations" when replication is enabled.
+	OperationsTable clickhousespanstore.TableName `yaml:"operations_table"`
 }
 
 func (cfg *Configuration) setDefaults() {
@@ -78,6 +84,6 @@ func (cfg *Configuration) setDefaults() {
 	}
 }
 
-func (cfg *Configuration) getSpansArchiveTable() string {
+func (cfg *Configuration) GetSpansArchiveTable() clickhousespanstore.TableName {
 	return cfg.SpansTable + "_archive"
 }

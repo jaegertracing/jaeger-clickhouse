@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"sort"
 
+	jaegerclickhouse "github.com/pavolloffay/jaeger-clickhouse"
+
 	"github.com/ClickHouse/clickhouse-go"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
@@ -40,23 +42,37 @@ var (
 	_ io.Closer                   = (*Store)(nil)
 )
 
-func NewStore(logger hclog.Logger, cfg Configuration, embeddedSQLScripts embed.FS) (*Store, error) {
+func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 	cfg.setDefaults()
 	db, err := connector(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
 
-	if err := initializeDB(db, cfg, embeddedSQLScripts); err != nil {
+	if err := runInitScripts(db, cfg); err != nil {
 		_ = db.Close()
 		return nil, err
+	}
+	if cfg.Replication {
+		var (
+			globalIndexTable        = cfg.SpansIndexTable.ToGlobal()
+			globalSpansTable        = cfg.SpansTable.ToGlobal()
+			globalSpansArchiveTable = cfg.GetSpansArchiveTable().ToGlobal()
+		)
+		return &Store{
+			db:            db,
+			writer:        clickhousespanstore.NewSpanWriter(logger, db, globalIndexTable, globalSpansTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+			reader:        clickhousespanstore.NewTraceReader(db, cfg.OperationsTable.ToGlobal(), globalIndexTable, globalSpansTable),
+			archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", globalSpansArchiveTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+			archiveReader: clickhousespanstore.NewTraceReader(db, "", "", globalSpansArchiveTable),
+		}, nil
 	}
 	return &Store{
 		db:            db,
 		writer:        clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
 		reader:        clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable),
-		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", "jaeger_archive_spans", clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
-		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", "jaeger_archive_spans"),
+		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", cfg.GetSpansArchiveTable(), clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", cfg.GetSpansArchiveTable()),
 	}, nil
 }
 
@@ -87,9 +103,17 @@ func connector(cfg Configuration) (*sql.DB, error) {
 	return clickhouseConnector(params)
 }
 
-func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error {
+func runInitScripts(db *sql.DB, cfg Configuration) error {
+	var embeddedScripts embed.FS
+	if cfg.Replication {
+		embeddedScripts = jaegerclickhouse.EmbeddedFilesReplication
+	} else {
+		embeddedScripts = jaegerclickhouse.EmbeddedFilesNoReplication
+	}
+
 	var sqlStatements []string
-	if cfg.InitSQLScriptsDir != "" {
+	switch {
+	case cfg.InitSQLScriptsDir != "":
 		filePaths, err := walkMatch(cfg.InitSQLScriptsDir, "*.sql")
 		if err != nil {
 			return fmt.Errorf("could not list sql files: %q", err)
@@ -102,27 +126,84 @@ func initializeDB(db *sql.DB, cfg Configuration, embeddedScripts embed.FS) error
 			}
 			sqlStatements = append(sqlStatements, string(sqlStatement))
 		}
-	} else {
-		f, err := embeddedScripts.ReadFile("sqlscripts/0001-jaeger-index.sql")
+	case cfg.Replication:
+		f, err := embeddedScripts.ReadFile("sqlscripts/replication/0001-jaeger-index-local.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/0002-jaeger-spans.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0002-jaeger-spans-local.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/0003-jaeger-operations.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0003-jaeger-operations-local.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, cfg.SpansIndexTable.AddDbName(cfg.Database)))
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0004-jaeger-spans-archive-local.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable()))
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0005-distributed-city-hash.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, fmt.Sprintf(
+			string(f),
+			cfg.SpansTable.ToGlobal(),
+			cfg.SpansTable.AddDbName(cfg.Database),
+			cfg.Database,
+			cfg.SpansTable,
+		))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(
+			string(f),
+			cfg.SpansIndexTable.ToGlobal(),
+			cfg.SpansIndexTable.AddDbName(cfg.Database),
+			cfg.Database,
+			cfg.SpansIndexTable,
+		))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(
+			string(f),
+			cfg.GetSpansArchiveTable().ToGlobal(),
+			cfg.GetSpansArchiveTable().AddDbName(cfg.Database),
+			cfg.Database,
+			cfg.GetSpansArchiveTable(),
+		))
+		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0006-distributed-rand.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, fmt.Sprintf(
+			string(f),
+			cfg.OperationsTable.ToGlobal(),
+			cfg.OperationsTable.AddDbName(cfg.Database),
+			cfg.Database,
+			cfg.OperationsTable,
+		))
+	default:
+		f, err := embeddedScripts.ReadFile("sqlscripts/local/0001-jaeger-index.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable))
+		f, err = embeddedScripts.ReadFile("sqlscripts/local/0002-jaeger-spans.sql")
+		if err != nil {
+			return err
+		}
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable))
+		f, err = embeddedScripts.ReadFile("sqlscripts/local/0003-jaeger-operations.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, cfg.SpansIndexTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/0004-jaeger-spans-archive.sql")
+		f, err = embeddedScripts.ReadFile("sqlscripts/local/0004-jaeger-spans-archive.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.getSpansArchiveTable()))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable()))
 	}
 	return executeScripts(sqlStatements, db)
 }

@@ -31,15 +31,15 @@ var (
 // TraceReader for reading spans from ClickHouse
 type TraceReader struct {
 	db              *sql.DB
-	operationsTable string
-	indexTable      string
-	spansTable      string
+	operationsTable TableName
+	indexTable      TableName
+	spansTable      TableName
 }
 
 var _ spanstore.Reader = (*TraceReader)(nil)
 
 // NewTraceReader returns a TraceReader for the database
-func NewTraceReader(db *sql.DB, operationsTable, indexTable, spansTable string) *TraceReader {
+func NewTraceReader(db *sql.DB, operationsTable, indexTable, spansTable TableName) *TraceReader {
 	return &TraceReader{
 		db:              db,
 		operationsTable: operationsTable,

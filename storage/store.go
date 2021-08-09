@@ -49,7 +49,7 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
 
-	if err := runInitScripts(db, cfg); err != nil {
+	if err := runInitScripts(logger, db, cfg); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func connector(cfg Configuration) (*sql.DB, error) {
 	return clickhouseConnector(params)
 }
 
-func runInitScripts(db *sql.DB, cfg Configuration) error {
+func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 	var embeddedScripts embed.FS
 	if cfg.Replication {
 		embeddedScripts = jaegerclickhouse.EmbeddedFilesReplication
@@ -205,7 +205,7 @@ func runInitScripts(db *sql.DB, cfg Configuration) error {
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable()))
 	}
-	return executeScripts(sqlStatements, db)
+	return executeScripts(logger, sqlStatements, db)
 }
 
 func (s *Store) SpanReader() spanstore.Reader {
@@ -245,7 +245,7 @@ func clickhouseConnector(params string) (*sql.DB, error) {
 	return db, nil
 }
 
-func executeScripts(sqlStatements []string, db *sql.DB) error {
+func executeScripts(logger hclog.Logger, sqlStatements []string, db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil
@@ -258,6 +258,7 @@ func executeScripts(sqlStatements []string, db *sql.DB) error {
 	}()
 
 	for _, statement := range sqlStatements {
+		logger.Debug("Running SQL statement", "statement", statement)
 		_, err = tx.Exec(statement)
 		if err != nil {
 			return fmt.Errorf("could not run sql %q: %q", statement, err)

@@ -27,7 +27,7 @@ const (
 	testOperationCount  = 10
 )
 
-func TestTraceReader_GetServices(t *testing.T) {
+func TestTraceReader_GetOperations(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
@@ -51,6 +51,37 @@ func TestTraceReader_GetServices(t *testing.T) {
 	operations, err := traceReader.GetOperations(context.Background(), params)
 	require.NoError(t, err)
 	assert.Equal(t, expectedOperations, operations)
+}
+
+func TestTraceReader_GetOperationsQueryError(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	service := "test service"
+	params := spanstore.OperationQueryParameters{ServiceName: service}
+	mock.
+		ExpectQuery(fmt.Sprintf("SELECT operation FROM %s WHERE service = ? GROUP BY operation", testOperationsTable)).
+		WithArgs(service).
+		WillReturnError(errorMock)
+
+	operations, err := traceReader.GetOperations(context.Background(), params)
+	assert.ErrorIs(t, err, errorMock)
+	assert.Equal(t, []spanstore.Operation(nil), operations)
+}
+
+func TestTraceReader_GetOperationsNoTable(t *testing.T) {
+	db, _, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable)
+	service := "test service"
+	params := spanstore.OperationQueryParameters{ServiceName: service}
+	operations, err := traceReader.GetOperations(context.Background(), params)
+	assert.ErrorIs(t, err, errNoOperationsTable)
+	assert.Equal(t, []spanstore.Operation(nil), operations)
 }
 
 func TestTraceReader_GetTrace(t *testing.T) {

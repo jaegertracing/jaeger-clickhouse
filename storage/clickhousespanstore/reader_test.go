@@ -27,6 +27,57 @@ const (
 	testOperationCount  = 10
 )
 
+func TestTraceReader_GetServices(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	expectedServices := []string{"GET /first", "POST /second", "PUT /third"}
+	expectedServiceValues := make([]driver.Value, len(expectedServices))
+	for i := range expectedServices {
+		expectedServiceValues[i] = expectedServices[i]
+	}
+	queryResult := getRows(expectedServiceValues)
+
+	mock.
+		ExpectQuery(fmt.Sprintf("SELECT service FROM %s GROUP BY service", testOperationsTable)).
+		WillReturnRows(queryResult)
+
+	services, err := traceReader.GetServices(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, expectedServices, services)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTraceReader_GetServicesQueryError(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+
+	mock.
+		ExpectQuery(fmt.Sprintf("SELECT service FROM %s GROUP BY service", testOperationsTable)).
+		WillReturnError(errorMock)
+	services, err := traceReader.GetServices(context.Background())
+	require.ErrorIs(t, err, errorMock)
+	assert.Equal(t, []string(nil), services)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTraceReader_GetServicesNoTable(t *testing.T) {
+	db, _, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable)
+
+	services, err := traceReader.GetServices(context.Background())
+	require.ErrorIs(t, err, errNoOperationsTable)
+	assert.Equal(t, []string(nil), services)
+}
+
 func TestTraceReader_GetOperations(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")

@@ -5,7 +5,9 @@ This guide uses [clickhouse-operator](https://github.com/Altinity/clickhouse-ope
 the storage.
 
 Note that the Jaeger ClickHouse plugin supports creating replicated schema out-of-the-box. Therefore,
-this guide is not necessary for setting up default replicated deployment.
+this guide is not necessary for setting up default replicated deployment. Also note that the
+ClickHouse operator uses by default `Ordinary` database engine, which does not work with the
+embedded replication scripts in Jaeger.
 Refer to the `config.yaml` how to setup replicated deployment.
 
 ## Sharding

@@ -54,17 +54,12 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 		return nil, err
 	}
 	if cfg.Replication {
-		var (
-			globalIndexTable        = cfg.SpansIndexTable.ToGlobal()
-			globalSpansTable        = cfg.SpansTable.ToGlobal()
-			globalSpansArchiveTable = cfg.GetSpansArchiveTable().ToGlobal()
-		)
 		return &Store{
 			db:            db,
-			writer:        clickhousespanstore.NewSpanWriter(logger, db, globalIndexTable, globalSpansTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
-			reader:        clickhousespanstore.NewTraceReader(db, cfg.OperationsTable.ToGlobal(), globalIndexTable, globalSpansTable),
-			archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", globalSpansArchiveTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
-			archiveReader: clickhousespanstore.NewTraceReader(db, "", "", globalSpansArchiveTable),
+			writer:        clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+			reader:        clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable),
+			archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", cfg.GetSpansArchiveTable(), clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+			archiveReader: clickhousespanstore.NewTraceReader(db, "", "", cfg.GetSpansArchiveTable()),
 		}, nil
 	}
 	return &Store{

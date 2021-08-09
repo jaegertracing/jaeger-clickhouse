@@ -4,6 +4,10 @@ This is a guide how to setup sharding and replication for Jaeger data.
 This guide uses [clickhouse-operator](https://github.com/Altinity/clickhouse-operator) to deploy
 the storage.
 
+Note that the Jaeger ClickHouse plugin supports creating replicated schema out-of-the-box. Therefore,
+this guide is not necessary for setting up default replicated deployment.
+Refer to the `config.yaml` how to setup replicated deployment.
+
 ## Sharding
 
 Sharding is a feature that allows splitting the data into multiple Clickhouse nodes to

@@ -131,46 +131,46 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable.ToLocal()))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0002-jaeger-spans-local.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable.ToLocal()))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0003-jaeger-operations-local.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, cfg.SpansIndexTable.AddDbName(cfg.Database)))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable.ToLocal(), cfg.SpansIndexTable.ToLocal().AddDbName(cfg.Database)))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0004-jaeger-spans-archive-local.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable()))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable().ToLocal()))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0005-distributed-city-hash.sql")
 		if err != nil {
 			return err
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(
 			string(f),
-			cfg.SpansTable.ToGlobal(),
-			cfg.SpansTable.AddDbName(cfg.Database),
-			cfg.Database,
 			cfg.SpansTable,
+			cfg.SpansTable.ToLocal().AddDbName(cfg.Database),
+			cfg.Database,
+			cfg.SpansTable.ToLocal(),
 		))
 		sqlStatements = append(sqlStatements, fmt.Sprintf(
 			string(f),
-			cfg.SpansIndexTable.ToGlobal(),
-			cfg.SpansIndexTable.AddDbName(cfg.Database),
-			cfg.Database,
 			cfg.SpansIndexTable,
+			cfg.SpansIndexTable.ToLocal().AddDbName(cfg.Database),
+			cfg.Database,
+			cfg.SpansIndexTable.ToLocal(),
 		))
 		sqlStatements = append(sqlStatements, fmt.Sprintf(
 			string(f),
-			cfg.GetSpansArchiveTable().ToGlobal(),
-			cfg.GetSpansArchiveTable().AddDbName(cfg.Database),
-			cfg.Database,
 			cfg.GetSpansArchiveTable(),
+			cfg.GetSpansArchiveTable().ToLocal().AddDbName(cfg.Database),
+			cfg.Database,
+			cfg.GetSpansArchiveTable().ToLocal(),
 		))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0006-distributed-rand.sql")
 		if err != nil {
@@ -178,10 +178,10 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		}
 		sqlStatements = append(sqlStatements, fmt.Sprintf(
 			string(f),
-			cfg.OperationsTable.ToGlobal(),
-			cfg.OperationsTable.AddDbName(cfg.Database),
-			cfg.Database,
 			cfg.OperationsTable,
+			cfg.OperationsTable.ToLocal().AddDbName(cfg.Database),
+			cfg.Database,
+			cfg.OperationsTable.ToLocal(),
 		))
 	default:
 		f, err := embeddedScripts.ReadFile("sqlscripts/local/0001-jaeger-index.sql")

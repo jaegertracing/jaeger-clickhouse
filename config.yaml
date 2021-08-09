@@ -19,8 +19,6 @@ database:
 metrics_endpoint: localhost:9090
 # Whether to use sql scripts supporting replication and sharding.
 # Replication can be used only on database with Atomic engine.
-# Note that the default database uses Ordinary engine.
-# Therefore, a custom database has to be used.
 # Default false.
 replication:
 # Table with spans. Default "jaeger_spans_local" or "jaeger_spans" when replication is enabled.

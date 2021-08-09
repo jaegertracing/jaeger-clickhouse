@@ -27,6 +27,332 @@ const (
 	testOperationCount  = 10
 )
 
+func TestTraceReader_FindTraceIDs(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	service := "service"
+	start := getRandomTime()
+	end := start.Add(24 * time.Hour)
+	fullDuration := end.Sub(start)
+	duration := fullDuration
+	for i := 0; i < maxProgressiveSteps; i++ {
+		duration /= 2
+	}
+	params := spanstore.TraceQueryParameters{
+		ServiceName:  service,
+		NumTraces:    testNumTraces,
+		StartTimeMin: start,
+		StartTimeMax: end,
+	}
+
+	expectedTraceIDs := make([]model.TraceID, testNumTraces)
+	traceIDValues := make([]driver.Value, testNumTraces)
+	for i := range expectedTraceIDs {
+		traceID := model.TraceID{Low: uint64(i)}
+		expectedTraceIDs[i] = traceID
+		traceIDValues[i] = traceID.String()
+	}
+
+	found := traceIDValues[:0]
+	endArg := end
+	for i := 0; i < maxProgressiveSteps; i++ {
+		if i == maxProgressiveSteps-1 {
+			duration = fullDuration
+		}
+
+		startArg := endArg.Add(-duration)
+		if startArg.Before(start) {
+			startArg = start
+		}
+
+		index := func() int {
+			switch i {
+			case 0:
+				return 1
+			case 1:
+				return 3
+			case 2:
+				return 5
+			default:
+				return testNumTraces
+			}
+		}()
+		args := append(
+			append(
+				[]driver.Value{
+					service,
+					startArg,
+					endArg,
+				},
+				found...),
+			testNumTraces-len(found))
+		mock.
+			ExpectQuery(fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ?%s ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+				func() string {
+					if len(found) == 0 {
+						return ""
+					}
+					return " AND traceID NOT IN (?" + strings.Repeat(",?", len(found)-1) + ")"
+				}(),
+			)).
+			WithArgs(args...).
+			WillReturnRows(getRows(traceIDValues[len(found):index]))
+		endArg = startArg
+		duration *= 2
+		found = traceIDValues[:index]
+	}
+
+	traceIDs, err := traceReader.FindTraceIDs(context.Background(), &params)
+	require.NoError(t, err)
+	assert.Equal(t, expectedTraceIDs, traceIDs)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTraceReader_FindTraceIDsShortDurationAfterReduction(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	service := "service"
+	start := getRandomTime()
+	end := start.Add(8 * time.Hour)
+	fullDuration := end.Sub(start)
+	duration := minTimespanForProgressiveSearch
+	params := spanstore.TraceQueryParameters{
+		ServiceName:  service,
+		NumTraces:    testNumTraces,
+		StartTimeMin: start,
+		StartTimeMax: end,
+	}
+
+	expectedTraceIDs := make([]model.TraceID, testNumTraces)
+	traceIDValues := make([]driver.Value, testNumTraces)
+	for i := range expectedTraceIDs {
+		traceID := model.TraceID{Low: uint64(i)}
+		expectedTraceIDs[i] = traceID
+		traceIDValues[i] = traceID.String()
+	}
+
+	found := traceIDValues[:0]
+	endArg := end
+	for i := 0; i < maxProgressiveSteps; i++ {
+		if i == maxProgressiveSteps-1 {
+			duration = fullDuration
+		}
+
+		startArg := endArg.Add(-duration)
+		if startArg.Before(start) {
+			startArg = start
+		}
+
+		index := func() int {
+			switch i {
+			case 0:
+				return 1
+			case 1:
+				return 3
+			case 2:
+				return 5
+			default:
+				return testNumTraces
+			}
+		}()
+		args := append(
+			append(
+				[]driver.Value{
+					service,
+					startArg,
+					endArg,
+				},
+				found...),
+			testNumTraces-len(found))
+		mock.
+			ExpectQuery(fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ?%s ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+				func() string {
+					if len(found) == 0 {
+						return ""
+					}
+					return " AND traceID NOT IN (?" + strings.Repeat(",?", len(found)-1) + ")"
+				}(),
+			)).
+			WithArgs(args...).
+			WillReturnRows(getRows(traceIDValues[len(found):index]))
+		endArg = startArg
+		duration *= 2
+		found = traceIDValues[:index]
+	}
+
+	traceIDs, err := traceReader.FindTraceIDs(context.Background(), &params)
+	require.NoError(t, err)
+	assert.Equal(t, expectedTraceIDs, traceIDs)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTraceReader_FindTraceIDsEarlyExit(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	service := "service"
+	start := getRandomTime()
+	end := start.Add(24 * time.Hour)
+	duration := end.Sub(start)
+	for i := 0; i < maxProgressiveSteps; i++ {
+		duration /= 2
+	}
+	params := spanstore.TraceQueryParameters{
+		ServiceName:  service,
+		NumTraces:    testNumTraces,
+		StartTimeMin: start,
+		StartTimeMax: end,
+	}
+
+	expectedTraceIDs := make([]model.TraceID, testNumTraces)
+	traceIDValues := make([]driver.Value, testNumTraces)
+	for i := range expectedTraceIDs {
+		traceID := model.TraceID{Low: uint64(i)}
+		expectedTraceIDs[i] = traceID
+		traceIDValues[i] = traceID.String()
+	}
+
+	endArg := end
+	startArg := endArg.Add(-duration)
+	if startArg.Before(start) {
+		startArg = start
+	}
+
+	mock.
+		ExpectQuery(fmt.Sprintf(
+			"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+			testIndexTable,
+		)).
+		WithArgs(
+			service,
+			startArg,
+			endArg,
+			testNumTraces,
+		).
+		WillReturnRows(getRows(traceIDValues))
+
+	traceIDs, err := traceReader.FindTraceIDs(context.Background(), &params)
+	require.NoError(t, err)
+	assert.Equal(t, expectedTraceIDs, traceIDs)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTraceReader_FindTraceIDsShortRange(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	service := "service"
+	start := getRandomTime()
+	end := start.Add(time.Hour)
+	params := spanstore.TraceQueryParameters{
+		ServiceName:  service,
+		NumTraces:    testNumTraces,
+		StartTimeMin: start,
+		StartTimeMax: end,
+	}
+
+	expectedTraceIDs := make([]model.TraceID, testNumTraces)
+	traceIDValues := make([]driver.Value, testNumTraces)
+	for i := range expectedTraceIDs {
+		traceID := model.TraceID{Low: uint64(i)}
+		expectedTraceIDs[i] = traceID
+		traceIDValues[i] = traceID.String()
+	}
+
+	mock.
+		ExpectQuery(fmt.Sprintf(
+			"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+			testIndexTable,
+		)).
+		WithArgs(
+			service,
+			start,
+			end,
+			testNumTraces,
+		).
+		WillReturnRows(getRows(traceIDValues))
+
+	traceIDs, err := traceReader.FindTraceIDs(context.Background(), &params)
+	require.NoError(t, err)
+	assert.Equal(t, expectedTraceIDs, traceIDs)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTraceReader_FindTraceIDsQueryError(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	service := "service"
+	start := getRandomTime()
+	end := start.Add(24 * time.Hour)
+	duration := end.Sub(start)
+	for i := 0; i < maxProgressiveSteps; i++ {
+		duration /= 2
+	}
+	params := spanstore.TraceQueryParameters{
+		ServiceName:  service,
+		NumTraces:    testNumTraces,
+		StartTimeMin: start,
+		StartTimeMax: end,
+	}
+
+	mock.
+		ExpectQuery(fmt.Sprintf(
+			"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+			testIndexTable,
+		)).
+		WithArgs(
+			service,
+			end.Add(-duration),
+			end,
+			testNumTraces,
+		).
+		WillReturnError(errorMock)
+
+	traceIDs, err := traceReader.FindTraceIDs(context.Background(), &params)
+	require.ErrorIs(t, err, errorMock)
+	assert.Equal(t, []model.TraceID(nil), traceIDs)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTraceReader_FindTraceIDsZeroStartTime(t *testing.T) {
+	db, mock, err := getDbMock()
+	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	defer db.Close()
+
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	service := "service"
+	start := time.Time{}
+	end := getRandomTime()
+	params := spanstore.TraceQueryParameters{
+		ServiceName:  service,
+		NumTraces:    testNumTraces,
+		StartTimeMin: start,
+		StartTimeMax: end,
+	}
+
+	traceIDs, err := traceReader.FindTraceIDs(context.Background(), &params)
+	require.ErrorIs(t, err, errStartTimeRequired)
+	assert.Equal(t, []model.TraceID(nil), traceIDs)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestTraceReader_GetServices(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")

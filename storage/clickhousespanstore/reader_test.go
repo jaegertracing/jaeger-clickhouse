@@ -51,6 +51,7 @@ func TestTraceReader_GetOperations(t *testing.T) {
 	operations, err := traceReader.GetOperations(context.Background(), params)
 	require.NoError(t, err)
 	assert.Equal(t, expectedOperations, operations)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTraceReader_GetOperationsQueryError(t *testing.T) {
@@ -69,6 +70,7 @@ func TestTraceReader_GetOperationsQueryError(t *testing.T) {
 	operations, err := traceReader.GetOperations(context.Background(), params)
 	assert.ErrorIs(t, err, errorMock)
 	assert.Equal(t, []spanstore.Operation(nil), operations)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTraceReader_GetOperationsNoTable(t *testing.T) {
@@ -147,6 +149,7 @@ func TestTraceReader_GetTrace(t *testing.T) {
 				model.SortTrace(test.expectedTrace)
 			}
 			assert.Equal(t, test.expectedTrace, trace)
+			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
 }
@@ -210,6 +213,7 @@ func TestSpanWriter_getTraces(t *testing.T) {
 			require.NoError(t, err)
 			model.SortTraces(traces)
 			assert.Equal(t, test.expectedTraces, traces)
+			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
 }
@@ -271,6 +275,7 @@ func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
 				assert.EqualError(t, err, test.expectedError.Error())
 			}
 			assert.Equal(t, test.expectedResult, traces)
+			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
 }
@@ -303,7 +308,7 @@ func TestSpanWriter_getTracesQueryError(t *testing.T) {
 	traces, err := traceReader.getTraces(context.Background(), traceIDs)
 	assert.EqualError(t, err, errorMock.Error())
 	assert.Equal(t, []*model.Trace(nil), traces)
-
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSpanWriter_getTracesRowsScanError(t *testing.T) {
@@ -335,7 +340,7 @@ func TestSpanWriter_getTracesRowsScanError(t *testing.T) {
 	traces, err := traceReader.getTraces(context.Background(), traceIDs)
 	assert.EqualError(t, err, errorMock.Error())
 	assert.Equal(t, []*model.Trace(nil), traces)
-
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSpanWriter_getTraceNoTraceIDs(t *testing.T) {
@@ -349,7 +354,6 @@ func TestSpanWriter_getTraceNoTraceIDs(t *testing.T) {
 	traces, err := traceReader.getTraces(context.Background(), traceIDs)
 	require.NoError(t, err)
 	assert.Equal(t, make([]*model.Trace, 0), traces)
-
 }
 
 func getEncodedSpans(spans []model.Span, marshal func(span *model.Span) ([]byte, error)) *sqlmock.Rows {
@@ -682,6 +686,7 @@ func TestSpanReader_getStrings(t *testing.T) {
 	queryResult, err := traceReader.getStrings(context.Background(), query, args...)
 	assert.NoError(t, err)
 	assert.EqualValues(t, expectedResult, queryResult)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSpanReader_getStringsQueryError(t *testing.T) {
@@ -699,6 +704,7 @@ func TestSpanReader_getStringsQueryError(t *testing.T) {
 	queryResult, err := traceReader.getStrings(context.Background(), query, args...)
 	assert.EqualError(t, err, errorMock.Error())
 	assert.EqualValues(t, []string(nil), queryResult)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSpanReader_getStringsRowError(t *testing.T) {
@@ -722,4 +728,5 @@ func TestSpanReader_getStringsRowError(t *testing.T) {
 	queryResult, err := traceReader.getStrings(context.Background(), query, args...)
 	assert.EqualError(t, err, errorMock.Error())
 	assert.EqualValues(t, []string(nil), queryResult)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

@@ -12,50 +12,50 @@ import (
 func TestSetDefaults(t *testing.T) {
 	tests := map[string]struct {
 		replication bool
-		getField func(Configuration) interface{}
-		expected interface{}
+		getField    func(Configuration) interface{}
+		expected    interface{}
 	}{
-		"username":              {
+		"username": {
 			getField: func(config Configuration) interface{} { return config.Username },
 			expected: defaultUsername,
 		},
-		"database name":         {
+		"database name": {
 			getField: func(config Configuration) interface{} { return config.Database },
 			expected: defaultDatabaseName,
 		},
-		"encoding":              {
+		"encoding": {
 			getField: func(config Configuration) interface{} { return config.Encoding },
 			expected: defaultEncoding,
 		},
-		"batch write size":      {
+		"batch write size": {
 			getField: func(config Configuration) interface{} { return config.BatchWriteSize },
 			expected: defaultBatchSize,
 		},
-		"batch flush interval":  {
+		"batch flush interval": {
 			getField: func(config Configuration) interface{} { return config.BatchFlushInterval },
 			expected: defaultBatchDelay,
 		},
-		"metrics endpoint":      {
+		"metrics endpoint": {
 			getField: func(config Configuration) interface{} { return config.MetricsEndpoint },
 			expected: defaultMetricsEndpoint,
 		},
-		"spans table name local":     {
+		"spans table name local": {
 			getField: func(config Configuration) interface{} { return config.SpansTable },
 			expected: defaultSpansTable.ToLocal(),
 		},
-		"spans table name replication":     {
+		"spans table name replication": {
 			replication: true,
-			getField: func(config Configuration) interface{} { return config.SpansTable },
-			expected: defaultSpansTable,
+			getField:    func(config Configuration) interface{} { return config.SpansTable },
+			expected:    defaultSpansTable,
 		},
-		"index table name local":      {
+		"index table name local": {
 			getField: func(config Configuration) interface{} { return config.SpansIndexTable },
 			expected: defaultSpansIndexTable.ToLocal(),
 		},
-		"index table name replication":      {
+		"index table name replication": {
 			replication: true,
-			getField: func(config Configuration) interface{} { return config.SpansIndexTable },
-			expected: defaultSpansIndexTable,
+			getField:    func(config Configuration) interface{} { return config.SpansIndexTable },
+			expected:    defaultSpansIndexTable,
 		},
 		"operations table name local": {
 			getField: func(config Configuration) interface{} { return config.OperationsTable },
@@ -63,8 +63,8 @@ func TestSetDefaults(t *testing.T) {
 		},
 		"operations table name replication": {
 			replication: true,
-			getField: func(config Configuration) interface{} { return config.OperationsTable },
-			expected: defaultOperationsTable,
+			getField:    func(config Configuration) interface{} { return config.OperationsTable },
+			expected:    defaultOperationsTable,
 		},
 	}
 

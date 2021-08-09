@@ -51,7 +51,8 @@ type Configuration struct {
 	// Span index table. Default "jaeger_index_local" or "jaeger_index" when replication is enabled.
 	SpansIndexTable clickhousespanstore.TableName `yaml:"spans_index_table"`
 	// Operations table. Default "jaeger_operations_local" or "jaeger_operations" when replication is enabled.
-	OperationsTable clickhousespanstore.TableName `yaml:"operations_table"`
+	OperationsTable   clickhousespanstore.TableName `yaml:"operations_table"`
+	spansArchiveTable clickhousespanstore.TableName
 }
 
 func (cfg *Configuration) setDefaults() {
@@ -76,9 +77,13 @@ func (cfg *Configuration) setDefaults() {
 	if cfg.SpansTable == "" {
 		if cfg.Replication {
 			cfg.SpansTable = defaultSpansTable
+			cfg.spansArchiveTable = defaultSpansTable + "_archive"
 		} else {
 			cfg.SpansTable = defaultSpansTable.ToLocal()
+			cfg.spansArchiveTable = (defaultSpansTable + "_archive").ToLocal()
 		}
+	} else {
+		cfg.spansArchiveTable = cfg.SpansTable + "_archive"
 	}
 	if cfg.SpansIndexTable == "" {
 		if cfg.Replication {
@@ -97,5 +102,5 @@ func (cfg *Configuration) setDefaults() {
 }
 
 func (cfg *Configuration) GetSpansArchiveTable() clickhousespanstore.TableName {
-	return cfg.SpansTable + "_archive"
+	return cfg.spansArchiveTable
 }

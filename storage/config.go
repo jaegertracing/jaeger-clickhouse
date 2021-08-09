@@ -18,9 +18,9 @@ const (
 	defaultDatabaseName                 = "default"
 	defaultMetricsEndpoint              = "localhost:9090"
 
-	defaultSpansTable      = "jaeger_spans_local"
-	defaultSpansIndexTable = "jaeger_index_local"
-	defaultOperationsTable = "jaeger_operations_local"
+	defaultSpansTable      clickhousespanstore.TableName = "jaeger_spans"
+	defaultSpansIndexTable clickhousespanstore.TableName = "jaeger_index"
+	defaultOperationsTable clickhousespanstore.TableName = "jaeger_operations"
 )
 
 type Configuration struct {
@@ -74,13 +74,25 @@ func (cfg *Configuration) setDefaults() {
 		cfg.MetricsEndpoint = defaultMetricsEndpoint
 	}
 	if cfg.SpansTable == "" {
-		cfg.SpansTable = defaultSpansTable
+		if cfg.Replication {
+			cfg.SpansTable = defaultSpansTable
+		} else {
+			cfg.SpansTable = defaultSpansTable.ToLocal()
+		}
 	}
 	if cfg.SpansIndexTable == "" {
-		cfg.SpansIndexTable = defaultSpansIndexTable
+		if cfg.Replication {
+			cfg.SpansIndexTable = defaultSpansIndexTable
+		} else {
+			cfg.SpansIndexTable = defaultSpansIndexTable.ToLocal()
+		}
 	}
 	if cfg.OperationsTable == "" {
-		cfg.OperationsTable = defaultOperationsTable
+		if cfg.Replication {
+			cfg.OperationsTable = defaultOperationsTable
+		} else {
+			cfg.OperationsTable = defaultOperationsTable.ToLocal()
+		}
 	}
 }
 

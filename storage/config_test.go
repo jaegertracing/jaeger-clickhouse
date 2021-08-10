@@ -10,26 +10,69 @@ import (
 )
 
 func TestSetDefaults(t *testing.T) {
-	config := Configuration{}
-	config.setDefaults()
 	tests := map[string]struct {
-		field    interface{}
-		expected interface{}
+		replication bool
+		getField    func(Configuration) interface{}
+		expected    interface{}
 	}{
-		"username":              {field: config.Username, expected: defaultUsername},
-		"database name":         {field: config.Database, expected: defaultDatabaseName},
-		"encoding":              {field: config.Encoding, expected: defaultEncoding},
-		"batch write size":      {field: config.BatchWriteSize, expected: defaultBatchSize},
-		"batch flush interval":  {field: config.BatchFlushInterval, expected: defaultBatchDelay},
-		"metrics endpoint":      {field: config.MetricsEndpoint, expected: defaultMetricsEndpoint},
-		"spans table name":      {field: config.SpansTable, expected: defaultSpansTable},
-		"index table name":      {field: config.SpansIndexTable, expected: defaultSpansIndexTable},
-		"operations table name": {field: config.OperationsTable, expected: defaultOperationsTable},
+		"username": {
+			getField: func(config Configuration) interface{} { return config.Username },
+			expected: defaultUsername,
+		},
+		"database name": {
+			getField: func(config Configuration) interface{} { return config.Database },
+			expected: defaultDatabaseName,
+		},
+		"encoding": {
+			getField: func(config Configuration) interface{} { return config.Encoding },
+			expected: defaultEncoding,
+		},
+		"batch write size": {
+			getField: func(config Configuration) interface{} { return config.BatchWriteSize },
+			expected: defaultBatchSize,
+		},
+		"batch flush interval": {
+			getField: func(config Configuration) interface{} { return config.BatchFlushInterval },
+			expected: defaultBatchDelay,
+		},
+		"metrics endpoint": {
+			getField: func(config Configuration) interface{} { return config.MetricsEndpoint },
+			expected: defaultMetricsEndpoint,
+		},
+		"spans table name local": {
+			getField: func(config Configuration) interface{} { return config.SpansTable },
+			expected: defaultSpansTable.ToLocal(),
+		},
+		"spans table name replication": {
+			replication: true,
+			getField:    func(config Configuration) interface{} { return config.SpansTable },
+			expected:    defaultSpansTable,
+		},
+		"index table name local": {
+			getField: func(config Configuration) interface{} { return config.SpansIndexTable },
+			expected: defaultSpansIndexTable.ToLocal(),
+		},
+		"index table name replication": {
+			replication: true,
+			getField:    func(config Configuration) interface{} { return config.SpansIndexTable },
+			expected:    defaultSpansIndexTable,
+		},
+		"operations table name local": {
+			getField: func(config Configuration) interface{} { return config.OperationsTable },
+			expected: defaultOperationsTable.ToLocal(),
+		},
+		"operations table name replication": {
+			replication: true,
+			getField:    func(config Configuration) interface{} { return config.OperationsTable },
+			expected:    defaultOperationsTable,
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(fmt.Sprintf("default %s", name), func(t *testing.T) {
-			assert.EqualValues(t, test.expected, test.field)
+			config := Configuration{Replication: test.replication}
+			config.setDefaults()
+			assert.EqualValues(t, test.expected, test.getField(config))
 		})
 	}
 }
@@ -39,8 +82,9 @@ func TestConfiguration_GetSpansArchiveTable(t *testing.T) {
 		config                        Configuration
 		expectedSpansArchiveTableName clickhousespanstore.TableName
 	}{
-		"default_config":     {config: Configuration{}, expectedSpansArchiveTableName: defaultSpansTable + "_archive"},
-		"custom_spans_table": {config: Configuration{SpansTable: "custom_table_name"}, expectedSpansArchiveTableName: "custom_table_name_archive"},
+		"default_config_local":       {config: Configuration{}, expectedSpansArchiveTableName: (defaultSpansTable + "_archive").ToLocal()},
+		"default_config_replication": {config: Configuration{Replication: true}, expectedSpansArchiveTableName: defaultSpansTable + "_archive"},
+		"custom_spans_table":         {config: Configuration{SpansTable: "custom_table_name"}, expectedSpansArchiveTableName: "custom_table_name_archive"},
 	}
 
 	for name, test := range tests {

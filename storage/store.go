@@ -248,7 +248,7 @@ func clickhouseConnector(params string) (*sql.DB, error) {
 func executeScripts(logger hclog.Logger, sqlStatements []string, db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
-		return nil
+		return err
 	}
 	committed := false
 	defer func() {

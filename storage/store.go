@@ -108,8 +108,8 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 
 	var (
 		sqlStatements []string
-		ttlTimestamp string
-		ttlDate string
+		ttlTimestamp  string
+		ttlDate       string
 	)
 	if cfg.TTLDays > 0 {
 		ttlTimestamp = fmt.Sprintf("TTL timestamp + INTERVAL %d DAY DELETE", cfg.TTLDays)
@@ -201,7 +201,7 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable,  ttlDate, cfg.SpansIndexTable))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, ttlDate, cfg.SpansIndexTable))
 		f, err = embeddedScripts.ReadFile("sqlscripts/local/0004-jaeger-spans-archive.sql")
 		if err != nil {
 			return err

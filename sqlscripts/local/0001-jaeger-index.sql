@@ -10,4 +10,5 @@ CREATE TABLE IF NOT EXISTS %s (
 ) ENGINE MergeTree()
 PARTITION BY toDate(timestamp)
 ORDER BY (service, -toUnixTimestamp(timestamp))
+%s
 SETTINGS index_granularity=1024

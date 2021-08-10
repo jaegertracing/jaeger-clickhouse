@@ -10,3 +10,4 @@ AS SELECT
     count() as count
 FROM %s -- Here goes local jaeger index table's name
 GROUP BY date, service, operation
+%s

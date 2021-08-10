@@ -5,4 +5,5 @@ CREATE TABLE IF NOT EXISTS %s (
 ) ENGINE MergeTree()
 PARTITION BY toDate(timestamp)
 ORDER BY traceID
+%s
 SETTINGS index_granularity=1024

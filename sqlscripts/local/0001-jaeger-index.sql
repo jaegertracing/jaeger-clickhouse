@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS %s (
      INDEX idx_tags tags TYPE bloom_filter(0.01) GRANULARITY 64,
      INDEX idx_duration durationUs TYPE minmax GRANULARITY 1
 ) ENGINE MergeTree()
+%s
 PARTITION BY toDate(timestamp)
 ORDER BY (service, -toUnixTimestamp(timestamp))
-%s
 SETTINGS index_granularity=1024

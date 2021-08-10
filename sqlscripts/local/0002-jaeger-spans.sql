@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS %s (
     traceID String CODEC(ZSTD(1)),
     model String CODEC(ZSTD(3))
 ) ENGINE MergeTree()
+%s
 PARTITION BY toDate(timestamp)
 ORDER BY traceID
-%s
 SETTINGS index_granularity=1024

@@ -3,9 +3,10 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"testing"
+
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousedependencystore"
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
-	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/hashicorp/go-hclog"
@@ -44,7 +45,7 @@ func TestStore_ArchiveSpanWriter(t *testing.T) {
 
 	writer := clickhousespanstore.SpanWriter{}
 	store := Store{
-		db:     db,
+		db:            db,
 		archiveWriter: &writer,
 	}
 	assert.Equal(t, &writer, store.ArchiveSpanWriter())
@@ -70,7 +71,7 @@ func TestStore_ArchiveSpanReader(t *testing.T) {
 
 	reader := clickhousespanstore.TraceReader{}
 	store := Store{
-		db:     db,
+		db:            db,
 		archiveReader: &reader,
 	}
 	assert.Equal(t, &reader, store.ArchiveSpanReader())
@@ -133,7 +134,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 			testOperationsTable,
 			testIndexTable,
 			testSpansArchiveTable,
-			),
+		),
 	}
 }
 

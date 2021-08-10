@@ -54,7 +54,7 @@ type Configuration struct {
 	OperationsTable   clickhousespanstore.TableName `yaml:"operations_table"`
 	spansArchiveTable clickhousespanstore.TableName
 	// TTL for data in tables in days. If 0, no TTL is set. Default 0.
-	TTLDays int `yaml:"ttl"`
+	TTLDays uint `yaml:"ttl"`
 }
 
 func (cfg *Configuration) setDefaults() {

@@ -3,12 +3,14 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/hashicorp/go-hclog"
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
+
+	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 )
 
 var errorMock = fmt.Errorf("error mock")
@@ -78,7 +80,7 @@ func TestStore_executeScriptBeginError(t *testing.T) {
 	mock.ExpectBegin().WillReturnError(errorMock)
 	err = executeScripts(spyLogger, scripts, db)
 	assert.NoError(t, err)
-	//assert.EqualError(t, err, errorMock.Error())
+	// assert.EqualError(t, err, errorMock.Error())
 }
 
 func getDbMock() (*sql.DB, sqlmock.Sqlmock, error) {

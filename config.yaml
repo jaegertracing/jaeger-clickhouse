@@ -27,3 +27,5 @@ spans_table:
 spans_index_table:
 # Operations table. Default "jaeger_operations_local" or "jaeger_operations" when replication is enabled.
 operations_table:
+# TTL for data in tables in days. If 0, no TTL is set. Default 0.
+ttl:

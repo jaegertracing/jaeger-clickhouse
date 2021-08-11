@@ -106,7 +106,15 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		embeddedScripts = jaegerclickhouse.EmbeddedFilesNoReplication
 	}
 
-	var sqlStatements []string
+	var (
+		sqlStatements []string
+		ttlTimestamp  string
+		ttlDate       string
+	)
+	if cfg.TTLDays > 0 {
+		ttlTimestamp = fmt.Sprintf("TTL timestamp + INTERVAL %d DAY DELETE", cfg.TTLDays)
+		ttlDate = fmt.Sprintf("TTL date + INTERVAL %d DAY DELETE", cfg.TTLDays)
+	}
 	switch {
 	case cfg.InitSQLScriptsDir != "":
 		filePaths, err := walkMatch(cfg.InitSQLScriptsDir, "*.sql")
@@ -126,22 +134,22 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable.ToLocal()))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable.ToLocal(), ttlTimestamp))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0002-jaeger-spans-local.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable.ToLocal()))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable.ToLocal(), ttlTimestamp))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0003-jaeger-operations-local.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable.ToLocal(), cfg.SpansIndexTable.ToLocal().AddDbName(cfg.Database)))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable.ToLocal(), ttlDate, cfg.SpansIndexTable.ToLocal().AddDbName(cfg.Database)))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0004-jaeger-spans-archive-local.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable().ToLocal()))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable().ToLocal(), ttlTimestamp))
 		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0005-distributed-city-hash.sql")
 		if err != nil {
 			return err
@@ -183,22 +191,22 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable, ttlTimestamp))
 		f, err = embeddedScripts.ReadFile("sqlscripts/local/0002-jaeger-spans.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable, ttlTimestamp))
 		f, err = embeddedScripts.ReadFile("sqlscripts/local/0003-jaeger-operations.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, cfg.SpansIndexTable))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, ttlDate, cfg.SpansIndexTable))
 		f, err = embeddedScripts.ReadFile("sqlscripts/local/0004-jaeger-spans-archive.sql")
 		if err != nil {
 			return err
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable()))
+		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable(), ttlTimestamp))
 	}
 	return executeScripts(logger, sqlStatements, db)
 }

@@ -53,6 +53,8 @@ type Configuration struct {
 	// Operations table. Default "jaeger_operations_local" or "jaeger_operations" when replication is enabled.
 	OperationsTable   clickhousespanstore.TableName `yaml:"operations_table"`
 	spansArchiveTable clickhousespanstore.TableName
+	// TTL for data in tables in days. If 0, no TTL is set. Default 0.
+	TTLDays uint `yaml:"ttl"`
 }
 
 func (cfg *Configuration) setDefaults() {

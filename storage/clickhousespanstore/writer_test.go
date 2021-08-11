@@ -32,7 +32,16 @@ const (
 	testSpansTable    = "test_spans_table"
 )
 
-var errorMock = fmt.Errorf("error mock")
+var (
+	errorMock            = fmt.Errorf("error mock")
+	encodingsAndMarshals = map[string]struct {
+		encoding Encoding
+		marshal  func(span *model.Span) ([]byte, error)
+	}{
+		"json":     {encoding: EncodingJSON, marshal: func(span *model.Span) ([]byte, error) { return json.Marshal(span) }},
+		"protobuf": {encoding: EncodingProto, marshal: func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }},
+	}
+)
 
 func TestSpanWriter_TagString(t *testing.T) {
 	tests := map[string]struct {
@@ -78,72 +87,63 @@ func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
 	}
 }
 
-func TestSpanWriter_WriteBatchNoIndexJSON(t *testing.T) {
-	testSpanWriterWriteBatchNoIndex(t, EncodingJSON, func(span *model.Span) ([]byte, error) { return json.Marshal(span) })
-}
-
-func TestSpanWriter_WriteBatchNoIndexProto(t *testing.T) {
-	testSpanWriterWriteBatchNoIndex(t, EncodingProto, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) })
-}
-
-func testSpanWriterWriteBatchNoIndex(t *testing.T, encoding Encoding, marshal func(span *model.Span) ([]byte, error)) {
+func TestSpanWriterWriteBatchNoIndex(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	spyLogger := mocks.NewSpyLogger()
-	spanWriter := NewSpanWriter(
-		spyLogger,
-		db,
-		"",
-		testSpansTable,
-		encoding,
-		0,
-		0,
-	)
-
 	spans := generateRandomSpans()
-	require.NoError(t, expectModelWritten(mock, spans, marshal, spanWriter), "could not expect queries due to %s", err)
-	assert.NoError(t, spanWriter.writeBatch(spans), "Could not write spans")
-	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	for name, test := range encodingsAndMarshals {
+		t.Run(name, func(t *testing.T) {
+			spyLogger := mocks.NewSpyLogger()
+			spanWriter := NewSpanWriter(
+				spyLogger,
+				db,
+				"",
+				testSpansTable,
+				test.encoding,
+				0,
+				0,
+			)
+			require.NoError(t, expectModelWritten(mock, spans, test.marshal, spanWriter), "could not expect queries due to %s", err)
+			assert.NoError(t, spanWriter.writeBatch(spans), "Could not write spans")
+			assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 
-	spyLogger.AssertLogsOfLevelEqual(
-		t,
-		hclog.Debug,
-		[]mocks.LogMock{
-			{Msg: "Writing spans", Args: []interface{}{"size", testSpanCount}},
-		},
-	)
+			spyLogger.AssertLogsOfLevelEqual(
+				t,
+				hclog.Debug,
+				[]mocks.LogMock{
+					{Msg: "Writing spans", Args: []interface{}{"size", testSpanCount}},
+				},
+			)
+		})
+	}
 }
 
-func TestSpanWriter_WriteBatchJSON(t *testing.T) {
-	testSpanWriterWriteBatch(t, EncodingJSON, func(span *model.Span) ([]byte, error) { return json.Marshal(span) })
-}
-
-func TestSpanWriter_WriteBatchProto(t *testing.T) {
-	testSpanWriterWriteBatch(t, EncodingProto, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) })
-}
-
-func testSpanWriterWriteBatch(t *testing.T, encoding Encoding, marshal func(span *model.Span) ([]byte, error)) {
+func TestSpanWriterWriteBatch(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	spyLogger := mocks.NewSpyLogger()
-	spanWriter := getSpanWriter(spyLogger, db, encoding)
 	spans := generateRandomSpans()
-	require.NoError(t, expectModelWritten(mock, spans, marshal, spanWriter), "could not expect queries due to %s", err)
-	expectIndexWritten(mock, spans, spanWriter)
-	assert.NoError(t, spanWriter.writeBatch(spans), "Could not write spans")
-	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+	for name, test := range encodingsAndMarshals {
+		t.Run(name, func(t *testing.T) {
+			spyLogger := mocks.NewSpyLogger()
+			spanWriter := getSpanWriter(spyLogger, db, test.encoding)
+			require.NoError(t, expectModelWritten(mock, spans, test.marshal, spanWriter), "could not expect queries due to %s", err)
+			expectIndexWritten(mock, spans, spanWriter)
+			assert.NoError(t, spanWriter.writeBatch(spans), "Could not write spans")
+			assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
 
-	spyLogger.AssertLogsOfLevelEqual(
-		t,
-		hclog.Debug,
-		[]mocks.LogMock{
-			{Msg: "Writing spans", Args: []interface{}{"size", testSpanCount}},
-		},
-	)
+			spyLogger.AssertLogsOfLevelEqual(
+				t,
+				hclog.Debug,
+				[]mocks.LogMock{
+					{Msg: "Writing spans", Args: []interface{}{"size", testSpanCount}},
+				},
+			)
+		})
+	}
 }
 
 func TestSpanWriter_WriteBatchModelError(t *testing.T) {
@@ -221,27 +221,23 @@ func TestSpanWriter_WriteBatchIndexError(t *testing.T) {
 	spyLogger.AssertLogsOfLevelEqual(t, hclog.Debug, []mocks.LogMock{{Msg: "Writing spans", Args: []interface{}{"size", 1}}})
 }
 
-func TestSpanWriter_WriteModelBatchJSON(t *testing.T) {
-	testSpanWriterWriteModelBatch(t, EncodingJSON, func(span *model.Span) ([]byte, error) { return json.Marshal(span) })
-}
-
-func TestSpanWriter_WriteModelBatchProtobuf(t *testing.T) {
-	testSpanWriterWriteModelBatch(t, EncodingProto, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) })
-}
-
-func testSpanWriterWriteModelBatch(t *testing.T, encoding Encoding, marshal func(span *model.Span) ([]byte, error)) {
+func TestSpanWriterWriteModelBatch(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	spyLogger := mocks.NewSpyLogger()
-	spanWriter := getSpanWriter(spyLogger, db, encoding)
-
 	spans := generateRandomSpans()
-	require.NoError(t, expectModelWritten(mock, spans, marshal, spanWriter), "could not expect queries due to %s", err)
-	assert.NoError(t, spanWriter.writeModelBatch(spans), "Could not write spans")
-	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
-	spyLogger.AssertLogsEmpty(t)
+	for name, test := range encodingsAndMarshals {
+		t.Run(name, func(t *testing.T) {
+			spyLogger := mocks.NewSpyLogger()
+			spanWriter := getSpanWriter(spyLogger, db, test.encoding)
+
+			require.NoError(t, expectModelWritten(mock, spans, test.marshal, spanWriter), "could not expect queries due to %s", err)
+			assert.NoError(t, spanWriter.writeModelBatch(spans), "Could not write spans")
+			assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+			spyLogger.AssertLogsEmpty(t)
+		})
+	}
 }
 
 func TestSpanWriter_WriteModelBatchBeginError(t *testing.T) {
@@ -280,42 +276,38 @@ func TestSpanWriter_WriteModelBatchPrepareError(t *testing.T) {
 	spyLogger.AssertLogsEmpty(t)
 }
 
-func TestSpanWriter_WriteModelBatchJSONExecuteError(t *testing.T) {
-	testSpanWriterWriteModelBatchExecuteError(t, EncodingJSON, func(span *model.Span) ([]byte, error) { return json.Marshal(span) })
-}
-
-func TestSpanWriter_WriteModelBatchProtobufExecuteError(t *testing.T) {
-	testSpanWriterWriteModelBatchExecuteError(t, EncodingProto, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) })
-}
-
-func testSpanWriterWriteModelBatchExecuteError(t *testing.T, encoding Encoding, marshal func(span *model.Span) ([]byte, error)) {
+func TestSpanWriterWriteModelBatchExecuteError(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	spyLogger := mocks.NewSpyLogger()
-	spanWriter := getSpanWriter(spyLogger, db, encoding)
-
-	mock.ExpectBegin()
-	prep := mock.ExpectPrepare(fmt.Sprintf("INSERT INTO %s (timestamp, traceID, model) VALUES (?, ?, ?)", spanWriter.spansTable))
-
 	span := generateRandomSpan()
-	serializedSpan, err := marshal(&span)
-	require.NoError(t, err, "could not marshal span", span)
+	for name, test := range encodingsAndMarshals {
+		t.Run(name, func(t *testing.T) {
+			spyLogger := mocks.NewSpyLogger()
+			spanWriter := getSpanWriter(spyLogger, db, test.encoding)
 
-	prep.
-		ExpectExec().
-		WithArgs(
-			span.StartTime,
-			span.TraceID.String(),
-			serializedSpan,
-		).
-		WillReturnError(errorMock)
-	mock.ExpectRollback()
+			mock.ExpectBegin()
+			prep := mock.ExpectPrepare(fmt.Sprintf("INSERT INTO %s (timestamp, traceID, model) VALUES (?, ?, ?)", spanWriter.spansTable))
 
-	assert.EqualError(t, spanWriter.writeModelBatch([]*model.Span{&span}), errorMock.Error())
-	assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
-	spyLogger.AssertLogsEmpty(t)
+			serializedSpan, err := test.marshal(&span)
+			require.NoError(t, err, "could not marshal span", span)
+
+			prep.
+				ExpectExec().
+				WithArgs(
+					span.StartTime,
+					span.TraceID.String(),
+					serializedSpan,
+				).
+				WillReturnError(errorMock)
+			mock.ExpectRollback()
+
+			assert.EqualError(t, spanWriter.writeModelBatch([]*model.Span{&span}), errorMock.Error())
+			assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+			spyLogger.AssertLogsEmpty(t)
+		})
+	}
 }
 
 func TestSpanWriter_WriteIndexBatch(t *testing.T) {

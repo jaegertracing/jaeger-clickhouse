@@ -1,13 +1,16 @@
 # Jaeger ClickHouse
 
-This is implementation of Jaeger ClickHouse [storage plugin](https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/grpc).
+This is implementation of Jaeger's [storage plugin](https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/grpc) for ClickHouse.
 See as well [jaegertracing/jaeger/issues/1438](https://github.com/jaegertracing/jaeger/issues/1438) for historical discussion regarding Clickhouse plugin.
+
+Note that this project is community maintained. If it is not up-to-date or missing any features
+please open the issue or submit a pull-request.
 
 ## Documentation
 
 Refer to the [config.yaml](./config.yaml) for all supported configuration options.
 
-* [Kubernetes deployment documentation](./guide-kubernetes.md)
+* [Kubernetes deployment](./guide-kubernetes.md)
 * [Sharding and replication](./guide-sharding-and-replication.md)
 * [Multi-tenancy](./guide-multitenancy.md)
 

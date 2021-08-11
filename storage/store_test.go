@@ -202,8 +202,7 @@ func TestStore_executeScriptBeginError(t *testing.T) {
 
 	mock.ExpectBegin().WillReturnError(errorMock)
 	err = executeScripts(spyLogger, scripts, db)
-	assert.NoError(t, err)
-	// assert.EqualError(t, err, errorMock.Error())
+	assert.EqualError(t, err, errorMock.Error())
 }
 
 func getDbMock() (*sql.DB, sqlmock.Sqlmock, error) {

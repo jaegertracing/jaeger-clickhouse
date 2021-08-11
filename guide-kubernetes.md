@@ -64,7 +64,7 @@ spec:
   storage:
     type: grpc-plugin
     grpcPlugin:
-      image: ghcr.io/pavolloffay/jaeger-clickhouse:0.5.1
+      image: ghcr.io/jaegertracing/jaeger-clickhouse:0.7.0
     options:
       grpc-storage-plugin:
         binary: /plugin/jaeger-clickhouse

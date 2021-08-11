@@ -1,4 +1,4 @@
-module github.com/pavolloffay/jaeger-clickhouse
+module github.com/jaegertracing/jaeger-clickhouse
 
 go 1.16
 

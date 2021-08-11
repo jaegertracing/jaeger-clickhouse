@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore"
 
 	"github.com/stretchr/testify/assert"
 )

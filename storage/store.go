@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	jaegerclickhouse "github.com/pavolloffay/jaeger-clickhouse"
+	jaegerclickhouse "github.com/jaegertracing/jaeger-clickhouse"
 
 	"github.com/ClickHouse/clickhouse-go"
 	"github.com/hashicorp/go-hclog"
@@ -20,8 +20,8 @@ import (
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousedependencystore"
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousedependencystore"
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore"
 )
 
 type Store struct {

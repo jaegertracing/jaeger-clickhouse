@@ -5,7 +5,7 @@ GOBUILD=CGO_ENABLED=0 installsuffix=cgo go build -trimpath
 TOOLS_MOD_DIR = ./internal/tools
 JAEGER_VERSION ?= 1.24.0
 
-DOCKER_REPO ?= ghcr.io/pavolloffay/jaeger-clickhouse
+DOCKER_REPO ?= ghcr.io/jaegertracing/jaeger-clickhouse
 DOCKER_TAG ?= latest
 
 .PHONY: build
@@ -28,7 +28,7 @@ run-hotrod:
 .PHONY: fmt
 fmt:
 	go fmt ./...
-	goimports -w  -local github.com/pavolloffay/jaeger-clickhouse ./
+	goimports -w  -local github.com/jaegertracing/jaeger-clickhouse ./
 
 .PHONY: lint
 lint:

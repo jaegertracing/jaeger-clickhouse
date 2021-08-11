@@ -20,7 +20,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/jaegertracing/jaeger/model"
 
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore/mocks"
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 )
 
 const (

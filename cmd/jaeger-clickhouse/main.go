@@ -16,7 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/yaml.v3"
 
-	"github.com/pavolloffay/jaeger-clickhouse/storage"
+	"github.com/jaegertracing/jaeger-clickhouse/storage"
 )
 
 func main() {

@@ -11,7 +11,7 @@ func TestTableName_AddDbName(t *testing.T) {
 }
 
 func TestTableName_ToLocal(t *testing.T) {
-	var tableName TableName = "some_table"
+	tableName := TableName("some_table")
 	assert.Equal(t, tableName+"_local", tableName.ToLocal())
 
 }

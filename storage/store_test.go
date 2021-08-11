@@ -25,66 +25,40 @@ const (
 var errorMock = fmt.Errorf("error mock")
 
 func TestStore_SpanWriter(t *testing.T) {
-	db, _, err := getDbMock()
-	require.NoError(t, err)
-	defer db.Close()
-
 	writer := clickhousespanstore.SpanWriter{}
 	store := Store{
-		db:     db,
 		writer: &writer,
 	}
 	assert.Equal(t, &writer, store.SpanWriter())
 }
 
 func TestStore_ArchiveSpanWriter(t *testing.T) {
-	db, _, err := getDbMock()
-	require.NoError(t, err)
-	defer db.Close()
-
 	writer := clickhousespanstore.SpanWriter{}
 	store := Store{
-		db:            db,
 		archiveWriter: &writer,
 	}
 	assert.Equal(t, &writer, store.ArchiveSpanWriter())
 }
 
 func TestStore_SpanReader(t *testing.T) {
-	db, _, err := getDbMock()
-	require.NoError(t, err)
-	defer db.Close()
-
 	reader := clickhousespanstore.TraceReader{}
 	store := Store{
-		db:     db,
 		reader: &reader,
 	}
 	assert.Equal(t, &reader, store.SpanReader())
 }
 
 func TestStore_ArchiveSpanReader(t *testing.T) {
-	db, _, err := getDbMock()
-	require.NoError(t, err)
-	defer db.Close()
-
 	reader := clickhousespanstore.TraceReader{}
 	store := Store{
-		db:            db,
 		archiveReader: &reader,
 	}
 	assert.Equal(t, &reader, store.ArchiveSpanReader())
 }
 
 func TestStore_DependencyReader(t *testing.T) {
-	db, _, err := getDbMock()
-	require.NoError(t, err)
-	defer db.Close()
-
-	logger := mocks.NewSpyLogger()
-	store := newStore(db, logger)
+	store := Store{}
 	assert.Equal(t, &clickhousedependencystore.DependencyStore{}, store.DependencyReader())
-	logger.AssertLogsEmpty(t)
 }
 
 func TestStore_Close(t *testing.T) {

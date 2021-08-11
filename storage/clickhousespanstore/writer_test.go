@@ -92,7 +92,7 @@ func TestSpanWriterWriteBatchNoIndex(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	spans := generateRandomSpans()
+	spans := generateRandomSpans(testSpanCount)
 	for name, test := range encodingsAndMarshals {
 		t.Run(name, func(t *testing.T) {
 			spyLogger := mocks.NewSpyLogger()
@@ -125,7 +125,7 @@ func TestSpanWriterWriteBatch(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	spans := generateRandomSpans()
+	spans := generateRandomSpans(testSpanCount)
 	for name, test := range encodingsAndMarshals {
 		t.Run(name, func(t *testing.T) {
 			spyLogger := mocks.NewSpyLogger()
@@ -226,7 +226,7 @@ func TestSpanWriterWriteModelBatch(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	spans := generateRandomSpans()
+	spans := generateRandomSpans(testSpanCount)
 	for name, test := range encodingsAndMarshals {
 		t.Run(name, func(t *testing.T) {
 			spyLogger := mocks.NewSpyLogger()

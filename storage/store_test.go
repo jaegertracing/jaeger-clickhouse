@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousedependencystore"
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
-
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousedependencystore"
+	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
 	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 )
 

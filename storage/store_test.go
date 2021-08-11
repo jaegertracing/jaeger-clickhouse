@@ -26,7 +26,7 @@ var errorMock = fmt.Errorf("error mock")
 
 func TestStore_SpanWriter(t *testing.T) {
 	db, _, err := getDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	require.NoError(t, err)
 	defer db.Close()
 
 	writer := clickhousespanstore.SpanWriter{}
@@ -39,7 +39,7 @@ func TestStore_SpanWriter(t *testing.T) {
 
 func TestStore_ArchiveSpanWriter(t *testing.T) {
 	db, _, err := getDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	require.NoError(t, err)
 	defer db.Close()
 
 	writer := clickhousespanstore.SpanWriter{}
@@ -52,7 +52,7 @@ func TestStore_ArchiveSpanWriter(t *testing.T) {
 
 func TestStore_SpanReader(t *testing.T) {
 	db, _, err := getDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	require.NoError(t, err)
 	defer db.Close()
 
 	reader := clickhousespanstore.TraceReader{}
@@ -65,7 +65,7 @@ func TestStore_SpanReader(t *testing.T) {
 
 func TestStore_ArchiveSpanReader(t *testing.T) {
 	db, _, err := getDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	require.NoError(t, err)
 	defer db.Close()
 
 	reader := clickhousespanstore.TraceReader{}
@@ -78,7 +78,7 @@ func TestStore_ArchiveSpanReader(t *testing.T) {
 
 func TestStore_DependencyReader(t *testing.T) {
 	db, _, err := getDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	require.NoError(t, err)
 	defer db.Close()
 
 	logger := mocks.NewSpyLogger()
@@ -89,7 +89,7 @@ func TestStore_DependencyReader(t *testing.T) {
 
 func TestStore_Close(t *testing.T) {
 	db, mock, err := getDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	require.NoError(t, err)
 	defer db.Close()
 
 	logger := mocks.NewSpyLogger()
@@ -139,7 +139,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 
 func TestStore_executeScripts(t *testing.T) {
 	db, mock, err := getDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	require.NoError(t, err)
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
@@ -167,7 +167,7 @@ func TestStore_executeScripts(t *testing.T) {
 
 func TestStore_executeScriptsExecuteError(t *testing.T) {
 	db, mock, err := getDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	require.NoError(t, err)
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()
@@ -190,7 +190,7 @@ func TestStore_executeScriptsExecuteError(t *testing.T) {
 
 func TestStore_executeScriptBeginError(t *testing.T) {
 	db, mock, err := getDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
+	require.NoError(t, err)
 	defer db.Close()
 
 	spyLogger := mocks.NewSpyLogger()

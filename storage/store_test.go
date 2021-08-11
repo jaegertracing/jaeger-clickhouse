@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousedependencystore"
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore"
-	"github.com/pavolloffay/jaeger-clickhouse/storage/clickhousespanstore/mocks"
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousedependencystore"
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore"
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 )
 
 const (

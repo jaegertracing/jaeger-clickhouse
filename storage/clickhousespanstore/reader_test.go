@@ -27,6 +27,8 @@ const (
 	testOperationCount  = 10
 )
 
+var testStartTime = time.Date(2010, 3, 15, 7, 40, 0, 0, time.UTC)
+
 func TestTraceReader_FindTraceIDs(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
@@ -34,7 +36,7 @@ func TestTraceReader_FindTraceIDs(t *testing.T) {
 
 	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
 	service := "service"
-	start := getRandomTime()
+	start := testStartTime
 	end := start.Add(24 * time.Hour)
 	fullDuration := end.Sub(start)
 	duration := fullDuration
@@ -120,7 +122,7 @@ func TestTraceReader_FindTraceIDsShortDurationAfterReduction(t *testing.T) {
 
 	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
 	service := "service"
-	start := getRandomTime()
+	start := testStartTime
 	end := start.Add(8 * time.Hour)
 	fullDuration := end.Sub(start)
 	duration := minTimespanForProgressiveSearch
@@ -203,7 +205,7 @@ func TestTraceReader_FindTraceIDsEarlyExit(t *testing.T) {
 
 	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
 	service := "service"
-	start := getRandomTime()
+	start := testStartTime
 	end := start.Add(24 * time.Hour)
 	duration := end.Sub(start)
 	for i := 0; i < maxProgressiveSteps; i++ {
@@ -256,7 +258,7 @@ func TestTraceReader_FindTraceIDsShortRange(t *testing.T) {
 
 	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
 	service := "service"
-	start := getRandomTime()
+	start := testStartTime
 	end := start.Add(time.Hour)
 	params := spanstore.TraceQueryParameters{
 		ServiceName:  service,
@@ -299,7 +301,7 @@ func TestTraceReader_FindTraceIDsQueryError(t *testing.T) {
 
 	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
 	service := "service"
-	start := getRandomTime()
+	start := testStartTime
 	end := start.Add(24 * time.Hour)
 	duration := end.Sub(start)
 	for i := 0; i < maxProgressiveSteps; i++ {

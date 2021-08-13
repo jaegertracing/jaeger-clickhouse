@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -70,18 +71,11 @@ func TestTraceReader_FindTraceIDs(t *testing.T) {
 			startArg = start
 		}
 
-		index := func() int {
-			switch i {
-			case 0:
-				return 1
-			case 1:
-				return 3
-			case 2:
-				return 5
-			default:
-				return testNumTraces
-			}
-		}()
+		// Select how many spans query will return
+		index := int(math.Min(float64(i * 2 + 1), testNumTraces))
+		if i == maxProgressiveSteps - 1 {
+			index = testNumTraces
+		}
 		args := append(
 			append(
 				[]driver.Value{

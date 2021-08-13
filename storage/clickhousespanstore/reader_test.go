@@ -12,9 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/gogo/protobuf/proto"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/stretchr/testify/assert"
@@ -72,8 +71,8 @@ func TestTraceReader_FindTraceIDs(t *testing.T) {
 		}
 
 		// Select how many spans query will return
-		index := int(math.Min(float64(i * 2 + 1), testNumTraces))
-		if i == maxProgressiveSteps - 1 {
+		index := int(math.Min(float64(i*2+1), testNumTraces))
+		if i == maxProgressiveSteps-1 {
 			index = testNumTraces
 		}
 		args := append(

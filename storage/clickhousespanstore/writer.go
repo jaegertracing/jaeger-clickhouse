@@ -274,5 +274,5 @@ func uniqueTagsForSpan(span *model.Span) []string {
 }
 
 func tagString(kv *model.KeyValue) string {
-	return fmt.Sprintf("%s=%s", kv.Key, kv.AsString())
+	return kv.Key + "=" + kv.AsString()
 }

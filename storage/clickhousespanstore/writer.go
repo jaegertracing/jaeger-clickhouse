@@ -163,7 +163,7 @@ func (w *SpanWriter) writeModelBatch(batch []*model.Span) error {
 
 	statement, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (timestamp, traceID, model) VALUES (?, ?, ?)", w.spansTable))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	defer statement.Close()

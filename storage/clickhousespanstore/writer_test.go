@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -44,6 +45,8 @@ var (
 )
 
 func TestSpanWriter_TagString(t *testing.T) {
+	buf := new(strings.Builder)
+
 	tests := map[string]struct {
 		kv       model.KeyValue
 		expected string
@@ -57,24 +60,25 @@ func TestSpanWriter_TagString(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, test.expected, tagString(&test.kv), "Incorrect tag string")
+			assert.Equal(t, test.expected, tagString(buf, &test.kv), "Incorrect tag string")
 		})
 	}
 }
 
 func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
 	spans := generateRandomSpans()
+	buf := new(strings.Builder)
 	for _, span := range spans {
 		uniqueTags := make(map[string]struct{}, len(span.Tags)+len(span.Process.Tags))
 		for i := range span.Tags {
-			uniqueTags[tagString(&span.Tags[i])] = struct{}{}
+			uniqueTags[tagString(buf, &span.Tags[i])] = struct{}{}
 		}
 		for i := range span.Process.Tags {
-			uniqueTags[tagString(&span.Process.Tags[i])] = struct{}{}
+			uniqueTags[tagString(buf, &span.Process.Tags[i])] = struct{}{}
 		}
 		for _, log := range span.Logs {
 			for i := range log.Fields {
-				uniqueTags[tagString(&log.Fields[i])] = struct{}{}
+				uniqueTags[tagString(buf, &log.Fields[i])] = struct{}{}
 			}
 		}
 		want := make([]string, 0, len(uniqueTags))

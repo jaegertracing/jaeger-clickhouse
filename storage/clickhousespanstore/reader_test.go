@@ -334,7 +334,7 @@ func TestTraceReader_FindTraceIDsZeroStartTime(t *testing.T) {
 	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
 	service := "service"
 	start := time.Time{}
-	end := getRandomTime()
+	end := testStartTime
 	params := spanstore.TraceQueryParameters{
 		ServiceName:  service,
 		NumTraces:    testNumTraces,

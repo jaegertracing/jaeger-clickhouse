@@ -28,6 +28,8 @@ func (conv ConverterMock) ConvertValue(v interface{}) (driver.Value, error) {
 		return driver.Value(t), nil
 	case int64:
 		return driver.Value(t), nil
+	case int:
+		return driver.Value(t), nil
 	case []string:
 		return driver.Value(fmt.Sprint(t)), nil
 	default:

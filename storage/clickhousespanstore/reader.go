@@ -190,20 +190,35 @@ func (r *TraceReader) GetOperations(
 		return nil, errNoOperationsTable
 	}
 
-	query := fmt.Sprintf("SELECT operation FROM %s WHERE service = ? GROUP BY operation", r.operationsTable)
+	query := fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind", r.operationsTable)
 	args := []interface{}{params.ServiceName}
 
 	span.SetTag("db.statement", query)
 	span.SetTag("db.args", args)
 
-	names, err := r.getStrings(ctx, query, args...)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	operations := make([]spanstore.Operation, len(names))
-	for i, name := range names {
-		operations[i].Name = name
+	defer rows.Close()
+
+	operations := make([]spanstore.Operation, 0)
+
+	for rows.Next() {
+		var name, spanKind string
+		if err := rows.Scan(&name, &spanKind); err != nil {
+			return nil, err
+		}
+		operation := spanstore.Operation{Name: name}
+		if spanKind != "" {
+			operation.SpanKind = spanKind
+		}
+		operations = append(operations, operation)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return operations, nil

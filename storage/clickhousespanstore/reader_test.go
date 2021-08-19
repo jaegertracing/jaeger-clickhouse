@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"math/rand"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -26,7 +24,6 @@ const (
 	testOperationsTable = "test_operations_table"
 	testNumTraces       = 10
 	testSpansInTrace    = 2
-	testOperationCount  = 10
 )
 
 var testStartTime = time.Date(2010, 3, 15, 7, 40, 0, 0, time.UTC)
@@ -409,23 +406,30 @@ func TestTraceReader_GetOperations(t *testing.T) {
 	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
 	service := "test service"
 	params := spanstore.OperationQueryParameters{ServiceName: service}
-	operationValues := make([]driver.Value, testOperationCount)
-	expectedOperations := make([]spanstore.Operation, testOperationCount)
-	for i := range operationValues {
-		operationName := "operation_" + strconv.FormatUint(rand.Uint64(), 16)
-		operationValues[i] = operationName
-		expectedOperations[i].Name = operationName
+	tests := map[string]struct {
+		rows     *sqlmock.Rows
+		expected []spanstore.Operation
+	}{
+		"default": {
+			rows: sqlmock.NewRows([]string{"operation", "spankind"}).
+				AddRow("operation_1", "client").
+				AddRow("operation_2", ""),
+			expected: []spanstore.Operation{{Name: "operation_1", SpanKind: "client"}, {Name: "operation_2"}},
+		},
 	}
-	rows := getRows(operationValues)
-	mock.
-		ExpectQuery(fmt.Sprintf("SELECT operation FROM %s WHERE service = ? GROUP BY operation", testOperationsTable)).
-		WithArgs(service).
-		WillReturnRows(rows)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mock.
+				ExpectQuery(fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind", testOperationsTable)).
+				WithArgs(service).
+				WillReturnRows(test.rows)
 
-	operations, err := traceReader.GetOperations(context.Background(), params)
-	require.NoError(t, err)
-	assert.Equal(t, expectedOperations, operations)
-	assert.NoError(t, mock.ExpectationsWereMet())
+			operations, err := traceReader.GetOperations(context.Background(), params)
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, operations)
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }
 
 func TestTraceReader_GetOperationsQueryError(t *testing.T) {
@@ -437,7 +441,7 @@ func TestTraceReader_GetOperationsQueryError(t *testing.T) {
 	service := "test service"
 	params := spanstore.OperationQueryParameters{ServiceName: service}
 	mock.
-		ExpectQuery(fmt.Sprintf("SELECT operation FROM %s WHERE service = ? GROUP BY operation", testOperationsTable)).
+		ExpectQuery(fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind", testOperationsTable)).
 		WithArgs(service).
 		WillReturnError(errorMock)
 
@@ -786,10 +790,10 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 		{High: 1, Low: 1},
 		{High: 0, Low: 0},
 	}
-	tagArgs := func(tags map[string]string) []string {
-		res := make([]string, 0, len(tags))
+	tagArgs := func(tags map[string]string) []model.KeyValue {
+		res := make([]model.KeyValue, 0, len(tags))
 		for key, value := range tags {
-			res = append(res, fmt.Sprintf("%s=%s", key, value))
+			res = append(res, model.String(key, value))
 		}
 		return res
 	}(tags)
@@ -860,13 +864,15 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 			expectedQuery: fmt.Sprintf(
 				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ?%s ORDER BY service, timestamp DESC LIMIT ?",
 				testIndexTable,
-				strings.Repeat(" AND has(tags, ?)", len(tags)),
+				strings.Repeat(" AND has(tag_keys, ?) AND tag_values[indexOf(tag_keys, ?)] == ?", len(tags)),
 			),
 			expectedArgs: []driver.Value{
 				service,
 				start,
 				end,
-				tagArgs[0],
+				tagArgs[0].Key,
+				tagArgs[0].Key,
+				tagArgs[0].AsString(),
 				testNumTraces,
 			},
 		},

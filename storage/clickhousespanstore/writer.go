@@ -247,29 +247,24 @@ func (w *SpanWriter) Close() error {
 	return nil
 }
 
-type tagWithString struct {
-	tag *model.KeyValue
-	str string
-}
+type kvArray []*model.KeyValue
 
-type tagWithStringArray []tagWithString
-
-func (arr tagWithStringArray) Len() int {
+func (arr kvArray) Len() int {
 	return len(arr)
 }
 
-func (arr tagWithStringArray) Swap(i, j int) {
+func (arr kvArray) Swap(i, j int) {
 	if i < 0 || i >= arr.Len() || j < 0 || j > arr.Len() {
 		panic(fmt.Errorf("indices are incorrect"))
 	}
 	arr[i], arr[j] = arr[j], arr[i]
 }
 
-func (arr tagWithStringArray) Less(i, j int) bool {
+func (arr kvArray) Less(i, j int) bool {
 	if i < 0 || i >= arr.Len() || j < 0 || j > arr.Len() {
 		panic(fmt.Errorf("indices are incorrect"))
 	}
-	return arr[i].str < arr[j].str
+	return arr[i].Key < arr[j].Key || (arr[i].Key == arr[j].Key && arr[i].AsString() < arr[j].AsString())
 }
 
 func uniqueTagsForSpan(span *model.Span) (keys, values []string) {
@@ -289,17 +284,17 @@ func uniqueTagsForSpan(span *model.Span) (keys, values []string) {
 		}
 	}
 
-	uniqueTagsSlice := make(tagWithStringArray, 0, len(uniqueTags))
-	for str, kv := range uniqueTags {
-		uniqueTagsSlice = append(uniqueTagsSlice, tagWithString{str: str, tag: kv})
+	uniqueTagsSlice := make(kvArray, 0, len(uniqueTags))
+	for _, kv := range uniqueTags {
+		uniqueTagsSlice = append(uniqueTagsSlice, kv)
 	}
 	sort.Sort(uniqueTagsSlice)
 
 	keys = make([]string, 0, len(uniqueTags))
 	values = make([]string, 0, len(uniqueTags))
 	for _, tws := range uniqueTagsSlice {
-		keys = append(keys, tws.tag.Key)
-		values = append(values, tws.tag.AsString())
+		keys = append(keys, tws.Key)
+		values = append(values, tws.AsString())
 	}
 
 	return keys, values

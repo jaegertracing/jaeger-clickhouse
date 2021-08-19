@@ -4,8 +4,9 @@ CREATE TABLE IF NOT EXISTS %s (
      service LowCardinality(String) CODEC(ZSTD(1)),
      operation LowCardinality(String) CODEC(ZSTD(1)),
      durationUs UInt64 CODEC(ZSTD(1)),
-     tags Array(String) CODEC(ZSTD(1)),
-     INDEX idx_tags tags TYPE bloom_filter(0.01) GRANULARITY 64,
+     tag_keys Array(String) CODEC(ZSTD(1)),
+     tag_values Array(String) CODEC(ZSTD(1)),
+     INDEX idx_tag_keys tag_keys TYPE bloom_filter(0.01) GRANULARITY 64,
      INDEX idx_duration durationUs TYPE minmax GRANULARITY 1
 ) ENGINE MergeTree()
 %s

@@ -8,6 +8,7 @@ AS SELECT
     toDate(timestamp) AS date,
     service,
     operation,
-    count() as count
+    count() as count,
+    if(has(tag_keys, 'span.kind'), tag_values[indexOf(tag_keys, 'span.kind')], '') as spankind
 FROM %s -- Here goes local jaeger index table's name
-GROUP BY date, service, operation
+GROUP BY date, service, operation, tag_keys, tag_values

@@ -218,8 +218,8 @@ func TestSpanWriter_General(t *testing.T) {
 				mock.ExpectCommit()
 			}
 
-			assert.NoError(t, test.action(spanWriter, test.spans), "Could not write spans")
-			assert.NoError(t, mock.ExpectationsWereMet(), "Not all expected queries were made")
+			assert.NoError(t, test.action(spanWriter, test.spans))
+			assert.NoError(t, mock.ExpectationsWereMet())
 			spyLogger.AssertLogsOfLevelEqual(t, hclog.Debug, test.expectedLogs)
 		})
 	}

@@ -864,7 +864,7 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 			expectedQuery: fmt.Sprintf(
 				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ?%s ORDER BY service, timestamp DESC LIMIT ?",
 				testIndexTable,
-				strings.Repeat(" AND has(tag_keys, ?) AND tag_values[indexOf(tag_keys, ?)] == ?", len(tags)),
+				strings.Repeat(" AND has(tags.key, ?) AND tags.value[indexOf(tags.key, ?)] == ?", len(tags)),
 			),
 			expectedArgs: []driver.Value{
 				service,

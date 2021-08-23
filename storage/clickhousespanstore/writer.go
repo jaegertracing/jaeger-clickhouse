@@ -23,6 +23,7 @@ const (
 	EncodingJSON Encoding = "json"
 	// EncodingProto is used for spans encoded as Protobuf.
 	EncodingProto Encoding = "protobuf"
+	sizeAddition  int64    = 1000
 )
 
 var (
@@ -82,6 +83,7 @@ func (w *SpanWriter) registerMetrics() {
 
 func (w *SpanWriter) backgroundWriter() {
 	batch := make([]*model.Span, 0, w.size)
+	maxSize := 4 * w.size
 
 	timer := time.After(w.delay)
 	last := time.Now()
@@ -114,8 +116,19 @@ func (w *SpanWriter) backgroundWriter() {
 		}
 
 		if flush {
-			if err := w.writeBatch(batch); err != nil {
+			err := w.writeBatch(batch)
+			if err != nil {
 				w.logger.Error("Could not write a batch of spans", "error", err)
+			}
+			if len(batch) == cap(batch) {
+				if err != nil {
+					w.size /= 2
+				} else {
+					w.size += sizeAddition
+					if w.size > maxSize {
+						w.size = maxSize
+					}
+				}
 			}
 
 			batch = make([]*model.Span, 0, w.size)

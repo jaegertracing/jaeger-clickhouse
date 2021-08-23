@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS %s ON CLUSTER '{cluster}'
     durationUs UInt64 CODEC (ZSTD(1)),
     tags Nested
     (
-        key String,
+        key LowCardinality(String),
         value String
     ) CODEC(ZSTD(1)),
     INDEX idx_tag_keys tags.key TYPE bloom_filter(0.01) GRANULARITY 64,

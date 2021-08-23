@@ -226,6 +226,7 @@ func TestSpanWriter_General(t *testing.T) {
 }
 
 func TestSpanWriter_WriteBatchModelError(t *testing.T) {
+func TestSpanWriter_WriteBatchModelExecError(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
@@ -255,7 +256,7 @@ func TestSpanWriter_WriteBatchModelError(t *testing.T) {
 	spyLogger.AssertLogsOfLevelEqual(t, hclog.Debug, []mocks.LogMock{{Msg: "Writing spans", Args: []interface{}{"size", 1}}})
 }
 
-func TestSpanWriter_WriteBatchExecError(t *testing.T) {
+func TestSpanWriter_WriteBatchIndexExecError(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
@@ -336,7 +337,7 @@ func TestSpanWriter_WriteModelBatchPrepareError(t *testing.T) {
 	spyLogger.AssertLogsEmpty(t)
 }
 
-func TestSpanWriterWriteModelBatchExecuteError(t *testing.T) {
+func TestSpanWriterWriteModelBatchExecError(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
@@ -409,7 +410,7 @@ func TestSpanWriter_WriteIndexBatchPrepareError(t *testing.T) {
 	spyLogger.AssertLogsEmpty(t)
 }
 
-func TestSpanWriter_WriteIndexBatchExecuteError(t *testing.T) {
+func TestSpanWriter_WriteIndexBatchExecError(t *testing.T) {
 	db, mock, err := getDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()

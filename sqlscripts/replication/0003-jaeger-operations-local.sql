@@ -8,6 +8,6 @@ AS SELECT toDate(timestamp)                                                     
           service,
           operation,
           count()                                                                        as count,
-          if(has(tags.key, 'span.kind'), tags.value[indexOf(tags.key, 'span.kind')], '') as spankind
+          spankind
    FROM %s -- here goes local index table
-   GROUP BY date, service, operation, tag_keys, tag_values;
+   GROUP BY date, service, operation, spankind;

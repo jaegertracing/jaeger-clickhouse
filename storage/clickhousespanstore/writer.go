@@ -37,6 +37,20 @@ var (
 	})
 )
 
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // SpanWriter for writing spans to ClickHouse
 type SpanWriter struct {
 	logger     hclog.Logger
@@ -89,6 +103,7 @@ func (w *SpanWriter) backgroundWriter() {
 	last := time.Now()
 
 	var lastDone *bool
+	var lastSize int64
 
 	for {
 		w.done.Add(1)
@@ -120,10 +135,10 @@ func (w *SpanWriter) backgroundWriter() {
 		if flush {
 			if lastDone != nil {
 				if !*lastDone {
-					w.size /= 2
+					w.size = lastSize / 2
 					w.logger.Debug("Could now write spans on time, decreasing batch size", "size", w.size)
 				} else {
-					w.size += sizeAddition
+					w.size = min(maxSize, max(lastSize + sizeAddition, w.size))
 					if w.size > maxSize {
 						w.size = maxSize
 					}
@@ -133,6 +148,7 @@ func (w *SpanWriter) backgroundWriter() {
 			}
 			last = time.Now()
 			lastDone = new(bool)
+			lastSize = int64(len(batch))
 			go func() {
 				err := w.writeBatch(batch, lastDone)
 				if err != nil {

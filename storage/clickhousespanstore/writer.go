@@ -88,6 +88,8 @@ func (w *SpanWriter) backgroundWriter() {
 	timer := time.After(w.delay)
 	last := time.Now()
 
+	var lastDone *bool
+
 	for {
 		w.done.Add(1)
 
@@ -116,23 +118,29 @@ func (w *SpanWriter) backgroundWriter() {
 		}
 
 		if flush {
-			err := w.writeBatch(batch)
-			if err != nil {
-				w.logger.Error("Could not write a batch of spans", "error", err)
-			}
-			if len(batch) == cap(batch) {
-				if err != nil {
+			if lastDone != nil {
+				if !*lastDone {
 					w.size /= 2
+					w.logger.Debug("Could now write spans on time, decreasing batch size", "size", w.size)
 				} else {
 					w.size += sizeAddition
 					if w.size > maxSize {
 						w.size = maxSize
 					}
+					w.logger.Debug("Increasing batch size", "size", w.size)
+					lastDone = nil
 				}
 			}
+			last = time.Now()
+			lastDone = new(bool)
+			go func() {
+				err := w.writeBatch(batch, lastDone)
+				if err != nil {
+					w.logger.Error("Could not write a batch of spans", "error", err)
+				}
+			}()
 
 			batch = make([]*model.Span, 0, w.size)
-			last = time.Now()
 		}
 
 		w.done.Done()
@@ -143,7 +151,7 @@ func (w *SpanWriter) backgroundWriter() {
 	}
 }
 
-func (w *SpanWriter) writeBatch(batch []*model.Span) error {
+func (w *SpanWriter) writeBatch(batch []*model.Span, done *bool) error {
 	w.logger.Debug("Writing spans", "size", len(batch))
 	if err := w.writeModelBatch(batch); err != nil {
 		return err
@@ -155,6 +163,7 @@ func (w *SpanWriter) writeBatch(batch []*model.Span) error {
 		}
 	}
 
+	*done = true
 	return nil
 }
 

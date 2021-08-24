@@ -23,7 +23,7 @@ const (
 	EncodingJSON Encoding = "json"
 	// EncodingProto is used for spans encoded as Protobuf.
 	EncodingProto Encoding = "protobuf"
-	sizeAddition  int64    = 1000
+	sizeIncrement int64    = 1000
 )
 
 var (
@@ -138,7 +138,7 @@ func (w *SpanWriter) backgroundWriter() {
 					w.size = lastSize / 2
 					w.logger.Debug("Could now write spans on time, decreasing batch size", "size", w.size)
 				} else {
-					w.size = min(maxSize, max(lastSize + sizeAddition, w.size))
+					w.size = min(maxSize, max(lastSize+sizeIncrement, w.size))
 					if w.size > maxSize {
 						w.size = maxSize
 					}

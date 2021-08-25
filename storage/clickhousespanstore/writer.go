@@ -23,7 +23,8 @@ const (
 	EncodingJSON Encoding = "json"
 	// EncodingProto is used for spans encoded as Protobuf.
 	EncodingProto Encoding = "protobuf"
-	sizeIncrement int64    = 1000
+	// sizeIncrement is how batch size increases if
+	sizeIncrement int64 = 1000
 )
 
 var (
@@ -97,6 +98,7 @@ func (w *SpanWriter) registerMetrics() {
 
 func (w *SpanWriter) backgroundWriter() {
 	batch := make([]*model.Span, 0, w.size)
+	// TODO: figure out optimal value
 	maxSize := 4 * w.size
 
 	timer := time.After(w.delay)

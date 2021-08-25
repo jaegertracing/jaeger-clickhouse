@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bradhe/stopwatch"
 	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/model"
@@ -104,9 +105,6 @@ func (w *SpanWriter) backgroundWriter() {
 	timer := time.After(w.delay)
 	last := time.Now()
 
-	var lastDone *bool
-	var lastSize int64
-
 	for {
 		w.done.Add(1)
 
@@ -135,28 +133,26 @@ func (w *SpanWriter) backgroundWriter() {
 		}
 
 		if flush {
-			if lastDone != nil {
-				if !*lastDone {
-					w.size = lastSize / 2
+			last = time.Now()
+			go func(batch []*model.Span) {
+				size := int64(len(batch))
+				watch := stopwatch.Start()
+				err := w.writeBatch(batch)
+				if err != nil {
+					w.logger.Error("Could not write a batch of spans", "error", err)
+				}
+				watch.Stop()
+				if watch.Milliseconds() > w.delay {
+					w.size = size / 2
 					w.logger.Debug("Could now write spans on time, decreasing batch size", "size", w.size)
 				} else {
-					w.size = min(maxSize, max(lastSize+sizeIncrement, w.size))
+					w.size = min(maxSize, max(size+sizeIncrement, w.size))
 					if w.size > maxSize {
 						w.size = maxSize
 					}
 					w.logger.Debug("Increasing batch size", "size", w.size)
-					lastDone = nil
 				}
-			}
-			last = time.Now()
-			lastDone = new(bool)
-			lastSize = int64(len(batch))
-			go func() {
-				err := w.writeBatch(batch, lastDone)
-				if err != nil {
-					w.logger.Error("Could not write a batch of spans", "error", err)
-				}
-			}()
+			}(batch)
 
 			batch = make([]*model.Span, 0, w.size)
 		}
@@ -169,7 +165,7 @@ func (w *SpanWriter) backgroundWriter() {
 	}
 }
 
-func (w *SpanWriter) writeBatch(batch []*model.Span, done *bool) error {
+func (w *SpanWriter) writeBatch(batch []*model.Span) error {
 	w.logger.Debug("Writing spans", "size", len(batch))
 	if err := w.writeModelBatch(batch); err != nil {
 		return err
@@ -181,7 +177,6 @@ func (w *SpanWriter) writeBatch(batch []*model.Span, done *bool) error {
 		}
 	}
 
-	*done = true
 	return nil
 }
 

@@ -33,6 +33,7 @@ func (worker *WriteWorker) Work(
 
 	defer worker.done.Done()
 
+	// TODO: look for specific error(connection refused | database error)
 	if err := worker.writeBatch(batch); err != nil {
 		worker.params.logger.Error("Could not write a batch of spans", "error", err)
 	} else {

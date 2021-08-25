@@ -147,6 +147,12 @@ func (w *SpanWriter) backgroundWriter() {
 
 				if err := w.writeBatch(batch); err != nil {
 					w.logger.Error("Could not write a batch of spans", "error", err)
+				} else {
+					mutex.Lock()
+					totalSpanCount -= len(batch)
+					stop = nil
+					mutex.Unlock()
+					return
 				}
 				for _, delay := range waitTime {
 					repeatTimer := time.After(delay)

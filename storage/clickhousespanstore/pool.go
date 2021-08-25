@@ -1,8 +1,9 @@
 package clickhousespanstore
 
 import (
-	"github.com/jaegertracing/jaeger/model"
 	"sync"
+
+	"github.com/jaegertracing/jaeger/model"
 )
 
 const maxSpanCount int = 10000000
@@ -10,29 +11,29 @@ const maxSpanCount int = 10000000
 type WriteWorkerPool struct {
 	params *WriteParams
 
-	finish         chan bool
-	done           sync.WaitGroup
-	batches        chan []*model.Span
+	finish  chan bool
+	done    sync.WaitGroup
+	batches chan []*model.Span
 
 	totalSpanCount int
 	mutex          sync.Mutex
 	// TODO: rewrite on using heap
-	workers        []*WriteWorker
-	indexes        map[*WriteWorker]int
-	workerDone     chan *WriteWorker
+	workers    []*WriteWorker
+	indexes    map[*WriteWorker]int
+	workerDone chan *WriteWorker
 }
 
-func NewWorkerPool(params *WriteParams) WriteWorkerPool{
+func NewWorkerPool(params *WriteParams) WriteWorkerPool {
 	return WriteWorkerPool{
-		params: params,
-		finish: make(chan bool),
-		done: sync.WaitGroup{},
+		params:  params,
+		finish:  make(chan bool),
+		done:    sync.WaitGroup{},
 		batches: make(chan []*model.Span),
 
 		mutex: sync.Mutex{},
 		// TODO: decide on size
-		workers: make([]*WriteWorker, 0, 8),
-		indexes: make(map[*WriteWorker]int),
+		workers:    make([]*WriteWorker, 0, 8),
+		indexes:    make(map[*WriteWorker]int),
 		workerDone: make(chan *WriteWorker),
 	}
 }
@@ -48,11 +49,11 @@ func (pool *WriteWorkerPool) Work() {
 			worker := WriteWorker{
 				params: pool.params,
 
-				counter: &pool.totalSpanCount,
-				mutex: &pool.mutex,
-				finish: make(chan bool),
+				counter:    &pool.totalSpanCount,
+				mutex:      &pool.mutex,
+				finish:     make(chan bool),
 				workerDone: pool.workerDone,
-				done: sync.WaitGroup{},
+				done:       sync.WaitGroup{},
 			}
 			pool.workers = append(pool.workers, &worker)
 			go worker.Work(batch)

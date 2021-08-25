@@ -3,10 +3,11 @@ package clickhousespanstore
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
 
 	"github.com/jaegertracing/jaeger/model"
 )

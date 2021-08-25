@@ -85,8 +85,11 @@ func (w *SpanWriter) backgroundWriter() {
 	batch := make([]*model.Span, 0, w.size)
 	totalSpanCount := 0
 	mutex := sync.Mutex{}
-	waitTime := []time.Duration{2 * w.delay, 3 * w.delay, 5 * w.delay}
-	// TODO: decide on exact data structure and capacity
+	delays := []time.Duration{2 * w.delay, 3 * w.delay, 5 * w.delay}
+	finalDelay := 8 * w.delay
+
+	// TODO: decide on capacity
+	// TODO: make it with heap instead of slice
 	stoppers := make([]chan bool, 0, 8)
 	indexes := make(map[*chan bool]int)
 	writeDone := make(chan *chan bool)
@@ -95,6 +98,7 @@ func (w *SpanWriter) backgroundWriter() {
 	last := time.Now()
 
 	for {
+		// TODO: do something with w.done
 		w.done.Add(1)
 
 		flush := false
@@ -159,8 +163,26 @@ func (w *SpanWriter) backgroundWriter() {
 					writeDone <- &stop
 					return
 				}
-				for _, delay := range waitTime {
+				for _, delay := range delays {
 					repeatTimer := time.After(delay)
+					select {
+					case <-stop:
+						return
+					case <-repeatTimer:
+						if err := w.writeBatch(batch); err != nil {
+							w.logger.Error("Could not write a batch of spans", "error", err)
+						} else {
+							mutex.Lock()
+							totalSpanCount -= len(batch)
+							stop = nil
+							mutex.Unlock()
+							writeDone <- &stop
+							return
+						}
+					}
+				}
+				for {
+					repeatTimer := time.After(finalDelay)
 					select {
 					case <-stop:
 						return

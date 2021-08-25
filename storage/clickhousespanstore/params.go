@@ -2,8 +2,9 @@ package clickhousespanstore
 
 import (
 	"database/sql"
-	"github.com/hashicorp/go-hclog"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 type WriteParams struct {

@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Encoding string
@@ -36,10 +37,10 @@ var (
 type SpanWriter struct {
 	writeParams WriteParams
 
-	size       int64
-	spans      chan *model.Span
-	finish     chan bool
-	done       sync.WaitGroup
+	size   int64
+	spans  chan *model.Span
+	finish chan bool
+	done   sync.WaitGroup
 }
 
 var registerMetrics sync.Once
@@ -56,9 +57,9 @@ func NewSpanWriter(logger hclog.Logger, db *sql.DB, indexTable, spansTable Table
 			encoding:   encoding,
 			delay:      delay,
 		},
-		size:       size,
-		spans:      make(chan *model.Span, size),
-		finish:     make(chan bool),
+		size:   size,
+		spans:  make(chan *model.Span, size),
+		finish: make(chan bool),
 	}
 
 	writer.registerMetrics()

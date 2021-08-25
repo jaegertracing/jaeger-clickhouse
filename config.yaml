@@ -1,4 +1,4 @@
-address: tcp:some_clickhouse_server:9000
+address: tcp://some_clickhouse_server:9000
 # When empty the embedded scripts from sqlscripts directory are used
 init_sql_scripts_dir:
 # Batch write size. Default 10_000.

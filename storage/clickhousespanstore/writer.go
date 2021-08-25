@@ -88,6 +88,8 @@ func (w *SpanWriter) backgroundWriter() {
 	waitTime := []time.Duration{2 * w.delay, 3 * w.delay, 5 * w.delay}
 	// TODO: decide on exact data structure and capacity
 	stoppers := make([]chan bool, 0, 8)
+	indexes := make(map[*chan bool]int)
+	writeDone := make(chan *chan bool)
 
 	timer := time.After(w.delay)
 	last := time.Now()
@@ -117,26 +119,28 @@ func (w *SpanWriter) backgroundWriter() {
 			finish = true
 			flush = len(batch) > 0
 			w.logger.Debug("Finish channel")
+		case stopper := <-writeDone:
+			idx := indexes[stopper]
+			for i := idx; i < len(stoppers) - 1; i++ {
+				stoppers[i] = stoppers[i + 1]
+				indexes[&stoppers[i]] = i
+			}
+			stoppers = stoppers[:len(stoppers) - 1]
 		}
 
 		if flush {
 			mutex.Lock()
-			deleted := 0
-			for i, stopper := range stoppers {
-				if stopper == nil {
-					deleted++
-				} else {
-					stoppers[i - deleted] = stoppers[i]
-				}
-			}
-			if totalSpanCount+len(batch) > maxSpanCount || len(stoppers) == cap(stoppers){
+			if totalSpanCount+len(batch) > maxSpanCount || len(stoppers) == cap(stoppers) {
 				stoppers[0] <- true
-				for i := 0; i < len(stoppers) - 1; i++ {
-					stoppers[i] = stoppers[i + 1]
+				delete(indexes, &stoppers[0])
+				for i := 0; i < len(stoppers)-1; i++ {
+					stoppers[i] = stoppers[i+1]
+					indexes[&stoppers[i]] = i
 				}
+				stoppers = stoppers[:len(stoppers)-1]
 			}
 			mutex.Unlock()
-			stoppers = stoppers[:len(stoppers) - 1]
+			w.logger.Debug("Before writing", "worker_count", len(stoppers))
 
 			stopper := make(chan bool)
 			stoppers = append(stoppers, stopper)
@@ -152,13 +156,14 @@ func (w *SpanWriter) backgroundWriter() {
 					totalSpanCount -= len(batch)
 					stop = nil
 					mutex.Unlock()
+					writeDone <- &stop
 					return
 				}
 				for _, delay := range waitTime {
 					repeatTimer := time.After(delay)
 					select {
 					case <-stop:
-						break
+						return
 					case <-repeatTimer:
 						if err := w.writeBatch(batch); err != nil {
 							w.logger.Error("Could not write a batch of spans", "error", err)
@@ -167,7 +172,8 @@ func (w *SpanWriter) backgroundWriter() {
 							totalSpanCount -= len(batch)
 							stop = nil
 							mutex.Unlock()
-							break
+							writeDone <- &stop
+							return
 						}
 					}
 				}

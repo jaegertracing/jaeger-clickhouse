@@ -83,7 +83,6 @@ func (w *SpanWriter) backgroundWriter() {
 	last := time.Now()
 
 	for {
-		// TODO: do something with w.done
 		w.done.Add(1)
 
 		flush := false

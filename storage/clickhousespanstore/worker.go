@@ -31,6 +31,8 @@ func (worker *WriteWorker) Work(
 	*worker.counter += len(batch)
 	worker.mutex.Unlock()
 
+	defer worker.done.Done()
+
 	if err := worker.writeBatch(batch); err != nil {
 		worker.params.logger.Error("Could not write a batch of spans", "error", err)
 	} else {

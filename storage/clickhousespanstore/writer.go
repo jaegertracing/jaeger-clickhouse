@@ -206,7 +206,7 @@ func (w *SpanWriter) writeIndexBatch(batch []*model.Span) error {
 		}
 	}()
 
-	statement, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (timestamp, traceID, service, operation, durationUs, spankind, tags.key, tags.value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", w.indexTable))
+	statement, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (timestamp, traceID, service, operation, durationUs, tags.key, tags.value) VALUES (?, ?, ?, ?, ?, ?, ?)", w.indexTable))
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,6 @@ func (w *SpanWriter) writeIndexBatch(batch []*model.Span) error {
 			span.Process.ServiceName,
 			span.OperationName,
 			span.Duration.Microseconds(),
-			getSpanKind(keys, values),
 			keys,
 			values,
 		)
@@ -303,12 +302,4 @@ func uniqueTagsForSpan(span *model.Span) (keys, values []string) {
 
 func tagString(kv *model.KeyValue) string {
 	return kv.Key + "=" + kv.AsString()
-}
-
-func getSpanKind(keys, values []string) string {
-	idx := sort.SearchStrings(keys, "span.kind")
-	if idx < len(keys) {
-		return values[idx]
-	}
-	return ""
 }

@@ -5,7 +5,6 @@ CREATE TABLE IF NOT EXISTS %s ON CLUSTER '{cluster}'
     service    LowCardinality(String) CODEC (ZSTD(1)),
     operation  LowCardinality(String) CODEC (ZSTD(1)),
     durationUs UInt64 CODEC (ZSTD(1)),
-    spankind LowCardinality(String),
     tags Nested
     (
         key LowCardinality(String),

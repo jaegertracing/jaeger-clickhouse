@@ -9,6 +9,6 @@ AS SELECT
     service,
     operation,
     count() as count,
-    spankind
+    if(has(tags.key, 'span.kind'), tags.value[indexOf(tags.key, 'span.kind')], '') as spankind
 FROM %s -- Here goes local jaeger index table's name
-GROUP BY date, service, operation, spankind
+GROUP BY date, service, operation, tags.key, tags.value

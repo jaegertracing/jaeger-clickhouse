@@ -23,6 +23,7 @@ const (
 	EncodingJSON Encoding = "json"
 	// EncodingProto is used for spans encoded as Protobuf.
 	EncodingProto Encoding = "protobuf"
+	maxSpanCount  int      = 10000000
 )
 
 var (
@@ -82,6 +83,11 @@ func (w *SpanWriter) registerMetrics() {
 
 func (w *SpanWriter) backgroundWriter() {
 	batch := make([]*model.Span, 0, w.size)
+	totalSpanCount := 0
+	mutex := sync.Mutex{}
+	waitTime := []time.Duration{2 * w.delay, 3 * w.delay, 5 * w.delay}
+	// TODO: decide on exact data structure and capacity
+	stoppers := make([]chan bool, 0, 8)
 
 	timer := time.After(w.delay)
 	last := time.Now()
@@ -114,9 +120,52 @@ func (w *SpanWriter) backgroundWriter() {
 		}
 
 		if flush {
-			if err := w.writeBatch(batch); err != nil {
-				w.logger.Error("Could not write a batch of spans", "error", err)
+			mutex.Lock()
+			deleted := 0
+			for i, stopper := range stoppers {
+				if stopper == nil {
+					deleted++
+				} else {
+					stoppers[i - deleted] = stoppers[i]
+				}
 			}
+			if totalSpanCount+len(batch) > maxSpanCount || len(stoppers) == cap(stoppers){
+				stoppers[0] <- true
+				for i := 0; i < len(stoppers) - 1; i++ {
+					stoppers[i] = stoppers[i + 1]
+				}
+			}
+			mutex.Unlock()
+			stoppers = stoppers[:len(stoppers) - 1]
+
+			stopper := make(chan bool)
+			stoppers = append(stoppers, stopper)
+			go func(batch []*model.Span, stop chan bool) {
+				mutex.Lock()
+				totalSpanCount += len(batch)
+				mutex.Unlock()
+
+				if err := w.writeBatch(batch); err != nil {
+					w.logger.Error("Could not write a batch of spans", "error", err)
+				}
+				for _, delay := range waitTime {
+					repeatTimer := time.After(delay)
+					select {
+					case <-stop:
+						break
+					case <-repeatTimer:
+						if err := w.writeBatch(batch); err != nil {
+							w.logger.Error("Could not write a batch of spans", "error", err)
+						} else {
+							mutex.Lock()
+							totalSpanCount -= len(batch)
+							stop = nil
+							mutex.Unlock()
+							break
+						}
+					}
+				}
+			}(batch, stopper)
 
 			batch = make([]*model.Span, 0, w.size)
 			last = time.Now()

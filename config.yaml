@@ -1,4 +1,4 @@
-address: tcp://sas-es55m23pkwixrbts.db.yandex.net:9440
+address: tcp:some_clickhouse_server:9000
 # When empty the embedded scripts from sqlscripts directory are used
 init_sql_scripts_dir:
 # Batch write size. Default 10_000.
@@ -8,19 +8,19 @@ batch_flush_interval:
 # Encoding of stored data. Either json or protobuf. Default json.
 encoding:
 # Path to CA TLS certificate.
-ca_file: /usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt
+ca_file:
 # Username for connection. Default is "default".
-username: admin
+username:
 # Password for connection.
-password: 12345678
+password:
 # Database name. The database has to be created manually before Jaeger starts. Default is "default".
-database: krebs
+database:
 # Endpoint for scraping prometheus metrics. Default localhost:9090.
 metrics_endpoint: localhost:9090
 # Whether to use sql scripts supporting replication and sharding.
 # Replication can be used only on database with Atomic engine.
 # Default false.
-replication: true
+replication:
 # Table with spans. Default "jaeger_spans_local" or "jaeger_spans" when replication is enabled.
 spans_table:
 # Span index table. Default "jaeger_index_local" or "jaeger_index" when replication is enabled.

@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	testSpanCount     = 100
 	testTagCount      = 10
 	testLogCount      = 5
 	testLogFieldCount = 5
@@ -51,16 +50,17 @@ var (
 		Duration:      time.Minute,
 	}
 	testSpans             = []*model.Span{&testSpan}
-	tags                  = uniqueTagsForSpan(&testSpan)
+	keys, values          = uniqueTagsForSpan(&testSpan)
 	indexWriteExpectation = expectation{
-		preparation: fmt.Sprintf("INSERT INTO %s (timestamp, traceID, service, operation, durationUs, tags) VALUES (?, ?, ?, ?, ?, ?)", testIndexTable),
+		preparation: fmt.Sprintf("INSERT INTO %s (timestamp, traceID, service, operation, durationUs, tags.key, tags.value) VALUES (?, ?, ?, ?, ?, ?, ?)", testIndexTable),
 		execArgs: [][]driver.Value{{
 			testSpan.StartTime,
 			testSpan.TraceID.String(),
 			testSpan.Process.GetServiceName(),
 			testSpan.OperationName,
 			testSpan.Duration.Microseconds(),
-			tags,
+			keys,
+			values,
 		}}}
 	writeBatchLogs = []mocks.LogMock{{Msg: "Writing spans", Args: []interface{}{"size", len(testSpans)}}}
 )

@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	_ heap.Interface = workerHeap{}
-	errWorkerNotFound = fmt.Errorf("worker not found in heap")
+	_                 heap.Interface = workerHeap{}
+	errWorkerNotFound                = fmt.Errorf("worker not found in heap")
 )
 
 type heapItem struct {

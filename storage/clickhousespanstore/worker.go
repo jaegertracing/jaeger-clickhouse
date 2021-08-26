@@ -75,7 +75,6 @@ func (worker *WriteWorker) getCurrentDelay(attempt *int, delay time.Duration) ti
 func (worker *WriteWorker) close(batchSize int) {
 	worker.mutex.Lock()
 	*worker.counter -= batchSize
-	worker.done.Done()
 	worker.mutex.Unlock()
 	worker.workerDone <- worker
 }

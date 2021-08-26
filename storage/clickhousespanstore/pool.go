@@ -83,6 +83,11 @@ func (pool *WriteWorkerPool) WriteBatch(batch []*model.Span) {
 	pool.batches <- batch
 }
 
+func (pool *WriteWorkerPool) CLose() {
+	pool.finish <- true
+	pool.done.Wait()
+}
+
 func (pool *WriteWorkerPool) CleanWorkers(batchSize int) {
 	pool.mutex.Lock()
 	if pool.totalSpanCount+batchSize > maxSpanCount || len(pool.workers) == cap(pool.workers) {

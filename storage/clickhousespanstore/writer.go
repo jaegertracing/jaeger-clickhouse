@@ -107,8 +107,6 @@ func (w *SpanWriter) backgroundWriter() {
 		case <-w.finish:
 			finish = true
 			flush = len(batch) > 0
-			pool.finish <- true
-			pool.done.Wait()
 			w.writeParams.logger.Debug("Finish channel")
 		}
 
@@ -119,6 +117,9 @@ func (w *SpanWriter) backgroundWriter() {
 			last = time.Now()
 		}
 
+		if finish {
+			pool.CLose()
+		}
 		w.done.Done()
 
 		if finish {

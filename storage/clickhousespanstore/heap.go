@@ -78,6 +78,7 @@ func (workerHeap workerHeap) Pop() interface{} {
 	lastInd := len(workerHeap.elems) - 1
 	last := workerHeap.elems[lastInd]
 	delete(workerHeap.indexes, last.worker)
+	//nolint:staticcheck, SA4005: ineffective assignment
 	workerHeap.elems = workerHeap.elems[:lastInd]
-	return last
+	return last.worker
 }

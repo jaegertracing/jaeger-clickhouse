@@ -144,7 +144,7 @@ func TestSpanWriter_General(t *testing.T) {
 		indexTable   TableName
 		spans        []*model.Span
 		expectations []expectation
-		action       func(writer *SpanWriter, spans []*model.Span) error
+		action       func(writeWorker *WriteWorker, spans []*model.Span) error
 		expectedLogs []mocks.LogMock
 	}{
 		"write index batch": {
@@ -152,28 +152,28 @@ func TestSpanWriter_General(t *testing.T) {
 			indexTable:   testIndexTable,
 			spans:        testSpans,
 			expectations: []expectation{indexWriteExpectation},
-			action:       func(writer *SpanWriter, spans []*model.Span) error { return writer.writeIndexBatch(spans) },
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeIndexBatch(spans) },
 		},
 		"write model batch JSON": {
 			encoding:     EncodingJSON,
 			indexTable:   testIndexTable,
 			spans:        testSpans,
 			expectations: []expectation{modelWriteExpectationJSON},
-			action:       func(writer *SpanWriter, spans []*model.Span) error { return writer.writeModelBatch(spans) },
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeModelBatch(spans) },
 		},
 		"write model bach Proto": {
 			encoding:     EncodingProto,
 			indexTable:   testIndexTable,
 			spans:        testSpans,
 			expectations: []expectation{modelWriteExpectationProto},
-			action:       func(writer *SpanWriter, spans []*model.Span) error { return writer.writeModelBatch(spans) },
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeModelBatch(spans) },
 		},
 		"write batch no index JSON": {
 			encoding:     EncodingJSON,
 			indexTable:   "",
 			spans:        testSpans,
 			expectations: []expectation{modelWriteExpectationJSON},
-			action:       func(writer *SpanWriter, spans []*model.Span) error { return writer.writeBatch(spans) },
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeBatch(spans) },
 			expectedLogs: writeBatchLogs,
 		},
 		"write batch no index Proto": {
@@ -181,7 +181,7 @@ func TestSpanWriter_General(t *testing.T) {
 			indexTable:   "",
 			spans:        testSpans,
 			expectations: []expectation{modelWriteExpectationProto},
-			action:       func(writer *SpanWriter, spans []*model.Span) error { return writer.writeBatch(spans) },
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeBatch(spans) },
 			expectedLogs: writeBatchLogs,
 		},
 		"write batch JSON": {
@@ -189,7 +189,7 @@ func TestSpanWriter_General(t *testing.T) {
 			indexTable:   testIndexTable,
 			spans:        testSpans,
 			expectations: []expectation{modelWriteExpectationJSON, indexWriteExpectation},
-			action:       func(writer *SpanWriter, spans []*model.Span) error { return writer.writeBatch(spans) },
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeBatch(spans) },
 			expectedLogs: writeBatchLogs,
 		},
 		"write batch Proto": {
@@ -197,7 +197,7 @@ func TestSpanWriter_General(t *testing.T) {
 			indexTable:   testIndexTable,
 			spans:        testSpans,
 			expectations: []expectation{modelWriteExpectationProto, indexWriteExpectation},
-			action:       func(writer *SpanWriter, spans []*model.Span) error { return writer.writeBatch(spans) },
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeBatch(spans) },
 			expectedLogs: writeBatchLogs,
 		},
 	}
@@ -209,7 +209,7 @@ func TestSpanWriter_General(t *testing.T) {
 			defer db.Close()
 
 			spyLogger := mocks.NewSpyLogger()
-			spanWriter := getSpanWriter(spyLogger, db, test.encoding, test.indexTable)
+			worker := getWriteWorker(spyLogger, db, test.encoding, test.indexTable)
 
 			for _, expectation := range test.expectations {
 				mock.ExpectBegin()
@@ -220,7 +220,7 @@ func TestSpanWriter_General(t *testing.T) {
 				mock.ExpectCommit()
 			}
 
-			assert.NoError(t, test.action(spanWriter, test.spans))
+			assert.NoError(t, test.action(&worker, test.spans))
 			assert.NoError(t, mock.ExpectationsWereMet())
 			spyLogger.AssertLogsOfLevelEqual(t, hclog.Debug, test.expectedLogs)
 		})
@@ -229,13 +229,13 @@ func TestSpanWriter_General(t *testing.T) {
 
 func TestSpanWriter_BeginError(t *testing.T) {
 	tests := map[string]struct {
-		action       func(writer *SpanWriter) error
+		action       func(writeWorker *WriteWorker) error
 		expectedLogs []mocks.LogMock
 	}{
-		"write model batch": {action: func(writer *SpanWriter) error { return writer.writeModelBatch(testSpans) }},
-		"write index batch": {action: func(writer *SpanWriter) error { return writer.writeIndexBatch(testSpans) }},
+		"write model batch": {action: func(writeWorker *WriteWorker) error { return writeWorker.writeModelBatch(testSpans) }},
+		"write index batch": {action: func(writeWorker *WriteWorker) error { return writeWorker.writeIndexBatch(testSpans) }},
 		"write batch": {
-			action:       func(writer *SpanWriter) error { return writer.writeBatch(testSpans) },
+			action:       func(writeWorker *WriteWorker) error { return writeWorker.writeBatch(testSpans) },
 			expectedLogs: writeBatchLogs,
 		},
 	}
@@ -247,11 +247,11 @@ func TestSpanWriter_BeginError(t *testing.T) {
 			defer db.Close()
 
 			spyLogger := mocks.NewSpyLogger()
-			spanWriter := getSpanWriter(spyLogger, db, EncodingJSON, testIndexTable)
+			writeWorker := getWriteWorker(spyLogger, db, EncodingJSON, testIndexTable)
 
 			mock.ExpectBegin().WillReturnError(errorMock)
 
-			assert.ErrorIs(t, test.action(spanWriter), errorMock)
+			assert.ErrorIs(t, test.action(&writeWorker), errorMock)
 			assert.NoError(t, mock.ExpectationsWereMet())
 			spyLogger.AssertLogsOfLevelEqual(t, hclog.Debug, test.expectedLogs)
 		})
@@ -264,20 +264,20 @@ func TestSpanWriter_PrepareError(t *testing.T) {
 	modelWriteExpectation := getModelWriteExpectation(spanJSON)
 
 	tests := map[string]struct {
-		action       func(writer *SpanWriter) error
+		action       func(writeWorker *WriteWorker) error
 		expectation  expectation
 		expectedLogs []mocks.LogMock
 	}{
 		"write model batch": {
-			action:      func(writer *SpanWriter) error { return writer.writeModelBatch(testSpans) },
+			action:      func(writeWorker *WriteWorker) error { return writeWorker.writeModelBatch(testSpans) },
 			expectation: modelWriteExpectation,
 		},
 		"write index batch": {
-			action:      func(writer *SpanWriter) error { return writer.writeIndexBatch(testSpans) },
+			action:      func(writeWorker *WriteWorker) error { return writeWorker.writeIndexBatch(testSpans) },
 			expectation: indexWriteExpectation,
 		},
 		"write batch": {
-			action:       func(writer *SpanWriter) error { return writer.writeBatch(testSpans) },
+			action:       func(writeWorker *WriteWorker) error { return writeWorker.writeBatch(testSpans) },
 			expectation:  modelWriteExpectation,
 			expectedLogs: writeBatchLogs,
 		},
@@ -290,13 +290,13 @@ func TestSpanWriter_PrepareError(t *testing.T) {
 			defer db.Close()
 
 			spyLogger := mocks.NewSpyLogger()
-			spanWriter := getSpanWriter(spyLogger, db, EncodingJSON, testIndexTable)
+			spanWriter := getWriteWorker(spyLogger, db, EncodingJSON, testIndexTable)
 
 			mock.ExpectBegin()
 			mock.ExpectPrepare(test.expectation.preparation).WillReturnError(errorMock)
 			mock.ExpectRollback()
 
-			assert.ErrorIs(t, test.action(spanWriter), errorMock)
+			assert.ErrorIs(t, test.action(&spanWriter), errorMock)
 			assert.NoError(t, mock.ExpectationsWereMet())
 			spyLogger.AssertLogsOfLevelEqual(t, hclog.Debug, test.expectedLogs)
 		})
@@ -310,29 +310,29 @@ func TestSpanWriter_ExecError(t *testing.T) {
 	tests := map[string]struct {
 		indexTable   TableName
 		expectations []expectation
-		action       func(writer *SpanWriter) error
+		action       func(writer *WriteWorker) error
 		expectedLogs []mocks.LogMock
 	}{
 		"write model batch": {
 			indexTable:   testIndexTable,
 			expectations: []expectation{modelWriteExpectation},
-			action:       func(writer *SpanWriter) error { return writer.writeModelBatch(testSpans) },
+			action:       func(writer *WriteWorker) error { return writer.writeModelBatch(testSpans) },
 		},
 		"write index batch": {
 			indexTable:   testIndexTable,
 			expectations: []expectation{indexWriteExpectation},
-			action:       func(writer *SpanWriter) error { return writer.writeIndexBatch(testSpans) },
+			action:       func(writer *WriteWorker) error { return writer.writeIndexBatch(testSpans) },
 		},
 		"write batch no index": {
 			indexTable:   "",
 			expectations: []expectation{modelWriteExpectation},
-			action:       func(writer *SpanWriter) error { return writer.writeBatch(testSpans) },
+			action:       func(writer *WriteWorker) error { return writer.writeBatch(testSpans) },
 			expectedLogs: writeBatchLogs,
 		},
 		"write batch": {
 			indexTable:   testIndexTable,
 			expectations: []expectation{modelWriteExpectation, indexWriteExpectation},
-			action:       func(writer *SpanWriter) error { return writer.writeBatch(testSpans) },
+			action:       func(writer *WriteWorker) error { return writer.writeBatch(testSpans) },
 			expectedLogs: writeBatchLogs,
 		},
 	}
@@ -344,7 +344,7 @@ func TestSpanWriter_ExecError(t *testing.T) {
 			defer db.Close()
 
 			spyLogger := mocks.NewSpyLogger()
-			spanWriter := getSpanWriter(spyLogger, db, EncodingJSON, testIndexTable)
+			writeWorker := getWriteWorker(spyLogger, db, EncodingJSON, testIndexTable)
 
 			for i, expectation := range test.expectations {
 				mock.ExpectBegin()
@@ -360,23 +360,24 @@ func TestSpanWriter_ExecError(t *testing.T) {
 				}
 			}
 
-			assert.ErrorIs(t, test.action(spanWriter), errorMock)
+			assert.ErrorIs(t, test.action(&writeWorker), errorMock)
 			assert.NoError(t, mock.ExpectationsWereMet())
 			spyLogger.AssertLogsOfLevelEqual(t, hclog.Debug, test.expectedLogs)
 		})
 	}
 }
 
-func getSpanWriter(spyLogger mocks.SpyLogger, db *sql.DB, encoding Encoding, indexTable TableName) *SpanWriter {
-	return NewSpanWriter(
-		spyLogger,
-		db,
-		indexTable,
-		testSpansTable,
-		encoding,
-		0,
-		0,
-	)
+func getWriteWorker(spyLogger mocks.SpyLogger, db *sql.DB, encoding Encoding, indexTable TableName) WriteWorker {
+	return WriteWorker{
+		params: &WriteParams{
+			logger:     spyLogger,
+			db:         db,
+			spansTable: testSpansTable,
+			indexTable: indexTable,
+			encoding:   encoding,
+		},
+		workerDone: make(chan *WriteWorker),
+	}
 }
 
 func generateRandomSpans(count int) []*model.Span {

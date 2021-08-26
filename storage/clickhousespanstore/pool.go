@@ -1,6 +1,8 @@
 package clickhousespanstore
 
 import (
+	"container/heap"
+	"fmt"
 	"sync"
 
 	"github.com/jaegertracing/jaeger/model"
@@ -18,8 +20,7 @@ type WriteWorkerPool struct {
 	totalSpanCount int
 	mutex          sync.Mutex
 	// TODO: rewrite on using heap
-	workers    []*WriteWorker
-	indexes    map[*WriteWorker]int
+	workers    workerHeap
 	workerDone chan *WriteWorker
 }
 
@@ -32,8 +33,7 @@ func NewWorkerPool(params *WriteParams) WriteWorkerPool {
 
 		mutex: sync.Mutex{},
 		// TODO: decide on size
-		workers:    make([]*WriteWorker, 0, 8),
-		indexes:    make(map[*WriteWorker]int),
+		workers:    newWorkerHeap(100),
 		workerDone: make(chan *WriteWorker),
 	}
 }
@@ -55,20 +55,14 @@ func (pool *WriteWorkerPool) Work() {
 				workerDone: pool.workerDone,
 				done:       sync.WaitGroup{},
 			}
-			pool.workers = append(pool.workers, &worker)
+			pool.workers.AddWorker(&worker)
 			go worker.Work(batch)
 		case worker := <-pool.workerDone:
-			idx := pool.indexes[worker]
-			for i := idx; i < len(pool.workers)-1; i++ {
-				pool.workers[i] = pool.workers[i+1]
-				pool.indexes[pool.workers[i]] = i
+			if err := pool.workers.RemoveWorker(worker); err != nil {
+				pool.params.logger.Error("could not remove worker", "worker", worker, "error", err)
 			}
-			pool.workers = pool.workers[:len(pool.workers)-1]
 		case <-pool.finish:
-			for _, worker := range pool.workers {
-				worker.finish <- true
-				worker.done.Wait()
-			}
+			pool.workers.CLoseWorkers()
 			finish = true
 		}
 		pool.done.Done()
@@ -90,14 +84,14 @@ func (pool *WriteWorkerPool) CLose() {
 
 func (pool *WriteWorkerPool) CleanWorkers(batchSize int) {
 	pool.mutex.Lock()
-	if pool.totalSpanCount+batchSize > maxSpanCount || len(pool.workers) == cap(pool.workers) {
-		pool.workers[0].finish <- true
-		delete(pool.indexes, pool.workers[0])
-		for i := 0; i < len(pool.workers)-1; i++ {
-			pool.workers[i] = pool.workers[i+1]
-			pool.indexes[pool.workers[i]] = i
+	if pool.totalSpanCount+batchSize > maxSpanCount {
+		earliest := heap.Pop(pool.workers)
+		switch worker := earliest.(type) {
+		case WriteWorker:
+			worker.CLose()
+		default:
+			panic(fmt.Sprintf("undefined type %T return from workerHeap", worker))
 		}
-		pool.workers = pool.workers[:len(pool.workers)-1]
 	}
 	pool.mutex.Unlock()
 }

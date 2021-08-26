@@ -17,21 +17,22 @@ type heapItem struct {
 }
 
 type workerHeap struct {
-	elems   []*heapItem
+	elems   *[]*heapItem
 	indexes map[*WriteWorker]int
 }
 
 func newWorkerHeap(cap int) workerHeap {
+	elems := make([]*heapItem, 0, cap)
 	return workerHeap{
-		elems:   make([]*heapItem, 0, cap),
+		elems:   &elems,
 		indexes: make(map[*WriteWorker]int),
 	}
 }
 
 func (workerHeap workerHeap) AddWorker(worker *WriteWorker) {
-	workerHeap.Push(heapItem{
-		startTime: time.Now(),
+	heap.Push(workerHeap, heapItem{
 		worker:    worker,
+		startTime: time.Now(),
 	})
 }
 
@@ -45,40 +46,39 @@ func (workerHeap *workerHeap) RemoveWorker(worker *WriteWorker) error {
 }
 
 func (workerHeap *workerHeap) CLoseWorkers() {
-	for _, item := range workerHeap.elems {
+	for _, item := range *workerHeap.elems {
 		item.worker.CLose()
 	}
 }
 
 func (workerHeap workerHeap) Len() int {
-	return len(workerHeap.elems)
+	return len(*workerHeap.elems)
 }
 
 func (workerHeap workerHeap) Less(i, j int) bool {
-	return workerHeap.elems[i].startTime.Before(workerHeap.elems[j].startTime)
+	return (*workerHeap.elems)[i].startTime.Before((*workerHeap.elems)[j].startTime)
 }
 
 func (workerHeap workerHeap) Swap(i, j int) {
-	workerHeap.elems[i], workerHeap.elems[j] = workerHeap.elems[j], workerHeap.elems[i]
-	workerHeap.indexes[workerHeap.elems[i].worker] = i
-	workerHeap.indexes[workerHeap.elems[j].worker] = j
+	(*workerHeap.elems)[i], (*workerHeap.elems)[j] = (*workerHeap.elems)[j], (*workerHeap.elems)[i]
+	workerHeap.indexes[(*workerHeap.elems)[i].worker] = i
+	workerHeap.indexes[(*workerHeap.elems)[j].worker] = j
 }
 
 func (workerHeap workerHeap) Push(x interface{}) {
 	switch t := x.(type) {
 	case heapItem:
-		workerHeap.elems = append(workerHeap.elems, &t)
-		workerHeap.indexes[t.worker] = len(workerHeap.elems) - 1
+		*workerHeap.elems = append(*workerHeap.elems, &t)
+		workerHeap.indexes[t.worker] = len(*workerHeap.elems) - 1
 	default:
-		panic(x)
+		panic("Unknown type")
 	}
 }
 
 func (workerHeap workerHeap) Pop() interface{} {
-	lastInd := len(workerHeap.elems) - 1
-	last := workerHeap.elems[lastInd]
+	lastInd := len(*workerHeap.elems) - 1
+	last := (*workerHeap.elems)[lastInd]
 	delete(workerHeap.indexes, last.worker)
-	//nolint:staticcheck, SA4005: ineffective assignment
-	workerHeap.elems = workerHeap.elems[:lastInd]
+	*workerHeap.elems = (*workerHeap.elems)[:lastInd]
 	return last.worker
 }

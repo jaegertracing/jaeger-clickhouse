@@ -60,6 +60,11 @@ func (worker *WriteWorker) Work(
 	}
 }
 
+func (worker *WriteWorker) CLose() {
+	worker.finish <- true
+	worker.done.Wait()
+}
+
 func (worker *WriteWorker) getCurrentDelay(attempt *int, delay time.Duration) time.Duration {
 	if *attempt < len(delays) {
 		*attempt++

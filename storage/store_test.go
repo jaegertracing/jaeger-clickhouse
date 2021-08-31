@@ -62,7 +62,7 @@ func TestStore_DependencyReader(t *testing.T) {
 }
 
 func TestStore_Close(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -112,7 +112,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 }
 
 func TestStore_executeScripts(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -140,7 +140,7 @@ func TestStore_executeScripts(t *testing.T) {
 }
 
 func TestStore_executeScriptsExecuteError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -163,7 +163,7 @@ func TestStore_executeScriptsExecuteError(t *testing.T) {
 }
 
 func TestStore_executeScriptBeginError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -176,11 +176,4 @@ func TestStore_executeScriptBeginError(t *testing.T) {
 	mock.ExpectBegin().WillReturnError(errorMock)
 	err = executeScripts(spyLogger, scripts, db)
 	assert.EqualError(t, err, errorMock.Error())
-}
-
-func getDbMock() (*sql.DB, sqlmock.Sqlmock, error) {
-	return sqlmock.New(
-		sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual),
-		sqlmock.ValueConverterOption(mocks.ConverterMock{}),
-	)
 }

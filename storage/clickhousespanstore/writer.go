@@ -101,6 +101,7 @@ func (w *SpanWriter) backgroundWriter() {
 	batch := make([]*model.Span, 0, w.size)
 	// TODO: figure out optimal value
 	maxSize := 4 * w.size
+	mutex := sync.Mutex{}
 
 	timer := time.After(w.delay)
 	last := time.Now()
@@ -143,14 +144,18 @@ func (w *SpanWriter) backgroundWriter() {
 				}
 				watch.Stop()
 				if watch.Milliseconds() > w.delay {
+					mutex.Lock()
 					w.size = size / 2
 					w.logger.Debug("Could now write spans on time, decreasing batch size", "size", w.size)
+					mutex.Unlock()
 				} else {
+					mutex.Lock()
 					w.size = min(maxSize, max(size+sizeIncrement, w.size))
 					if w.size > maxSize {
 						w.size = maxSize
 					}
 					w.logger.Debug("Increasing batch size", "size", w.size)
+					mutex.Unlock()
 				}
 			}(batch)
 

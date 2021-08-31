@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore/mocks"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gogo/protobuf/proto"
 	"github.com/jaegertracing/jaeger/model"
@@ -30,7 +32,7 @@ const (
 var testStartTime = time.Date(2010, 3, 15, 7, 40, 0, 0, time.UTC)
 
 func TestTraceReader_FindTraceIDs(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -109,7 +111,7 @@ func TestTraceReader_FindTraceIDs(t *testing.T) {
 }
 
 func TestTraceReader_FindTraceIDsShortDurationAfterReduction(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -192,7 +194,7 @@ func TestTraceReader_FindTraceIDsShortDurationAfterReduction(t *testing.T) {
 }
 
 func TestTraceReader_FindTraceIDsEarlyExit(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -245,7 +247,7 @@ func TestTraceReader_FindTraceIDsEarlyExit(t *testing.T) {
 }
 
 func TestTraceReader_FindTraceIDsShortRange(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -288,7 +290,7 @@ func TestTraceReader_FindTraceIDsShortRange(t *testing.T) {
 }
 
 func TestTraceReader_FindTraceIDsQueryError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -327,7 +329,7 @@ func TestTraceReader_FindTraceIDsQueryError(t *testing.T) {
 }
 
 func TestTraceReader_FindTraceIDsZeroStartTime(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -349,7 +351,7 @@ func TestTraceReader_FindTraceIDsZeroStartTime(t *testing.T) {
 }
 
 func TestTraceReader_GetServices(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -372,7 +374,7 @@ func TestTraceReader_GetServices(t *testing.T) {
 }
 
 func TestTraceReader_GetServicesQueryError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -388,7 +390,7 @@ func TestTraceReader_GetServicesQueryError(t *testing.T) {
 }
 
 func TestTraceReader_GetServicesNoTable(t *testing.T) {
-	db, _, err := getDbMock()
+	db, _, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -400,7 +402,7 @@ func TestTraceReader_GetServicesNoTable(t *testing.T) {
 }
 
 func TestTraceReader_GetOperations(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -427,7 +429,7 @@ func TestTraceReader_GetOperations(t *testing.T) {
 }
 
 func TestTraceReader_GetOperationsQueryError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -446,7 +448,7 @@ func TestTraceReader_GetOperationsQueryError(t *testing.T) {
 }
 
 func TestTraceReader_GetOperationsNoTable(t *testing.T) {
-	db, _, err := getDbMock()
+	db, _, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -459,7 +461,7 @@ func TestTraceReader_GetOperationsNoTable(t *testing.T) {
 }
 
 func TestTraceReader_GetTrace(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -527,7 +529,7 @@ func TestTraceReader_GetTrace(t *testing.T) {
 }
 
 func TestSpanWriter_getTraces(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -591,7 +593,7 @@ func TestSpanWriter_getTraces(t *testing.T) {
 }
 
 func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -653,7 +655,7 @@ func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
 }
 
 func TestSpanWriter_getTracesQueryError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -684,7 +686,7 @@ func TestSpanWriter_getTracesQueryError(t *testing.T) {
 }
 
 func TestSpanWriter_getTracesRowsScanError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -716,7 +718,7 @@ func TestSpanWriter_getTracesRowsScanError(t *testing.T) {
 }
 
 func TestSpanWriter_getTraceNoTraceIDs(t *testing.T) {
-	db, _, err := getDbMock()
+	db, _, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -766,7 +768,7 @@ func getTracesFromSpans(spans []model.Span) []*model.Trace {
 }
 
 func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -927,7 +929,7 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 }
 
 func TestSpanReader_findTraceIDsInRangeNoIndexTable(t *testing.T) {
-	db, _, err := getDbMock()
+	db, _, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -944,7 +946,7 @@ func TestSpanReader_findTraceIDsInRangeNoIndexTable(t *testing.T) {
 }
 
 func TestSpanReader_findTraceIDsInRangeEndBeforeStart(t *testing.T) {
-	db, _, err := getDbMock()
+	db, _, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -961,7 +963,7 @@ func TestSpanReader_findTraceIDsInRangeEndBeforeStart(t *testing.T) {
 }
 
 func TestSpanReader_findTraceIDsInRangeQueryError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -995,7 +997,7 @@ func TestSpanReader_findTraceIDsInRangeQueryError(t *testing.T) {
 }
 
 func TestSpanReader_findTraceIDsInRangeIncorrectData(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -1038,7 +1040,7 @@ func TestSpanReader_findTraceIDsInRangeIncorrectData(t *testing.T) {
 }
 
 func TestSpanReader_getStrings(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -1062,7 +1064,7 @@ func TestSpanReader_getStrings(t *testing.T) {
 }
 
 func TestSpanReader_getStringsQueryError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
@@ -1080,7 +1082,7 @@ func TestSpanReader_getStringsQueryError(t *testing.T) {
 }
 
 func TestSpanReader_getStringsRowError(t *testing.T) {
-	db, mock, err := getDbMock()
+	db, mock, err := mocks.GetDbMock()
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 

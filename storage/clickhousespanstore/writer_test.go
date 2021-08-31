@@ -182,7 +182,7 @@ func TestSpanWriter_General(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			db, mock, err := getDbMock()
+			db, mock, err := mocks.GetDbMock()
 			require.NoError(t, err, "an error was not expected when opening a stub database connection")
 			defer db.Close()
 
@@ -220,7 +220,7 @@ func TestSpanWriter_BeginError(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			db, mock, err := getDbMock()
+			db, mock, err := mocks.GetDbMock()
 			require.NoError(t, err, "an error was not expected when opening a stub database connection")
 			defer db.Close()
 
@@ -263,7 +263,7 @@ func TestSpanWriter_PrepareError(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			db, mock, err := getDbMock()
+			db, mock, err := mocks.GetDbMock()
 			require.NoError(t, err, "an error was not expected when opening a stub database connection")
 			defer db.Close()
 
@@ -317,7 +317,7 @@ func TestSpanWriter_ExecError(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			db, mock, err := getDbMock()
+			db, mock, err := mocks.GetDbMock()
 			require.NoError(t, err, "an error was not expected when opening a stub database connection")
 			defer db.Close()
 
@@ -343,13 +343,6 @@ func TestSpanWriter_ExecError(t *testing.T) {
 			spyLogger.AssertLogsOfLevelEqual(t, hclog.Debug, test.expectedLogs)
 		})
 	}
-}
-
-func getDbMock() (*sql.DB, sqlmock.Sqlmock, error) {
-	return sqlmock.New(
-		sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual),
-		sqlmock.ValueConverterOption(mocks.ConverterMock{}),
-	)
 }
 
 func getSpanWriter(spyLogger mocks.SpyLogger, db *sql.DB, encoding Encoding, indexTable TableName) *SpanWriter {

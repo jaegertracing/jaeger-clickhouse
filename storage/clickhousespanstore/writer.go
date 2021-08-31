@@ -24,7 +24,7 @@ const (
 	EncodingJSON Encoding = "json"
 	// EncodingProto is used for spans encoded as Protobuf.
 	EncodingProto Encoding = "protobuf"
-	// sizeIncrement is how batch size increases if
+	// sizeIncrement is how batch size increases if batch is written successfully.
 	sizeIncrement int64 = 1000
 )
 

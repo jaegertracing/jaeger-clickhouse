@@ -206,7 +206,7 @@ func (w *SpanWriter) writeIndexBatch(batch []*model.Span) error {
 		}
 	}()
 
-	statement, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (timestamp, traceID, service, operation, durationUs, tags) VALUES (?, ?, ?, ?, ?, ?)", w.indexTable))
+	statement, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (timestamp, traceID, service, operation, durationUs, tags.key, tags.value) VALUES (?, ?, ?, ?, ?, ?, ?)", w.indexTable))
 	if err != nil {
 		return err
 	}
@@ -214,13 +214,15 @@ func (w *SpanWriter) writeIndexBatch(batch []*model.Span) error {
 	defer statement.Close()
 
 	for _, span := range batch {
+		keys, values := uniqueTagsForSpan(span)
 		_, err = statement.Exec(
 			span.StartTime,
 			span.TraceID.String(),
 			span.Process.ServiceName,
 			span.OperationName,
 			span.Duration.Microseconds(),
-			uniqueTagsForSpan(span),
+			keys,
+			values,
 		)
 		if err != nil {
 			return err
@@ -245,32 +247,57 @@ func (w *SpanWriter) Close() error {
 	return nil
 }
 
-func uniqueTagsForSpan(span *model.Span) []string {
-	uniqueTags := make(map[string]struct{}, len(span.Tags)+len(span.Process.Tags))
+type kvArray []*model.KeyValue
+
+func (arr kvArray) Len() int {
+	return len(arr)
+}
+
+func (arr kvArray) Swap(i, j int) {
+	if i < 0 || i >= arr.Len() || j < 0 || j > arr.Len() {
+		panic(fmt.Errorf("indices are incorrect"))
+	}
+	arr[i], arr[j] = arr[j], arr[i]
+}
+
+func (arr kvArray) Less(i, j int) bool {
+	if i < 0 || i >= arr.Len() || j < 0 || j > arr.Len() {
+		panic(fmt.Errorf("indices are incorrect"))
+	}
+	return arr[i].Key < arr[j].Key || (arr[i].Key == arr[j].Key && arr[i].AsString() < arr[j].AsString())
+}
+
+func uniqueTagsForSpan(span *model.Span) (keys, values []string) {
+	uniqueTags := make(map[string]*model.KeyValue, len(span.Tags)+len(span.Process.Tags))
 
 	for i := range span.Tags {
-		uniqueTags[tagString(&span.GetTags()[i])] = struct{}{}
+		uniqueTags[tagString(&span.GetTags()[i])] = &span.GetTags()[i]
 	}
 
 	for i := range span.Process.Tags {
-		uniqueTags[tagString(&span.GetProcess().GetTags()[i])] = struct{}{}
+		uniqueTags[tagString(&span.GetProcess().GetTags()[i])] = &span.GetProcess().GetTags()[i]
 	}
 
 	for _, event := range span.Logs {
 		for i := range event.Fields {
-			uniqueTags[tagString(&event.GetFields()[i])] = struct{}{}
+			uniqueTags[tagString(&event.GetFields()[i])] = &event.GetFields()[i]
 		}
 	}
 
-	tags := make([]string, 0, len(uniqueTags))
+	uniqueTagsSlice := make(kvArray, 0, len(uniqueTags))
+	for _, kv := range uniqueTags {
+		uniqueTagsSlice = append(uniqueTagsSlice, kv)
+	}
+	sort.Sort(uniqueTagsSlice)
 
-	for kv := range uniqueTags {
-		tags = append(tags, kv)
+	keys = make([]string, 0, len(uniqueTags))
+	values = make([]string, 0, len(uniqueTags))
+	for _, tws := range uniqueTagsSlice {
+		keys = append(keys, tws.Key)
+		values = append(values, tws.AsString())
 	}
 
-	sort.Strings(tags)
-
-	return tags
+	return keys, values
 }
 
 func tagString(kv *model.KeyValue) string {

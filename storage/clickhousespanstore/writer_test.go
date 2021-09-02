@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"sort"
 	"strconv"
 	"testing"
 	"time"
@@ -25,7 +24,6 @@ import (
 )
 
 const (
-	testSpanCount     = 100
 	testTagCount      = 10
 	testLogCount      = 5
 	testLogFieldCount = 5
@@ -52,16 +50,17 @@ var (
 		Duration:      time.Minute,
 	}
 	testSpans             = []*model.Span{&testSpan}
-	tags                  = uniqueTagsForSpan(&testSpan)
+	keys, values          = uniqueTagsForSpan(&testSpan)
 	indexWriteExpectation = expectation{
-		preparation: fmt.Sprintf("INSERT INTO %s (timestamp, traceID, service, operation, durationUs, tags) VALUES (?, ?, ?, ?, ?, ?)", testIndexTable),
+		preparation: fmt.Sprintf("INSERT INTO %s (timestamp, traceID, service, operation, durationUs, tags.key, tags.value) VALUES (?, ?, ?, ?, ?, ?, ?)", testIndexTable),
 		execArgs: [][]driver.Value{{
 			testSpan.StartTime,
 			testSpan.TraceID.String(),
 			testSpan.Process.GetServiceName(),
 			testSpan.OperationName,
 			testSpan.Duration.Microseconds(),
-			tags,
+			keys,
+			values,
 		}}}
 	writeBatchLogs = []mocks.LogMock{{Msg: "Writing spans", Args: []interface{}{"size", len(testSpans)}}}
 )
@@ -86,27 +85,50 @@ func TestSpanWriter_TagString(t *testing.T) {
 }
 
 func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
-	spans := generateRandomSpans(testSpanCount)
-	for _, span := range spans {
-		uniqueTags := make(map[string]struct{}, len(span.Tags)+len(span.Process.Tags))
-		for i := range span.Tags {
-			uniqueTags[tagString(&span.Tags[i])] = struct{}{}
-		}
-		for i := range span.Process.Tags {
-			uniqueTags[tagString(&span.Process.Tags[i])] = struct{}{}
-		}
-		for _, log := range span.Logs {
-			for i := range log.Fields {
-				uniqueTags[tagString(&log.Fields[i])] = struct{}{}
-			}
-		}
-		want := make([]string, 0, len(uniqueTags))
-		for tag := range uniqueTags {
-			want = append(want, tag)
-		}
-		sort.Strings(want)
-
-		assert.Equal(t, want, uniqueTagsForSpan(span))
+	tests := map[string]struct {
+		tags           []model.KeyValue
+		processTags    []model.KeyValue
+		logs           []model.Log
+		expectedKeys   []string
+		expectedValues []string
+	}{
+		"default": {
+			tags:           []model.KeyValue{model.String("key2", "value")},
+			processTags:    []model.KeyValue{model.Int64("key3", 412)},
+			logs:           []model.Log{{Fields: []model.KeyValue{model.Float64("key1", .5)}}},
+			expectedKeys:   []string{"key1", "key2", "key3"},
+			expectedValues: []string{"0.5", "value", "412"},
+		},
+		"repeating tags": {
+			tags:           []model.KeyValue{model.String("key2", "value"), model.String("key2", "value")},
+			processTags:    []model.KeyValue{model.Int64("key3", 412)},
+			logs:           []model.Log{{Fields: []model.KeyValue{model.Float64("key1", .5)}}},
+			expectedKeys:   []string{"key1", "key2", "key3"},
+			expectedValues: []string{"0.5", "value", "412"},
+		},
+		"repeating keys": {
+			tags:           []model.KeyValue{model.String("key2", "value_a"), model.String("key2", "value_b")},
+			processTags:    []model.KeyValue{model.Int64("key3", 412)},
+			logs:           []model.Log{{Fields: []model.KeyValue{model.Float64("key1", .5)}}},
+			expectedKeys:   []string{"key1", "key2", "key2", "key3"},
+			expectedValues: []string{"0.5", "value_a", "value_b", "412"},
+		},
+		"repeating values": {
+			tags:           []model.KeyValue{model.String("key2", "value"), model.Int64("key4", 412)},
+			processTags:    []model.KeyValue{model.Int64("key3", 412)},
+			logs:           []model.Log{{Fields: []model.KeyValue{model.Float64("key1", .5)}}},
+			expectedKeys:   []string{"key1", "key2", "key3", "key4"},
+			expectedValues: []string{"0.5", "value", "412", "412"},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			process := model.Process{Tags: test.processTags}
+			span := model.Span{Tags: test.tags, Process: &process, Logs: test.logs}
+			actualKeys, actualValues := uniqueTagsForSpan(&span)
+			assert.Equal(t, test.expectedKeys, actualKeys)
+			assert.Equal(t, test.expectedValues, actualValues)
+		})
 	}
 }
 

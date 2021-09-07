@@ -23,7 +23,7 @@ Storing data in replicated local tables with distributed global tables is native
 Span buffers are flushed to DB either by timer or after reaching max batch size. Timer interval and batch size can be
 set in [config file](https://github.com/EinKrebs/jaeger-clickhouse/blob/main/config.yaml).
 
-![Picture of tables](https://github.com/EinKrebs/jaeger-clickhouse/blob/pics/pics/tables.png?raw=true)
+![Picture of tables](pictures/tables.png)
 
 # How to start using Jaeger over ClickHouse
 

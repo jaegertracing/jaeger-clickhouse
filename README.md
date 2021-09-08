@@ -21,9 +21,9 @@ Second stores key information about spans for searching. This table is indexed b
 Also, info about operations is stored in the materialized view. There are not indexes for archived spans.
 Storing data in replicated local tables with distributed global tables is natively supported. Spans are bufferized.
 Span buffers are flushed to DB either by timer or after reaching max batch size. Timer interval and batch size can be
-set in [config file](https://github.com/EinKrebs/jaeger-clickhouse/blob/main/config.yaml).
+set in [config file](./config.yaml).
 
-![Picture of tables](pictures/tables.png)
+![Picture of tables](./pictures/tables.png)
 
 # How to start using Jaeger over ClickHouse
 

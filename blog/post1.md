@@ -1,4 +1,4 @@
-# Jaeger CLickhouse
+# Jaeger ClickHouse
 This is an implementation of Jaeger's [storage plugin](https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/grpc) for ClickHouse.
 See as well [jaegertracing/jaeger/issues/1438](https://github.com/jaegertracing/jaeger/issues/1438) for historical discussion regarding Clickhouse plugin.
 
@@ -15,8 +15,8 @@ Pull requests also will be greatly appreciated.
 
 Jaeger spans are stored in 2 tables. First one contains whole span encoded either in JSON or Protobuf.
 Second stores key information about spans for searching. This table is indexed by span duration and tags.
-Also, info about operations is stored in the materialized view. There are not indexes for archived spans.
-Storing data in replicated local tables with distributed global tables is natively supported. Spans are bufferized.
+Also, info about operations is stored in the materialized view. There are no indexes for archived spans.
+Storing data in replicated local tables with distributed global tables is natively supported. Spans are buffered.
 Span buffers are flushed to DB either by timer or after reaching max batch size. 
 Timer interval and batch size can be set in [config file](../config.yaml).
 

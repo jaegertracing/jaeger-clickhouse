@@ -73,6 +73,3 @@ jobs:
 
       - name: Run integration tests
         run: make integration-test
-
-      - name: Stop database
-        run: docker stop test-clickhouse-server

@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-go@v2
         with:
-          go-version: ^1.16
+          go-version: ^1.17
 
       - name: Install tools
         run: make install-tools
@@ -36,7 +36,7 @@ jobs:
 
       - uses: actions/setup-go@v2
         with:
-          go-version: ^1.16
+          go-version: ^1.17
 
       - name: Run e2e test
         run: make e2e-tests
@@ -51,7 +51,7 @@ jobs:
 
       - uses: actions/setup-go@v2
         with:
-          go-version: ^1.16
+          go-version: ^1.17
 
       - name: Run unit test
         run: make test

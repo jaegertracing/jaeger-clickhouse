@@ -420,7 +420,7 @@ func TestTraceReader_GetOperations(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			mock.
-				ExpectQuery(fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind", testOperationsTable)).
+				ExpectQuery(fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind ORDER BY operation", testOperationsTable)).
 				WithArgs(service).
 				WillReturnRows(test.rows)
 
@@ -441,7 +441,7 @@ func TestTraceReader_GetOperationsQueryError(t *testing.T) {
 	service := "test service"
 	params := spanstore.OperationQueryParameters{ServiceName: service}
 	mock.
-		ExpectQuery(fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind", testOperationsTable)).
+		ExpectQuery(fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind ORDER BY operation", testOperationsTable)).
 		WithArgs(service).
 		WillReturnError(errorMock)
 

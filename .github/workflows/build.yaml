@@ -55,3 +55,21 @@ jobs:
 
       - name: Run unit test
         run: make test
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    name: Integration tests
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          submodules: true
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ^1.17
+
+      - name: Setup database
+        run: docker run --rm -d -p9000:9000 --name test-clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:21
+
+      - name: Run integration tests
+        run: make integration-test

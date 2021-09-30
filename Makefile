@@ -38,6 +38,13 @@ lint:
 test:
 	go test ./...
 
+.PHONY: integration-test
+integration-test: build
+	STORAGE=grpc-plugin \
+	PLUGIN_BINARY_PATH=$(PWD)/jaeger-clickhouse-linux-amd64 \
+	PLUGIN_CONFIG_PATH=$(PWD)/integration/integration_config.yaml \
+	go test ./integration
+
 .PHONY: tar
 tar:
 	tar -czvf jaeger-clickhouse-$(GOOS)-$(GOARCH).tar.gz  jaeger-clickhouse-$(GOOS)-$(GOARCH) config.yaml

@@ -191,7 +191,7 @@ func (r *TraceReader) GetOperations(
 	}
 
 	//nolint:gosec  , G201: SQL string formatting
-	query := fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind", r.operationsTable)
+	query := fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind ORDER BY operation", r.operationsTable)
 	args := []interface{}{params.ServiceName}
 
 	span.SetTag("db.statement", query)

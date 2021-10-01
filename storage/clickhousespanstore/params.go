@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+//WriteParams contains parameters that are shared between WriteWorker`s
 type WriteParams struct {
 	logger     hclog.Logger
 	db         *sql.DB

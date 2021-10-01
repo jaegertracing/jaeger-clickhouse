@@ -8,8 +8,6 @@ import (
 	"github.com/jaegertracing/jaeger/model"
 )
 
-const maxSpanCount int = 10000000
-
 // WriteWorkerPool is a worker pool for writing batches of spans.
 // Given a new batch, WriteWorkerPool creates a new WriteWorker.
 // If the number of currently processed spans if more than maxSpanCount, then the oldest worker is removed.
@@ -21,12 +19,13 @@ type WriteWorkerPool struct {
 	batches chan []*model.Span
 
 	totalSpanCount int
+	maxSpanCount   int
 	mutex          sync.Mutex
 	workers        workerHeap
 	workerDone     chan *WriteWorker
 }
 
-func NewWorkerPool(params *WriteParams) WriteWorkerPool {
+func NewWorkerPool(params *WriteParams, maxSpanCount int) WriteWorkerPool {
 	return WriteWorkerPool{
 		params:  params,
 		finish:  make(chan bool),
@@ -36,6 +35,8 @@ func NewWorkerPool(params *WriteParams) WriteWorkerPool {
 		mutex:      sync.Mutex{},
 		workers:    newWorkerHeap(100),
 		workerDone: make(chan *WriteWorker),
+
+		maxSpanCount: maxSpanCount,
 	}
 }
 
@@ -85,7 +86,7 @@ func (pool *WriteWorkerPool) CLose() {
 
 func (pool *WriteWorkerPool) CleanWorkers(batchSize int) {
 	pool.mutex.Lock()
-	if pool.totalSpanCount+batchSize > maxSpanCount {
+	if pool.totalSpanCount+batchSize > pool.maxSpanCount {
 		earliest := heap.Pop(pool.workers)
 		switch worker := earliest.(type) {
 		case WriteWorker:

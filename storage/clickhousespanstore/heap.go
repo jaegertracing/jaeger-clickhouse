@@ -12,10 +12,11 @@ var (
 )
 
 type heapItem struct {
-	startTime time.Time
-	worker    *WriteWorker
+	pushTime time.Time
+	worker   *WriteWorker
 }
 
+// workerHeap is a heap for WriteWorkers where worker's push time is the key.
 type workerHeap struct {
 	elems   *[]*heapItem
 	indexes map[*WriteWorker]int
@@ -31,8 +32,8 @@ func newWorkerHeap(cap int) workerHeap {
 
 func (workerHeap workerHeap) AddWorker(worker *WriteWorker) {
 	heap.Push(workerHeap, heapItem{
-		worker:    worker,
-		startTime: time.Now(),
+		worker:   worker,
+		pushTime: time.Now(),
 	})
 }
 
@@ -56,7 +57,7 @@ func (workerHeap workerHeap) Len() int {
 }
 
 func (workerHeap workerHeap) Less(i, j int) bool {
-	return (*workerHeap.elems)[i].startTime.Before((*workerHeap.elems)[j].startTime)
+	return (*workerHeap.elems)[i].pushTime.Before((*workerHeap.elems)[j].pushTime)
 }
 
 func (workerHeap workerHeap) Swap(i, j int) {

@@ -1,6 +1,8 @@
 address: tcp://some-clickhouse-server:9000
 # When empty the embedded scripts from sqlscripts directory are used
 init_sql_scripts_dir:
+# Maximal amount of spans that can be written at the same time. Default 10_000_000
+max_span_count:
 # Batch write size. Default 10_000.
 batch_write_size:
 # Batch flush interval. Default 5s.

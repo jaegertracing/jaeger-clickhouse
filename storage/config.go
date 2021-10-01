@@ -12,6 +12,7 @@ const (
 	defaultEncoding                     = JSONEncoding
 	JSONEncoding           EncodingType = "json"
 	ProtobufEncoding       EncodingType = "protobuf"
+	defaultMaxSpanCount                 = int(1e7)
 	defaultBatchSize                    = 10_000
 	defaultBatchDelay                   = time.Second * 5
 	defaultUsername                     = "default"
@@ -28,6 +29,8 @@ type Configuration struct {
 	BatchWriteSize int64 `yaml:"batch_write_size"`
 	// Batch flush interval. Default is 5s.
 	BatchFlushInterval time.Duration `yaml:"batch_flush_interval"`
+	// Maximal amount of spans that can be written at the same time. Default is 10_000_000.
+	MaxSpanCount int `yaml:"max_span_count"`
 	// Encoding either json or protobuf. Default is json.
 	Encoding EncodingType `yaml:"encoding"`
 	// ClickHouse address e.g. tcp://localhost:9000.
@@ -63,6 +66,9 @@ func (cfg *Configuration) setDefaults() {
 	}
 	if cfg.BatchFlushInterval == 0 {
 		cfg.BatchFlushInterval = defaultBatchDelay
+	}
+	if cfg.MaxSpanCount == 0 {
+		cfg.MaxSpanCount = defaultMaxSpanCount
 	}
 	if cfg.Encoding == "" {
 		cfg.Encoding = defaultEncoding

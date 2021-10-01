@@ -55,18 +55,22 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 	}
 	if cfg.Replication {
 		return &Store{
-			db:            db,
-			writer:        clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
-			reader:        clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable),
-			archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", cfg.GetSpansArchiveTable(), clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+			db: db,
+			writer: clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable,
+				clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize, cfg.MaxSpanCount),
+			reader: clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable),
+			archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", cfg.GetSpansArchiveTable(),
+				clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize, cfg.MaxSpanCount),
 			archiveReader: clickhousespanstore.NewTraceReader(db, "", "", cfg.GetSpansArchiveTable()),
 		}, nil
 	}
 	return &Store{
-		db:            db,
-		writer:        clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable, clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
-		reader:        clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable),
-		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", cfg.GetSpansArchiveTable(), clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize),
+		db: db,
+		writer: clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable,
+			clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize, cfg.MaxSpanCount),
+		reader: clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable),
+		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", cfg.GetSpansArchiveTable(),
+			clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize, cfg.MaxSpanCount),
 		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", cfg.GetSpansArchiveTable()),
 	}, nil
 }

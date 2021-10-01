@@ -86,6 +86,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 			clickhousespanstore.EncodingJSON,
 			0,
 			0,
+			0,
 		),
 		reader: clickhousespanstore.NewTraceReader(
 			db,
@@ -99,6 +100,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 			testIndexTable,
 			testSpansArchiveTable,
 			clickhousespanstore.EncodingJSON,
+			0,
 			0,
 			0,
 		),

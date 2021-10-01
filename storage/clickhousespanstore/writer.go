@@ -47,7 +47,16 @@ var registerMetrics sync.Once
 var _ spanstore.Writer = (*SpanWriter)(nil)
 
 // NewSpanWriter returns a SpanWriter for the database
-func NewSpanWriter(logger hclog.Logger, db *sql.DB, indexTable, spansTable TableName, encoding Encoding, delay time.Duration, size int64) *SpanWriter {
+func NewSpanWriter(
+	logger hclog.Logger,
+	db *sql.DB,
+	indexTable,
+	spansTable TableName,
+	encoding Encoding,
+	delay time.Duration,
+	size int64,
+	maxSpanCount int,
+) *SpanWriter {
 	writer := &SpanWriter{
 		writeParams: WriteParams{
 			logger:     logger,
@@ -63,7 +72,7 @@ func NewSpanWriter(logger hclog.Logger, db *sql.DB, indexTable, spansTable Table
 	}
 
 	writer.registerMetrics()
-	go writer.backgroundWriter()
+	go writer.backgroundWriter(maxSpanCount)
 
 	return writer
 }
@@ -75,8 +84,8 @@ func (w *SpanWriter) registerMetrics() {
 	})
 }
 
-func (w *SpanWriter) backgroundWriter() {
-	pool := NewWorkerPool(&w.writeParams)
+func (w *SpanWriter) backgroundWriter(maxSpanCount int) {
+	pool := NewWorkerPool(&w.writeParams, maxSpanCount)
 	go pool.Work()
 	batch := make([]*model.Span, 0, w.size)
 

@@ -10,7 +10,7 @@ import (
 
 const maxSpanCount int = 10000000
 
-//WriteWorkerPool is a worker pool for writing batches of spans.
+// WriteWorkerPool is a worker pool for writing batches of spans.
 // Given a new batch, WriteWorkerPool creates a new WriteWorker.
 // If the number of currently processed spans if more than maxSpanCount, then the oldest worker is removed.
 type WriteWorkerPool struct {
@@ -22,8 +22,8 @@ type WriteWorkerPool struct {
 
 	totalSpanCount int
 	mutex          sync.Mutex
-	workers    workerHeap
-	workerDone chan *WriteWorker
+	workers        workerHeap
+	workerDone     chan *WriteWorker
 }
 
 func NewWorkerPool(params *WriteParams) WriteWorkerPool {
@@ -33,7 +33,7 @@ func NewWorkerPool(params *WriteParams) WriteWorkerPool {
 		done:    sync.WaitGroup{},
 		batches: make(chan []*model.Span),
 
-		mutex: sync.Mutex{},
+		mutex:      sync.Mutex{},
 		workers:    newWorkerHeap(100),
 		workerDone: make(chan *WriteWorker),
 	}

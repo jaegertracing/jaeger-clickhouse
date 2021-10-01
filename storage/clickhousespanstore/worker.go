@@ -14,7 +14,7 @@ import (
 
 var delays = []int{2, 3, 5, 8}
 
-//WriteWorker writes spans to CLickHouse.
+// WriteWorker writes spans to CLickHouse.
 // Given a batch of spans, WriteWorker attempts to write them to database.
 // Interval in seconds between attempts changes due to delays slice, then it remains the same as the last value in delays.
 type WriteWorker struct {

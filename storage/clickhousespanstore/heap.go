@@ -16,7 +16,7 @@ type heapItem struct {
 	worker   *WriteWorker
 }
 
-//workerHeap is a heap for WriteWorkers where worker's push time is the key.
+// workerHeap is a heap for WriteWorkers where worker's push time is the key.
 type workerHeap struct {
 	elems   *[]*heapItem
 	indexes map[*WriteWorker]int

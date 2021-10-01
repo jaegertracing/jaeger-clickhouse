@@ -35,6 +35,10 @@ func TestSetDefaults(t *testing.T) {
 			getField: func(config Configuration) interface{} { return config.BatchFlushInterval },
 			expected: defaultBatchDelay,
 		},
+		"max span count": {
+			getField: func(config Configuration) interface{} { return config.MaxSpanCount },
+			expected: defaultMaxSpanCount,
+		},
 		"metrics endpoint": {
 			getField: func(config Configuration) interface{} { return config.MetricsEndpoint },
 			expected: defaultMetricsEndpoint,

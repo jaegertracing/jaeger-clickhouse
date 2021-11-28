@@ -70,6 +70,10 @@ func TestSetDefaults(t *testing.T) {
 			getField:    func(config Configuration) interface{} { return config.OperationsTable },
 			expected:    defaultOperationsTable,
 		},
+		"max number spans": {
+			getField: func(config Configuration) interface{} { return config.MaxNumSpans },
+			expected: defaultMaxNumSpans,
+		},
 	}
 
 	for name, test := range tests {

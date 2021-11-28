@@ -18,6 +18,7 @@ const (
 	defaultUsername                     = "default"
 	defaultDatabaseName                 = "default"
 	defaultMetricsEndpoint              = "localhost:9090"
+	defaultMaxNumSpans                  = 0
 
 	defaultSpansTable      clickhousespanstore.TableName = "jaeger_spans"
 	defaultSpansIndexTable clickhousespanstore.TableName = "jaeger_index"
@@ -58,6 +59,8 @@ type Configuration struct {
 	spansArchiveTable clickhousespanstore.TableName
 	// TTL for data in tables in days. If 0, no TTL is set. Default 0.
 	TTLDays uint `yaml:"ttl"`
+	// The maximum number of spans to fetch per trace. If 0, no limits is set. Default 0.
+	MaxNumSpans uint `yaml:"max_num_spans"`
 }
 
 func (cfg *Configuration) setDefaults() {
@@ -81,6 +84,9 @@ func (cfg *Configuration) setDefaults() {
 	}
 	if cfg.MetricsEndpoint == "" {
 		cfg.MetricsEndpoint = defaultMetricsEndpoint
+	}
+	if cfg.MaxNumSpans == 0 {
+		cfg.MaxNumSpans = defaultMaxNumSpans
 	}
 	if cfg.SpansTable == "" {
 		if cfg.Replication {

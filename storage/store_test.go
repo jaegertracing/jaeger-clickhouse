@@ -93,6 +93,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 			testOperationsTable,
 			testIndexTable,
 			testSpansTable,
+			0,
 		),
 		archiveWriter: clickhousespanstore.NewSpanWriter(
 			logger,
@@ -109,6 +110,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 			testOperationsTable,
 			testIndexTable,
 			testSpansArchiveTable,
+			0,
 		),
 	}
 }

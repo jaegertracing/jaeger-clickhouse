@@ -24,6 +24,7 @@ const (
 	testOperationsTable = "test_operations_table"
 	testNumTraces       = 10
 	testSpansInTrace    = 2
+	testMaxNumSpans     = 0
 )
 
 var testStartTime = time.Date(2010, 3, 15, 7, 40, 0, 0, time.UTC)
@@ -33,7 +34,7 @@ func TestTraceReader_FindTraceIDs(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "service"
 	start := testStartTime
 	end := start.Add(24 * time.Hour)
@@ -112,7 +113,7 @@ func TestTraceReader_FindTraceIDsShortDurationAfterReduction(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "service"
 	start := testStartTime
 	end := start.Add(8 * time.Hour)
@@ -195,7 +196,7 @@ func TestTraceReader_FindTraceIDsEarlyExit(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "service"
 	start := testStartTime
 	end := start.Add(24 * time.Hour)
@@ -248,7 +249,7 @@ func TestTraceReader_FindTraceIDsShortRange(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "service"
 	start := testStartTime
 	end := start.Add(time.Hour)
@@ -291,7 +292,7 @@ func TestTraceReader_FindTraceIDsQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "service"
 	start := testStartTime
 	end := start.Add(24 * time.Hour)
@@ -330,7 +331,7 @@ func TestTraceReader_FindTraceIDsZeroStartTime(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "service"
 	start := time.Time{}
 	end := testStartTime
@@ -352,7 +353,7 @@ func TestTraceReader_GetServices(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	expectedServices := []string{"GET /first", "POST /second", "PUT /third"}
 	expectedServiceValues := make([]driver.Value, len(expectedServices))
 	for i := range expectedServices {
@@ -375,7 +376,7 @@ func TestTraceReader_GetServicesQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 
 	mock.
 		ExpectQuery(fmt.Sprintf("SELECT service FROM %s GROUP BY service", testOperationsTable)).
@@ -391,7 +392,7 @@ func TestTraceReader_GetServicesNoTable(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable, testMaxNumSpans)
 
 	services, err := traceReader.GetServices(context.Background())
 	require.ErrorIs(t, err, errNoOperationsTable)
@@ -403,7 +404,7 @@ func TestTraceReader_GetOperations(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "test service"
 	params := spanstore.OperationQueryParameters{ServiceName: service}
 	tests := map[string]struct {
@@ -437,7 +438,7 @@ func TestTraceReader_GetOperationsQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "test service"
 	params := spanstore.OperationQueryParameters{ServiceName: service}
 	mock.
@@ -456,7 +457,7 @@ func TestTraceReader_GetOperationsNoTable(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "test service"
 	params := spanstore.OperationQueryParameters{ServiceName: service}
 	operations, err := traceReader.GetOperations(context.Background(), params)
@@ -469,7 +470,7 @@ func TestTraceReader_GetTrace(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	traceID := model.TraceID{High: 0, Low: 1}
 	spanRefs := generateRandomSpans(testSpansInTrace)
 	trace := model.Trace{}
@@ -537,7 +538,7 @@ func TestSpanWriter_getTraces(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	traceIDs := []model.TraceID{
 		{High: 0, Low: 1},
 		{High: 2, Low: 2},
@@ -601,7 +602,7 @@ func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	traceIDs := []model.TraceID{
 		{High: 0, Low: 1},
 		{High: 2, Low: 2},
@@ -663,7 +664,7 @@ func TestSpanWriter_getTracesQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	traceIDs := []model.TraceID{
 		{High: 0, Low: 1},
 		{High: 2, Low: 2},
@@ -694,7 +695,7 @@ func TestSpanWriter_getTracesRowsScanError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	traceIDs := []model.TraceID{
 		{High: 0, Low: 1},
 		{High: 2, Low: 2},
@@ -726,7 +727,7 @@ func TestSpanWriter_getTraceNoTraceIDs(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	traceIDs := make([]model.TraceID, 0)
 
 	traces, err := traceReader.getTraces(context.Background(), traceIDs)
@@ -776,7 +777,7 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "test_service"
 	operation := "test_operation"
 	start := time.Unix(0, 0)
@@ -939,7 +940,7 @@ func TestSpanReader_findTraceIDsInRangeNoIndexTable(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, "", testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, "", testSpansTable, testMaxNumSpans)
 	res, err := traceReader.findTraceIDsInRange(
 		context.Background(),
 		nil,
@@ -956,7 +957,7 @@ func TestSpanReader_findTraceIDsInRangeEndBeforeStart(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	res, err := traceReader.findTraceIDsInRange(
 		context.Background(),
 		nil,
@@ -973,7 +974,7 @@ func TestSpanReader_findTraceIDsInRangeQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "test_service"
 	start := time.Unix(0, 0)
 	end := time.Now()
@@ -1007,7 +1008,7 @@ func TestSpanReader_findTraceIDsInRangeIncorrectData(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "test_service"
 	start := time.Unix(0, 0)
 	end := time.Now()
@@ -1061,7 +1062,7 @@ func TestSpanReader_getStrings(t *testing.T) {
 	}
 	mock.ExpectQuery(query).WithArgs(argValues...).WillReturnRows(result)
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 
 	queryResult, err := traceReader.getStrings(context.Background(), query, args...)
 	assert.NoError(t, err)
@@ -1079,7 +1080,7 @@ func TestSpanReader_getStringsQueryError(t *testing.T) {
 	args := []interface{}{"a"}
 	mock.ExpectQuery(query).WithArgs(argValues...).WillReturnError(errorMock)
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 
 	queryResult, err := traceReader.getStrings(context.Background(), query, args...)
 	assert.EqualError(t, err, errorMock.Error())
@@ -1103,7 +1104,7 @@ func TestSpanReader_getStringsRowError(t *testing.T) {
 	result.RowError(2, errorMock)
 	mock.ExpectQuery(query).WithArgs(argValues...).WillReturnRows(result)
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 
 	queryResult, err := traceReader.getStrings(context.Background(), query, args...)
 	assert.EqualError(t, err, errorMock.Error())

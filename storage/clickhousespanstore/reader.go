@@ -34,17 +34,19 @@ type TraceReader struct {
 	operationsTable TableName
 	indexTable      TableName
 	spansTable      TableName
+	maxNumSpans     uint
 }
 
 var _ spanstore.Reader = (*TraceReader)(nil)
 
 // NewTraceReader returns a TraceReader for the database
-func NewTraceReader(db *sql.DB, operationsTable, indexTable, spansTable TableName) *TraceReader {
+func NewTraceReader(db *sql.DB, operationsTable, indexTable, spansTable TableName, maxNumSpans uint) *TraceReader {
 	return &TraceReader{
 		db:              db,
 		operationsTable: operationsTable,
 		indexTable:      indexTable,
 		spansTable:      spansTable,
+		maxNumSpans:     maxNumSpans,
 	}
 }
 
@@ -67,6 +69,10 @@ func (r *TraceReader) getTraces(ctx context.Context, traceIDs []model.TraceID) (
 	// * https://clickhouse.tech/docs/en/sql-reference/statements/select/prewhere/
 	//nolint:gosec  , G201: SQL string formatting
 	query := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (%s)", r.spansTable, "?"+strings.Repeat(",?", len(values)-1))
+
+	if r.maxNumSpans > 0 {
+		query += fmt.Sprintf(" ORDER BY timestamp LIMIT %d BY traceID", r.maxNumSpans)
+	}
 
 	span.SetTag("db.statement", query)
 	span.SetTag("db.args", values)

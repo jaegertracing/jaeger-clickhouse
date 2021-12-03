@@ -341,7 +341,7 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 	}
 
 	for key, value := range params.Tags {
-		query += " AND has(tags.key, ?) AND tags.value[indexOf(tags.key, ?)] == ?"
+		query += " AND has(tags.key, ?) AND has(splitByChar(',', tags.value[indexOf(tags.key, ?)]), ?)"
 		args = append(args, key, key, value)
 	}
 

@@ -5,7 +5,16 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/jaegertracing/jaeger/model"
+)
+
+var (
+	numWaitsForMaxSpanCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "jaeger_clickhouse_wait_for_max_span_count_total",
+		Help: "Number of waits for clickhouse writes to complete due to max_span_count",
+	})
 )
 
 // WriteWorkerPool is a worker pool for writing batches of spans.
@@ -25,7 +34,13 @@ type WriteWorkerPool struct {
 	workerDone     chan *WriteWorker
 }
 
+var registerPoolMetrics sync.Once
+
 func NewWorkerPool(params *WriteParams, maxSpanCount int) WriteWorkerPool {
+	registerPoolMetrics.Do(func() {
+		prometheus.MustRegister(numWaitsForMaxSpanCount)
+	})
+
 	return WriteWorkerPool{
 		params:  params,
 		finish:  make(chan bool),
@@ -89,10 +104,15 @@ func (pool *WriteWorkerPool) CleanWorkers(batchSize int) {
 	if pool.totalSpanCount+batchSize > pool.maxSpanCount {
 		earliest := heap.Pop(pool.workers)
 		switch worker := earliest.(type) {
-		case WriteWorker:
+		case *WriteWorker:
+			numWaitsForMaxSpanCount.Inc()
+			pool.params.logger.Debug("Waiting for existing batch to finish before starting new batch", "batch_size", batchSize, "max_span_count", pool.maxSpanCount)
 			worker.CLose()
 		default:
-			panic(fmt.Sprintf("undefined type %T return from workerHeap", worker))
+			errmsg := fmt.Sprintf("undefined type %T return from workerHeap", worker)
+			// Attempt to send error message to jaeger log collection before panicing
+			pool.params.logger.Error(errmsg)
+			panic(errmsg)
 		}
 	}
 	pool.mutex.Unlock()

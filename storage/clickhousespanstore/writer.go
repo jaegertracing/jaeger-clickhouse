@@ -43,7 +43,7 @@ type SpanWriter struct {
 	done   sync.WaitGroup
 }
 
-var registerMetrics sync.Once
+var registerWriterMetrics sync.Once
 var _ spanstore.Writer = (*SpanWriter)(nil)
 
 // NewSpanWriter returns a SpanWriter for the database
@@ -78,7 +78,7 @@ func NewSpanWriter(
 }
 
 func (w *SpanWriter) registerMetrics() {
-	registerMetrics.Do(func() {
+	registerWriterMetrics.Do(func() {
 		prometheus.MustRegister(numWritesWithBatchSize)
 		prometheus.MustRegister(numWritesWithFlushInterval)
 	})

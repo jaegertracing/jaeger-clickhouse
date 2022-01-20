@@ -1,7 +1,11 @@
 address: tcp://some-clickhouse-server:9000
 # When empty the embedded scripts from sqlscripts directory are used
 init_sql_scripts_dir:
-# Maximal amount of spans that can be written at the same time. Default 10_000_000
+# Maximal amount of spans that can be pending writes at a time.
+# New spans exceeding this limit will be discarded,
+# keeping memory in check if there are issues writing to ClickHouse.
+# Check the "jaeger_clickhouse_discarded_spans" metric to keep track of discards.
+# If 0, no limit is set. Default 10_000_000.
 max_span_count:
 # Batch write size. Default 10_000.
 batch_write_size:
@@ -11,13 +15,13 @@ batch_flush_interval:
 encoding:
 # Path to CA TLS certificate.
 ca_file:
-# Username for connection. Default is "default".
+# Username for connection to ClickHouse. Default is "default".
 username:
-# Password for connection.
+# Password for connection to ClickHouse.
 password:
-# Database name. The database has to be created manually before Jaeger starts. Default is "default".
+# ClickHouse database name. The database must be created manually before Jaeger starts. Default is "default".
 database:
-# Endpoint for scraping prometheus metrics. Default localhost:9090.
+# Endpoint for serving prometheus metrics. Default localhost:9090.
 metrics_endpoint: localhost:9090
 # Whether to use sql scripts supporting replication and sharding.
 # Replication can be used only on database with Atomic engine.
@@ -31,5 +35,5 @@ spans_index_table:
 operations_table:
 # TTL for data in tables in days. If 0, no TTL is set. Default 0.
 ttl:
-# The maximum number of spans to fetch per trace. If 0, no limits is set. Default 0.
+# The maximum number of spans to fetch per trace. If 0, no limit is set. Default 0.
 max_num_spans:

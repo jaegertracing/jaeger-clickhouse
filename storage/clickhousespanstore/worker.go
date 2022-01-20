@@ -20,29 +20,23 @@ var delays = []int{2, 3, 5, 8}
 // Interval in seconds between attempts changes due to delays slice, then it remains the same as the last value in delays.
 type WriteWorker struct {
 	params *WriteParams
+	batch  []*model.Span
 
-	counter    *int
-	mutex      *sync.Mutex
 	finish     chan bool
 	workerDone chan *WriteWorker
 	done       sync.WaitGroup
 }
 
-func (worker *WriteWorker) Work(
-	batch []*model.Span,
-) {
+func (worker *WriteWorker) Work() {
 	worker.done.Add(1)
-	worker.mutex.Lock()
-	*worker.counter += len(batch)
-	worker.mutex.Unlock()
 
 	defer worker.done.Done()
 
 	// TODO: look for specific error(connection refused | database error)
-	if err := worker.writeBatch(batch); err != nil {
+	if err := worker.writeBatch(worker.batch); err != nil {
 		worker.params.logger.Error("Could not write a batch of spans", "error", err)
 	} else {
-		worker.close(len(batch))
+		worker.close(len(worker.batch))
 		return
 	}
 	attempt := 0
@@ -51,13 +45,13 @@ func (worker *WriteWorker) Work(
 		timer := time.After(currentDelay)
 		select {
 		case <-worker.finish:
-			worker.close(len(batch))
+			worker.close(len(worker.batch))
 			return
 		case <-timer:
-			if err := worker.writeBatch(batch); err != nil {
+			if err := worker.writeBatch(worker.batch); err != nil {
 				worker.params.logger.Error("Could not write a batch of spans", "error", err)
 			} else {
-				worker.close(len(batch))
+				worker.close(len(worker.batch))
 				return
 			}
 		}
@@ -77,9 +71,6 @@ func (worker *WriteWorker) getCurrentDelay(attempt *int, delay time.Duration) ti
 }
 
 func (worker *WriteWorker) close(batchSize int) {
-	worker.mutex.Lock()
-	*worker.counter -= batchSize
-	worker.mutex.Unlock()
 	worker.workerDone <- worker
 }
 

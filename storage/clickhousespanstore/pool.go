@@ -1,8 +1,6 @@
 package clickhousespanstore
 
 import (
-	"container/heap"
-	"fmt"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,9 +9,13 @@ import (
 )
 
 var (
-	numWaitsForMaxSpanCount = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "jaeger_clickhouse_wait_for_max_span_count_total",
-		Help: "Number of waits for clickhouse writes to complete due to max_span_count",
+	numDiscardedSpans = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "jaeger_clickhouse_discarded_spans",
+		Help: "Count of spans that have been discarded due to pending writes exceeding max_span_count",
+	})
+	numPendingSpans = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "jaeger_clickhouse_pending_spans",
+		Help: "Number of spans that are currently pending, counts against max_span_count",
 	})
 )
 
@@ -27,18 +29,17 @@ type WriteWorkerPool struct {
 	done    sync.WaitGroup
 	batches chan []*model.Span
 
-	totalSpanCount int
-	maxSpanCount   int
-	mutex          sync.Mutex
-	workers        workerHeap
-	workerDone     chan *WriteWorker
+	maxSpanCount int
+	mutex        sync.Mutex
+	workers      workerHeap
+	workerDone   chan *WriteWorker
 }
 
 var registerPoolMetrics sync.Once
 
 func NewWorkerPool(params *WriteParams, maxSpanCount int) WriteWorkerPool {
 	registerPoolMetrics.Do(func() {
-		prometheus.MustRegister(numWaitsForMaxSpanCount)
+		prometheus.MustRegister(numDiscardedSpans, numPendingSpans)
 	})
 
 	return WriteWorkerPool{
@@ -57,24 +58,36 @@ func NewWorkerPool(params *WriteParams, maxSpanCount int) WriteWorkerPool {
 
 func (pool *WriteWorkerPool) Work() {
 	finish := false
-
+	pendingSpanCount := 0
 	for {
+		// Initialize to zero, or update value from previous loop
+		numPendingSpans.Set(float64(pendingSpanCount))
+
 		pool.done.Add(1)
 		select {
 		case batch := <-pool.batches:
-			pool.CleanWorkers(len(batch))
-			worker := WriteWorker{
-				params: pool.params,
+			batchSize := len(batch)
+			if pool.checkLimit(pendingSpanCount, batchSize) {
+				// Limit disabled or batch fits within limit, write the batch.
+				worker := WriteWorker{
+					params: pool.params,
+					batch:  batch,
 
-				counter:    &pool.totalSpanCount,
-				mutex:      &pool.mutex,
-				finish:     make(chan bool),
-				workerDone: pool.workerDone,
-				done:       sync.WaitGroup{},
+					finish:     make(chan bool),
+					workerDone: pool.workerDone,
+					done:       sync.WaitGroup{},
+				}
+				pool.workers.AddWorker(&worker)
+				pendingSpanCount += batchSize
+				go worker.Work()
+			} else {
+				// Limit exceeded, complain
+				numDiscardedSpans.Add(float64(batchSize))
+				pool.params.logger.Error("Discarding batch of spans due to exceeding pending span count", "batch_size", batchSize, "pending_span_count", pendingSpanCount, "max_span_count", pool.maxSpanCount)
 			}
-			pool.workers.AddWorker(&worker)
-			go worker.Work(batch)
 		case worker := <-pool.workerDone:
+			// The worker has finished, subtract its work from the count and clean it from the heap.
+			pendingSpanCount -= len(worker.batch)
 			if err := pool.workers.RemoveWorker(worker); err != nil {
 				pool.params.logger.Error("could not remove worker", "worker", worker, "error", err)
 			}
@@ -99,28 +112,12 @@ func (pool *WriteWorkerPool) CLose() {
 	pool.done.Wait()
 }
 
-func (pool *WriteWorkerPool) CleanWorkers(batchSize int) {
-	cleanWorker := (*WriteWorker)(nil)
-	pool.mutex.Lock()
-	if pool.totalSpanCount+batchSize > pool.maxSpanCount {
-		earliest := heap.Pop(pool.workers)
-		switch worker := earliest.(type) {
-		case *WriteWorker:
-			cleanWorker = worker
-		default:
-			errmsg := fmt.Sprintf("undefined type %T return from workerHeap", worker)
-			// Attempt to send error message to jaeger log collection before panicing
-			pool.params.logger.Error(errmsg)
-			panic(errmsg)
-		}
+// checkLimit returns whether batchSize fits within the maxSpanCount
+func (pool *WriteWorkerPool) checkLimit(pendingSpanCount int, batchSize int) bool {
+	if pool.maxSpanCount <= 0 {
+		return true
 	}
-	pool.mutex.Unlock()
 
-	// Avoid deadlock: don't close when mutex is already locked
-	if cleanWorker != nil {
-		numWaitsForMaxSpanCount.Inc()
-		pool.params.logger.Debug("Waiting for existing batch to finish before starting new batch", "batch_size", batchSize, "max_span_count", pool.maxSpanCount)
-		cleanWorker.CLose()
-		pool.params.logger.Debug("Existing batch finished, continuing with new batch", "batch_size", batchSize, "max_span_count", pool.maxSpanCount)
-	}
+	// Check limit, add batchSize if within limit
+	return pendingSpanCount+batchSize <= pool.maxSpanCount
 }

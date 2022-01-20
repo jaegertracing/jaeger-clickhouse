@@ -100,14 +100,13 @@ func (pool *WriteWorkerPool) CLose() {
 }
 
 func (pool *WriteWorkerPool) CleanWorkers(batchSize int) {
+	cleanWorker := (*WriteWorker)(nil)
 	pool.mutex.Lock()
 	if pool.totalSpanCount+batchSize > pool.maxSpanCount {
 		earliest := heap.Pop(pool.workers)
 		switch worker := earliest.(type) {
 		case *WriteWorker:
-			numWaitsForMaxSpanCount.Inc()
-			pool.params.logger.Debug("Waiting for existing batch to finish before starting new batch", "batch_size", batchSize, "max_span_count", pool.maxSpanCount)
-			worker.CLose()
+			cleanWorker = worker
 		default:
 			errmsg := fmt.Sprintf("undefined type %T return from workerHeap", worker)
 			// Attempt to send error message to jaeger log collection before panicing
@@ -116,4 +115,12 @@ func (pool *WriteWorkerPool) CleanWorkers(batchSize int) {
 		}
 	}
 	pool.mutex.Unlock()
+
+	// Avoid deadlock: don't close when mutex is already locked
+	if cleanWorker != nil {
+		numWaitsForMaxSpanCount.Inc()
+		pool.params.logger.Debug("Waiting for existing batch to finish before starting new batch", "batch_size", batchSize, "max_span_count", pool.maxSpanCount)
+		cleanWorker.CLose()
+		pool.params.logger.Debug("Existing batch finished, continuing with new batch", "batch_size", batchSize, "max_span_count", pool.maxSpanCount)
+	}
 }

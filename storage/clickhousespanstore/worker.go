@@ -19,6 +19,8 @@ var delays = []int{2, 3, 5, 8}
 // Given a batch of spans, WriteWorker attempts to write them to database.
 // Interval in seconds between attempts changes due to delays slice, then it remains the same as the last value in delays.
 type WriteWorker struct {
+	workerId int32
+
 	params *WriteParams
 	batch  []*model.Span
 
@@ -34,7 +36,7 @@ func (worker *WriteWorker) Work() {
 
 	// TODO: look for specific error(connection refused | database error)
 	if err := worker.writeBatch(worker.batch); err != nil {
-		worker.params.logger.Error("Could not write a batch of spans", "error", err)
+		worker.params.logger.Error("Could not write a batch of spans", "error", err, "worker_id", worker.workerId)
 	} else {
 		worker.close(len(worker.batch))
 		return
@@ -49,7 +51,7 @@ func (worker *WriteWorker) Work() {
 			return
 		case <-timer:
 			if err := worker.writeBatch(worker.batch); err != nil {
-				worker.params.logger.Error("Could not write a batch of spans", "error", err)
+				worker.params.logger.Error("Could not write a batch of spans", "error", err, "worker_id", worker.workerId)
 			} else {
 				worker.close(len(worker.batch))
 				return

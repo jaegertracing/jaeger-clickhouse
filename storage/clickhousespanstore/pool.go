@@ -1,6 +1,7 @@
 package clickhousespanstore
 
 import (
+	"math"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -58,6 +59,7 @@ func NewWorkerPool(params *WriteParams, maxSpanCount int) WriteWorkerPool {
 
 func (pool *WriteWorkerPool) Work() {
 	finish := false
+	nextWorkerId := int32(1)
 	pendingSpanCount := 0
 	for {
 		// Initialize to zero, or update value from previous loop
@@ -70,12 +72,19 @@ func (pool *WriteWorkerPool) Work() {
 			if pool.checkLimit(pendingSpanCount, batchSize) {
 				// Limit disabled or batch fits within limit, write the batch.
 				worker := WriteWorker{
+					workerId: nextWorkerId,
+
 					params: pool.params,
 					batch:  batch,
 
 					finish:     make(chan bool),
 					workerDone: pool.workerDone,
 					done:       sync.WaitGroup{},
+				}
+				if nextWorkerId == math.MaxInt32 {
+					nextWorkerId = 1
+				} else {
+					nextWorkerId++
 				}
 				pool.workers.AddWorker(&worker)
 				pendingSpanCount += batchSize

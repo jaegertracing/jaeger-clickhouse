@@ -30,7 +30,11 @@ type Configuration struct {
 	BatchWriteSize int64 `yaml:"batch_write_size"`
 	// Batch flush interval. Default is 5s.
 	BatchFlushInterval time.Duration `yaml:"batch_flush_interval"`
-	// Maximal amount of spans that can be written at the same time. Default is 10_000_000.
+	// Maximal amount of spans that can be pending writes at a time.
+	// New spans exceeding this limit will be discarded,
+	// keeping memory in check if there are issues writing to ClickHouse.
+	// Check the "jaeger_clickhouse_discarded_spans" metric to keep track of discards.
+	// Default 10_000_000, or disable the limit entirely by setting to 0.
 	MaxSpanCount int `yaml:"max_span_count"`
 	// Encoding either json or protobuf. Default is json.
 	Encoding EncodingType `yaml:"encoding"`

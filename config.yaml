@@ -31,3 +31,5 @@ spans_index_table:
 operations_table:
 # TTL for data in tables in days. If 0, no TTL is set. Default 0.
 ttl:
+# The maximum number of spans to fetch per trace. If 0, no limits is set. Default 0.
+max_num_spans:

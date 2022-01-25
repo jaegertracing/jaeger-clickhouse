@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -190,59 +191,60 @@ func (worker *WriteWorker) writeIndexBatch(batch []*model.Span) error {
 	return tx.Commit()
 }
 
-type kvArray []*model.KeyValue
-
-func (arr kvArray) Len() int {
-	return len(arr)
-}
-
-func (arr kvArray) Swap(i, j int) {
-	if i < 0 || i >= arr.Len() || j < 0 || j > arr.Len() {
-		panic(fmt.Errorf("indices are incorrect"))
-	}
-	arr[i], arr[j] = arr[j], arr[i]
-}
-
-func (arr kvArray) Less(i, j int) bool {
-	if i < 0 || i >= arr.Len() || j < 0 || j > arr.Len() {
-		panic(fmt.Errorf("indices are incorrect"))
-	}
-	return arr[i].Key < arr[j].Key || (arr[i].Key == arr[j].Key && arr[i].AsString() < arr[j].AsString())
-}
-
 func uniqueTagsForSpan(span *model.Span) (keys, values []string) {
-	uniqueTags := make(map[string]*model.KeyValue, len(span.Tags)+len(span.Process.Tags))
+	uniqueTags := make(map[string][]string, len(span.Tags)+len(span.Process.Tags))
 
 	for i := range span.Tags {
-		uniqueTags[tagString(&span.GetTags()[i])] = &span.GetTags()[i]
+		key := tagKey(&span.GetTags()[i])
+		uniqueTags[key] = append(uniqueTags[key], tagValue(&span.GetTags()[i]))
 	}
 
 	for i := range span.Process.Tags {
-		uniqueTags[tagString(&span.GetProcess().GetTags()[i])] = &span.GetProcess().GetTags()[i]
+		key := tagKey(&span.GetProcess().GetTags()[i])
+		uniqueTags[key] = append(uniqueTags[key], tagValue(&span.GetProcess().GetTags()[i]))
 	}
 
 	for _, event := range span.Logs {
 		for i := range event.Fields {
-			uniqueTags[tagString(&event.GetFields()[i])] = &event.GetFields()[i]
+			key := tagKey(&event.GetFields()[i])
+			uniqueTags[key] = append(uniqueTags[key], tagValue(&event.GetFields()[i]))
 		}
 	}
 
-	uniqueTagsSlice := make(kvArray, 0, len(uniqueTags))
-	for _, kv := range uniqueTags {
-		uniqueTagsSlice = append(uniqueTagsSlice, kv)
-	}
-	sort.Sort(uniqueTagsSlice)
-
 	keys = make([]string, 0, len(uniqueTags))
+	for k := range uniqueTags {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	values = make([]string, 0, len(uniqueTags))
-	for _, tws := range uniqueTagsSlice {
-		keys = append(keys, tws.Key)
-		values = append(values, tws.AsString())
+	for _, key := range keys {
+		values = append(values, strings.Join(unique(uniqueTags[key]), ","))
 	}
 
 	return keys, values
 }
 
-func tagString(kv *model.KeyValue) string {
-	return kv.Key + "=" + kv.AsString()
+func tagKey(kv *model.KeyValue) string {
+	return kv.Key
+}
+
+func tagValue(kv *model.KeyValue) string {
+	return kv.AsString()
+}
+
+func unique(slice []string) []string {
+	if len(slice) == 1 {
+		return slice
+	}
+
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range slice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }

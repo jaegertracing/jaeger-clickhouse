@@ -65,21 +65,21 @@ var (
 	writeBatchLogs = []mocks.LogMock{{Msg: "Writing spans", Args: []interface{}{"size", len(testSpans)}}}
 )
 
-func TestSpanWriter_TagString(t *testing.T) {
+func TestSpanWriter_TagKeyValue(t *testing.T) {
 	tests := map[string]struct {
 		kv       model.KeyValue
 		expected string
 	}{
-		"string value":       {kv: model.String("tag_key", "tag_string_value"), expected: "tag_key=tag_string_value"},
-		"true value":         {kv: model.Bool("tag_key", true), expected: "tag_key=true"},
-		"false value":        {kv: model.Bool("tag_key", false), expected: "tag_key=false"},
-		"positive int value": {kv: model.Int64("tag_key", 1203912), expected: "tag_key=1203912"},
-		"negative int value": {kv: model.Int64("tag_key", -1203912), expected: "tag_key=-1203912"},
-		"float value":        {kv: model.Float64("tag_key", 0.005009), expected: "tag_key=0.005009"},
+		"string value":       {kv: model.String("tag_key", "tag_string_value"), expected: "tag_string_value"},
+		"true value":         {kv: model.Bool("tag_key", true), expected: "true"},
+		"false value":        {kv: model.Bool("tag_key", false), expected: "false"},
+		"positive int value": {kv: model.Int64("tag_key", 1203912), expected: "1203912"},
+		"negative int value": {kv: model.Int64("tag_key", -1203912), expected: "-1203912"},
+		"float value":        {kv: model.Float64("tag_key", 0.005009), expected: "0.005009"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, test.expected, tagString(&test.kv), "Incorrect tag string")
+			assert.Equal(t, test.expected, tagValue(&test.kv), "Incorrect tag value string")
 		})
 	}
 }
@@ -110,8 +110,8 @@ func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
 			tags:           []model.KeyValue{model.String("key2", "value_a"), model.String("key2", "value_b")},
 			processTags:    []model.KeyValue{model.Int64("key3", 412)},
 			logs:           []model.Log{{Fields: []model.KeyValue{model.Float64("key1", .5)}}},
-			expectedKeys:   []string{"key1", "key2", "key2", "key3"},
-			expectedValues: []string{"0.5", "value_a", "value_b", "412"},
+			expectedKeys:   []string{"key1", "key2", "key3"},
+			expectedValues: []string{"0.5", "value_a,value_b", "412"},
 		},
 		"repeating values": {
 			tags:           []model.KeyValue{model.String("key2", "value"), model.Int64("key4", 412)},

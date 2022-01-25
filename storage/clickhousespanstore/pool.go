@@ -59,7 +59,7 @@ func NewWorkerPool(params *WriteParams, maxSpanCount int) WriteWorkerPool {
 
 func (pool *WriteWorkerPool) Work() {
 	finish := false
-	nextWorkerId := int32(1)
+	nextWorkerID := int32(1)
 	pendingSpanCount := 0
 	for {
 		// Initialize to zero, or update value from previous loop
@@ -72,7 +72,7 @@ func (pool *WriteWorkerPool) Work() {
 			if pool.checkLimit(pendingSpanCount, batchSize) {
 				// Limit disabled or batch fits within limit, write the batch.
 				worker := WriteWorker{
-					workerId: nextWorkerId,
+					workerID: nextWorkerID,
 
 					params: pool.params,
 					batch:  batch,
@@ -81,10 +81,10 @@ func (pool *WriteWorkerPool) Work() {
 					workerDone: pool.workerDone,
 					done:       sync.WaitGroup{},
 				}
-				if nextWorkerId == math.MaxInt32 {
-					nextWorkerId = 1
+				if nextWorkerID == math.MaxInt32 {
+					nextWorkerID = 1
 				} else {
-					nextWorkerId++
+					nextWorkerID++
 				}
 				pool.workers.AddWorker(&worker)
 				pendingSpanCount += batchSize

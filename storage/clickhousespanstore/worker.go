@@ -19,7 +19,8 @@ var delays = []int{2, 3, 5, 8}
 // Given a batch of spans, WriteWorker attempts to write them to database.
 // Interval in seconds between attempts changes due to delays slice, then it remains the same as the last value in delays.
 type WriteWorker struct {
-	workerId int32
+	// workerID is an arbitrary identifier for keeping track of this worker in logs
+	workerID int32
 
 	params *WriteParams
 	batch  []*model.Span
@@ -36,9 +37,9 @@ func (worker *WriteWorker) Work() {
 
 	// TODO: look for specific error(connection refused | database error)
 	if err := worker.writeBatch(worker.batch); err != nil {
-		worker.params.logger.Error("Could not write a batch of spans", "error", err, "worker_id", worker.workerId)
+		worker.params.logger.Error("Could not write a batch of spans", "error", err, "worker_id", worker.workerID)
 	} else {
-		worker.close(len(worker.batch))
+		worker.close()
 		return
 	}
 	attempt := 0
@@ -47,13 +48,13 @@ func (worker *WriteWorker) Work() {
 		timer := time.After(currentDelay)
 		select {
 		case <-worker.finish:
-			worker.close(len(worker.batch))
+			worker.close()
 			return
 		case <-timer:
 			if err := worker.writeBatch(worker.batch); err != nil {
-				worker.params.logger.Error("Could not write a batch of spans", "error", err, "worker_id", worker.workerId)
+				worker.params.logger.Error("Could not write a batch of spans", "error", err, "worker_id", worker.workerID)
 			} else {
-				worker.close(len(worker.batch))
+				worker.close()
 				return
 			}
 		}
@@ -72,7 +73,7 @@ func (worker *WriteWorker) getCurrentDelay(attempt *int, delay time.Duration) ti
 	return time.Duration(int64(delays[*attempt-1]) * delay.Nanoseconds())
 }
 
-func (worker *WriteWorker) close(batchSize int) {
+func (worker *WriteWorker) close() {
 	worker.workerDone <- worker
 }
 

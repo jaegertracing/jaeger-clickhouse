@@ -1,5 +1,5 @@
 CREATE MATERIALIZED VIEW IF NOT EXISTS %s ON CLUSTER '{cluster}'
-        ENGINE ReplicatedMergeTree
+        ENGINE ReplicatedSummingMergeTree
             %s
             PARTITION BY toYYYYMM(date) ORDER BY (date, service, operation)
             SETTINGS index_granularity=32

@@ -15,7 +15,7 @@ Refer to the `config.yaml` how to setup replicated deployment.
 Sharding is a feature that allows splitting the data into multiple Clickhouse nodes to
 increase throughput and decrease latency.
 The sharding feature uses `Distributed` engine that is backed by local tables.
-The distributed engine is a "virtual" table that does not store any data. It is used as 
+The distributed engine is a "virtual" table that does not store any data. It is used as
 an interface to insert and query data.
 
 To setup sharding run the following statements on all nodes in the cluster.
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS jaeger_index AS jaeger_index_local ENGINE = Distribut
 CREATE TABLE IF NOT EXISTS jaeger_operations AS jaeger_operations_local ENGINE = Distributed('{cluster}', default, jaeger_operations_local, rand());
 ```
 
-* The `AS <table-name>` statement creates table with the same schema as the specified one. 
+* The `AS <table-name>` statement creates table with the same schema as the specified one.
 * The `Distributed` engine takes as parameters cluster , database, table name and sharding key.
 
 If the distributed table is not created on all Clickhouse nodes the Jaeger query fails to get the data from the storage.
@@ -56,7 +56,7 @@ EOF
 
 Use the following command to run `clickhouse-client` on Clickhouse nodes and create the distributed tables:
 ```bash
-kubectl exec -it statefulset.apps/chi-jaeger-cluster1-0-0 -- clickhouse-client  
+kubectl exec -it statefulset.apps/chi-jaeger-cluster1-0-0 -- clickhouse-client
 ```
 
 ### Plugin configuration

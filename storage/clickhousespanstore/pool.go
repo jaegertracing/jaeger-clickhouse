@@ -24,7 +24,7 @@ var (
 // Given a new batch, WriteWorkerPool creates a new WriteWorker.
 // If the number of currently processed spans if more than maxSpanCount, then the oldest worker is removed.
 type WriteWorkerPool struct {
-	params *WriteParams
+	params *WorkerParams
 
 	finish  chan bool
 	done    sync.WaitGroup
@@ -38,7 +38,7 @@ type WriteWorkerPool struct {
 
 var registerPoolMetrics sync.Once
 
-func NewWorkerPool(params *WriteParams, maxSpanCount int) WriteWorkerPool {
+func NewWorkerPool(params *WorkerParams, maxSpanCount int) WriteWorkerPool {
 	registerPoolMetrics.Do(func() {
 		prometheus.MustRegister(numDiscardedSpans, numPendingSpans)
 	})

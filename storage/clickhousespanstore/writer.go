@@ -35,7 +35,7 @@ var (
 
 // SpanWriter for writing spans to ClickHouse
 type SpanWriter struct {
-	writeParams WriteParams
+	workerParams WorkerParams
 
 	size   int64
 	spans  chan *model.Span
@@ -52,17 +52,19 @@ func NewSpanWriter(
 	db *sql.DB,
 	indexTable,
 	spansTable TableName,
+	tenant string,
 	encoding Encoding,
 	delay time.Duration,
 	size int64,
 	maxSpanCount int,
 ) *SpanWriter {
 	writer := &SpanWriter{
-		writeParams: WriteParams{
+		workerParams: WorkerParams{
 			logger:     logger,
 			db:         db,
 			indexTable: indexTable,
 			spansTable: spansTable,
+			tenant:     tenant,
 			encoding:   encoding,
 			delay:      delay,
 		},
@@ -85,11 +87,11 @@ func (w *SpanWriter) registerMetrics() {
 }
 
 func (w *SpanWriter) backgroundWriter(maxSpanCount int) {
-	pool := NewWorkerPool(&w.writeParams, maxSpanCount)
+	pool := NewWorkerPool(&w.workerParams, maxSpanCount)
 	go pool.Work()
 	batch := make([]*model.Span, 0, w.size)
 
-	timer := time.After(w.writeParams.delay)
+	timer := time.After(w.workerParams.delay)
 	last := time.Now()
 
 	for {
@@ -103,20 +105,20 @@ func (w *SpanWriter) backgroundWriter(maxSpanCount int) {
 			batch = append(batch, span)
 			flush = len(batch) == cap(batch)
 			if flush {
-				w.writeParams.logger.Debug("Flush due to batch size", "size", len(batch))
+				w.workerParams.logger.Debug("Flush due to batch size", "size", len(batch))
 				numWritesWithBatchSize.Inc()
 			}
 		case <-timer:
-			timer = time.After(w.writeParams.delay)
-			flush = time.Since(last) > w.writeParams.delay && len(batch) > 0
+			timer = time.After(w.workerParams.delay)
+			flush = time.Since(last) > w.workerParams.delay && len(batch) > 0
 			if flush {
-				w.writeParams.logger.Debug("Flush due to timer")
+				w.workerParams.logger.Debug("Flush due to timer")
 				numWritesWithFlushInterval.Inc()
 			}
 		case <-w.finish:
 			finish = true
 			flush = len(batch) > 0
-			w.writeParams.logger.Debug("Finish channel")
+			w.workerParams.logger.Debug("Finish channel")
 		}
 
 		if flush {

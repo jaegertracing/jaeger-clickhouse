@@ -29,6 +29,11 @@ const (
 	jaegerAdminPort = "14269/tcp"
 )
 
+type testCase struct {
+	configs []string
+	chiconf *string
+}
+
 func TestE2E(t *testing.T) {
 	if os.Getenv("E2E_TEST") == "" {
 		t.Skip("Set E2E_TEST=true to run the test")
@@ -37,16 +42,32 @@ func TestE2E(t *testing.T) {
 	// Minimal additional configuration (config.d) to enable cluster mode
 	chireplconf := "clickhouse-replicated.xml"
 
-	configs := map[string]*string{
-		"config-local.yaml":       nil,
-		"config-replication.yaml": &chireplconf,
+	tests := map[string]testCase{
+		"local-single": {
+			configs: []string{"config-local-single.yaml"},
+			chiconf: nil,
+		},
+		"local-multi": {
+			configs: []string{"config-local-multi1.yaml", "config-local-multi2.yaml"},
+			chiconf: nil,
+		},
+		"replication-single": {
+			configs: []string{"config-replication-single.yaml"},
+			chiconf: &chireplconf,
+		},
+		"replication-multi": {
+			configs: []string{"config-replication-multi1.yaml", "config-replication-multi2.yaml"},
+			chiconf: &chireplconf,
+		},
 	}
-	for pluginConfig, clickhouseConfig := range configs {
-		testE2E(t, pluginConfig, clickhouseConfig)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			testE2E(t, test)
+		})
 	}
 }
 
-func testE2E(t *testing.T, pluginConfig string, chiConfig *string) {
+func testE2E(t *testing.T, test testCase) {
 	ctx := context.Background()
 	workingDir, err := os.Getwd()
 	require.NoError(t, err)
@@ -58,9 +79,9 @@ func testE2E(t *testing.T, pluginConfig string, chiConfig *string) {
 	defer network.Remove(ctx)
 
 	var bindMounts map[string]string
-	if chiConfig != nil {
+	if test.chiconf != nil {
 		bindMounts = map[string]string{
-			fmt.Sprintf("%s/%s", workingDir, *chiConfig): "/etc/clickhouse-server/config.d/testconf.xml",
+			fmt.Sprintf("%s/%s", workingDir, *test.chiconf): "/etc/clickhouse-server/config.d/testconf.xml",
 		}
 	} else {
 		bindMounts = map[string]string{}
@@ -80,55 +101,61 @@ func testE2E(t *testing.T, pluginConfig string, chiConfig *string) {
 	require.NoError(t, err)
 	defer chContainer.Terminate(ctx)
 
-	jaegerReq := testcontainers.ContainerRequest{
-		Image:        jaegerImage,
-		ExposedPorts: []string{jaegerQueryPort, jaegerAdminPort},
-		WaitingFor:   wait.ForHTTP("/").WithPort(jaegerAdminPort).WithStartupTimeout(time.Second * 10),
-		Env: map[string]string{
-			"SPAN_STORAGE_TYPE": "grpc-plugin",
-		},
-		Cmd: []string{
-			"--grpc-storage-plugin.binary=/project-dir/jaeger-clickhouse-linux-amd64",
-			fmt.Sprintf("--grpc-storage-plugin.configuration-file=/project-dir/e2etests/%s", pluginConfig),
-			"--grpc-storage-plugin.log-level=debug",
-		},
-		BindMounts: map[string]string{
-			workingDir + "/..": "/project-dir",
-		},
-		Networks: []string{networkName},
+	jaegerContainers := make([]testcontainers.Container, 0)
+	for _, pluginConfig := range test.configs {
+		jaegerReq := testcontainers.ContainerRequest{
+			Image:        jaegerImage,
+			ExposedPorts: []string{jaegerQueryPort, jaegerAdminPort},
+			WaitingFor:   wait.ForHTTP("/").WithPort(jaegerAdminPort).WithStartupTimeout(time.Second * 10),
+			Env: map[string]string{
+				"SPAN_STORAGE_TYPE": "grpc-plugin",
+			},
+			Cmd: []string{
+				"--grpc-storage-plugin.binary=/project-dir/jaeger-clickhouse-linux-amd64",
+				fmt.Sprintf("--grpc-storage-plugin.configuration-file=/project-dir/e2etests/%s", pluginConfig),
+				"--grpc-storage-plugin.log-level=debug",
+			},
+			BindMounts: map[string]string{
+				workingDir + "/..": "/project-dir",
+			},
+			Networks: []string{networkName},
+		}
+		// Call Start() manually here so that if it fails then we can still access the logs.
+		jaegerContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+			ContainerRequest: jaegerReq,
+		})
+		require.NoError(t, err)
+		defer func() {
+			logs, errLogs := jaegerContainer.Logs(ctx)
+			require.NoError(t, errLogs)
+			all, errLogs := ioutil.ReadAll(logs)
+			require.NoError(t, errLogs)
+			fmt.Printf("Jaeger logs:\n---->\n%s<----\n\n", string(all))
+			jaegerContainer.Terminate(ctx)
+		}()
+		err = jaegerContainer.Start(ctx)
+		require.NoError(t, err)
+
+		jaegerContainers = append(jaegerContainers, jaegerContainer)
 	}
-	// Call Start() manually here so that if it fails then we can still access the logs.
-	jaegerContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: jaegerReq,
-	})
-	require.NoError(t, err)
-	defer func() {
-		logs, errLogs := jaegerContainer.Logs(ctx)
-		require.NoError(t, errLogs)
-		all, errLogs := ioutil.ReadAll(logs)
-		require.NoError(t, errLogs)
-		fmt.Printf("Jaeger logs:\n---->\n%s<----\n\n", string(all))
-		jaegerContainer.Terminate(ctx)
-	}()
-	err = jaegerContainer.Start(ctx)
-	require.NoError(t, err)
 
-	chContainer.MappedPort(ctx, clickhousePort)
-	jaegerQueryPort, err := jaegerContainer.MappedPort(ctx, jaegerQueryPort)
-	require.NoError(t, err)
+	for _, jaegerContainer := range jaegerContainers {
+		jaegerQueryPort, err := jaegerContainer.MappedPort(ctx, jaegerQueryPort)
+		require.NoError(t, err)
 
-	err = awaitility.Await(100*time.Millisecond, time.Second*3, func() bool {
-		// Jaeger traces itself so this request generates some spans
-		response, errHTTP := http.Get(fmt.Sprintf("http://localhost:%d/api/services", jaegerQueryPort.Int()))
-		require.NoError(t, errHTTP)
-		body, errHTTP := ioutil.ReadAll(response.Body)
-		require.NoError(t, errHTTP)
-		var r result
-		errHTTP = json.Unmarshal(body, &r)
-		require.NoError(t, errHTTP)
-		return len(r.Data) == 1 && r.Data[0] == "jaeger-query"
-	})
-	assert.NoError(t, err)
+		err = awaitility.Await(100*time.Millisecond, time.Second*3, func() bool {
+			// Jaeger traces itself so this request generates some spans
+			response, errHTTP := http.Get(fmt.Sprintf("http://localhost:%d/api/services", jaegerQueryPort.Int()))
+			require.NoError(t, errHTTP)
+			body, errHTTP := ioutil.ReadAll(response.Body)
+			require.NoError(t, errHTTP)
+			var r result
+			errHTTP = json.Unmarshal(body, &r)
+			require.NoError(t, errHTTP)
+			return len(r.Data) == 1 && r.Data[0] == "jaeger-query"
+		})
+		assert.NoError(t, err)
+	}
 }
 
 type result struct {

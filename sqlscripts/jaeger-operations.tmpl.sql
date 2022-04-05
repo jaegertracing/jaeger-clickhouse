@@ -3,9 +3,15 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS {{.OperationsTable}}
     ENGINE {{if .Replication}}ReplicatedSummingMergeTree{{else}}SummingMergeTree{{end}}
     {{.TTLDate}}
     PARTITION BY (
+        {{if .Multitenant -}}
+        tenant,
+        {{- end -}}
         toYYYYMM(date)
     )
     ORDER BY (
+        {{if .Multitenant -}}
+        tenant,
+        {{- end -}}
         date,
         service,
         operation
@@ -13,6 +19,9 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS {{.OperationsTable}}
     SETTINGS index_granularity = 32
     POPULATE
 AS SELECT
+    {{if .Multitenant -}}
+    tenant,
+    {{- end -}}
     toDate(timestamp) AS date,
     service,
     operation,
@@ -24,6 +33,9 @@ AS SELECT
     ) AS spankind
 FROM {{.Database}}.{{.SpansIndexTable}}
 GROUP BY
+    {{if .Multitenant -}}
+    tenant,
+    {{- end -}}
     date,
     service,
     operation,

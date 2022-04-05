@@ -22,7 +22,7 @@ type WriteWorker struct {
 	// workerID is an arbitrary identifier for keeping track of this worker in logs
 	workerID int32
 
-	params *WriteParams
+	params *WorkerParams
 	batch  []*model.Span
 
 	finish     chan bool
@@ -107,7 +107,14 @@ func (worker *WriteWorker) writeModelBatch(batch []*model.Span) error {
 		}
 	}()
 
-	statement, err := tx.Prepare(fmt.Sprintf("INSERT INTO %s (timestamp, traceID, model) VALUES (?, ?, ?)", worker.params.spansTable))
+	var query string
+	if worker.params.tenant == "" {
+		query = fmt.Sprintf("INSERT INTO %s (timestamp, traceID, model) VALUES (?, ?, ?)", worker.params.spansTable)
+	} else {
+		query = fmt.Sprintf("INSERT INTO %s (tenant, timestamp, traceID, model) VALUES (?, ?, ?, ?)", worker.params.spansTable)
+	}
+
+	statement, err := tx.Prepare(query)
 	if err != nil {
 		return err
 	}
@@ -127,7 +134,11 @@ func (worker *WriteWorker) writeModelBatch(batch []*model.Span) error {
 			return err
 		}
 
-		_, err = statement.Exec(span.StartTime, span.TraceID.String(), serialized)
+		if worker.params.tenant == "" {
+			_, err = statement.Exec(span.StartTime, span.TraceID.String(), serialized)
+		} else {
+			_, err = statement.Exec(worker.params.tenant, span.StartTime, span.TraceID.String(), serialized)
+		}
 		if err != nil {
 			return err
 		}
@@ -153,11 +164,20 @@ func (worker *WriteWorker) writeIndexBatch(batch []*model.Span) error {
 		}
 	}()
 
-	statement, err := tx.Prepare(
-		fmt.Sprintf(
+	var query string
+	if worker.params.tenant == "" {
+		query = fmt.Sprintf(
 			"INSERT INTO %s (timestamp, traceID, service, operation, durationUs, tags.key, tags.value) VALUES (?, ?, ?, ?, ?, ?, ?)",
 			worker.params.indexTable,
-		))
+		)
+	} else {
+		query = fmt.Sprintf(
+			"INSERT INTO %s (tenant, timestamp, traceID, service, operation, durationUs, tags.key, tags.value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			worker.params.indexTable,
+		)
+	}
+
+	statement, err := tx.Prepare(query)
 	if err != nil {
 		return err
 	}
@@ -166,15 +186,28 @@ func (worker *WriteWorker) writeIndexBatch(batch []*model.Span) error {
 
 	for _, span := range batch {
 		keys, values := uniqueTagsForSpan(span)
-		_, err = statement.Exec(
-			span.StartTime,
-			span.TraceID.String(),
-			span.Process.ServiceName,
-			span.OperationName,
-			span.Duration.Microseconds(),
-			keys,
-			values,
-		)
+		if worker.params.tenant == "" {
+			_, err = statement.Exec(
+				span.StartTime,
+				span.TraceID.String(),
+				span.Process.ServiceName,
+				span.OperationName,
+				span.Duration.Microseconds(),
+				keys,
+				values,
+			)
+		} else {
+			_, err = statement.Exec(
+				worker.params.tenant,
+				span.StartTime,
+				span.TraceID.String(),
+				span.Process.ServiceName,
+				span.OperationName,
+				span.Duration.Microseconds(),
+				keys,
+				values,
+			)
+		}
 		if err != nil {
 			return err
 		}

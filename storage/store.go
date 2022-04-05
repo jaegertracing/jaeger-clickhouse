@@ -4,13 +4,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
-	"embed"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
+	"text/template"
 
 	jaegerclickhouse "github.com/jaegertracing/jaeger-clickhouse"
 
@@ -102,14 +103,36 @@ func connector(cfg Configuration) (*sql.DB, error) {
 	return clickhouseConnector(params)
 }
 
-func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
-	var embeddedScripts embed.FS
-	if cfg.Replication {
-		embeddedScripts = jaegerclickhouse.EmbeddedFilesReplication
-	} else {
-		embeddedScripts = jaegerclickhouse.EmbeddedFilesNoReplication
-	}
+type tableArgs struct {
+	Database string
 
+	SpansIndexTable   clickhousespanstore.TableName
+	SpansTable        clickhousespanstore.TableName
+	OperationsTable   clickhousespanstore.TableName
+	SpansArchiveTable clickhousespanstore.TableName
+
+	TTLTimestamp string
+	TTLDate      string
+
+	Replication bool
+}
+
+type distributedTableArgs struct {
+	Database string
+	Table    clickhousespanstore.TableName
+	Hash     string
+}
+
+func render(templates *template.Template, filename string, args interface{}) string {
+	var statement strings.Builder
+	err := templates.ExecuteTemplate(&statement, filename, args)
+	if err != nil {
+		panic(err)
+	}
+	return statement.String()
+}
+
+func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 	var (
 		sqlStatements []string
 		ttlTimestamp  string
@@ -119,8 +142,7 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		ttlTimestamp = fmt.Sprintf("TTL timestamp + INTERVAL %d DAY DELETE", cfg.TTLDays)
 		ttlDate = fmt.Sprintf("TTL date + INTERVAL %d DAY DELETE", cfg.TTLDays)
 	}
-	switch {
-	case cfg.InitSQLScriptsDir != "":
+	if cfg.InitSQLScriptsDir != "" {
 		filePaths, err := walkMatch(cfg.InitSQLScriptsDir, "*.sql")
 		if err != nil {
 			return fmt.Errorf("could not list sql files: %q", err)
@@ -133,84 +155,55 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 			}
 			sqlStatements = append(sqlStatements, string(sqlStatement))
 		}
-	case cfg.Replication:
-		f, err := embeddedScripts.ReadFile("sqlscripts/replication/0001-jaeger-index-local.sql")
-		if err != nil {
-			return err
+	} else {
+		templates := template.Must(template.ParseFS(jaegerclickhouse.SQLScripts, "sqlscripts/*.tmpl.sql"))
+
+		args := tableArgs{
+			Database: cfg.Database,
+
+			SpansIndexTable:   cfg.SpansIndexTable,
+			SpansTable:        cfg.SpansTable,
+			OperationsTable:   cfg.OperationsTable,
+			SpansArchiveTable: cfg.GetSpansArchiveTable(),
+
+			TTLTimestamp: ttlTimestamp,
+			TTLDate:      ttlDate,
+
+			Replication: cfg.Replication,
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable.ToLocal(), ttlTimestamp))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0002-jaeger-spans-local.sql")
-		if err != nil {
-			return err
+
+		if cfg.Replication {
+			// Add "_local" to the local table names, and omit it from the distributed tables below
+			args.SpansIndexTable = args.SpansIndexTable.ToLocal()
+			args.SpansTable = args.SpansTable.ToLocal()
+			args.OperationsTable = args.OperationsTable.ToLocal()
+			args.SpansArchiveTable = args.SpansArchiveTable.ToLocal()
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable.ToLocal(), ttlTimestamp))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0003-jaeger-operations-local.sql")
-		if err != nil {
-			return err
+
+		sqlStatements = append(sqlStatements, render(templates, "jaeger-index.tmpl.sql", args))
+		sqlStatements = append(sqlStatements, render(templates, "jaeger-operations.tmpl.sql", args))
+		sqlStatements = append(sqlStatements, render(templates, "jaeger-spans.tmpl.sql", args))
+		sqlStatements = append(sqlStatements, render(templates, "jaeger-spans-archive.tmpl.sql", args))
+
+		if cfg.Replication {
+			// Now these tables omit the "_local" suffix
+			distargs := distributedTableArgs{
+				Table:    cfg.SpansTable,
+				Database: cfg.Database,
+				Hash:     "cityHash64(traceID)",
+			}
+			sqlStatements = append(sqlStatements, render(templates, "distributed-table.tmpl.sql", distargs))
+
+			distargs.Table = cfg.SpansIndexTable
+			sqlStatements = append(sqlStatements, render(templates, "distributed-table.tmpl.sql", distargs))
+
+			distargs.Table = cfg.GetSpansArchiveTable()
+			sqlStatements = append(sqlStatements, render(templates, "distributed-table.tmpl.sql", distargs))
+
+			distargs.Table = cfg.OperationsTable
+			distargs.Hash = "rand()"
+			sqlStatements = append(sqlStatements, render(templates, "distributed-table.tmpl.sql", distargs))
 		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable.ToLocal(), ttlDate, cfg.SpansIndexTable.ToLocal().AddDbName(cfg.Database)))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0004-jaeger-spans-archive-local.sql")
-		if err != nil {
-			return err
-		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable().ToLocal(), ttlTimestamp))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0005-distributed-city-hash.sql")
-		if err != nil {
-			return err
-		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(
-			string(f),
-			cfg.SpansTable,
-			cfg.SpansTable.ToLocal().AddDbName(cfg.Database),
-			cfg.Database,
-			cfg.SpansTable.ToLocal(),
-		))
-		sqlStatements = append(sqlStatements, fmt.Sprintf(
-			string(f),
-			cfg.SpansIndexTable,
-			cfg.SpansIndexTable.ToLocal().AddDbName(cfg.Database),
-			cfg.Database,
-			cfg.SpansIndexTable.ToLocal(),
-		))
-		sqlStatements = append(sqlStatements, fmt.Sprintf(
-			string(f),
-			cfg.GetSpansArchiveTable(),
-			cfg.GetSpansArchiveTable().ToLocal().AddDbName(cfg.Database),
-			cfg.Database,
-			cfg.GetSpansArchiveTable().ToLocal(),
-		))
-		f, err = embeddedScripts.ReadFile("sqlscripts/replication/0006-distributed-rand.sql")
-		if err != nil {
-			return err
-		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(
-			string(f),
-			cfg.OperationsTable,
-			cfg.OperationsTable.ToLocal().AddDbName(cfg.Database),
-			cfg.Database,
-			cfg.OperationsTable.ToLocal(),
-		))
-	default:
-		f, err := embeddedScripts.ReadFile("sqlscripts/local/0001-jaeger-index.sql")
-		if err != nil {
-			return err
-		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansIndexTable, ttlTimestamp))
-		f, err = embeddedScripts.ReadFile("sqlscripts/local/0002-jaeger-spans.sql")
-		if err != nil {
-			return err
-		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.SpansTable, ttlTimestamp))
-		f, err = embeddedScripts.ReadFile("sqlscripts/local/0003-jaeger-operations.sql")
-		if err != nil {
-			return err
-		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.OperationsTable, ttlDate, cfg.SpansIndexTable))
-		f, err = embeddedScripts.ReadFile("sqlscripts/local/0004-jaeger-spans-archive.sql")
-		if err != nil {
-			return err
-		}
-		sqlStatements = append(sqlStatements, fmt.Sprintf(string(f), cfg.GetSpansArchiveTable(), ttlTimestamp))
 	}
 	return executeScripts(logger, sqlStatements, db)
 }

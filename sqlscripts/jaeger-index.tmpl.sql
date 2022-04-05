@@ -1,4 +1,5 @@
-CREATE TABLE IF NOT EXISTS %s ON CLUSTER '{cluster}'
+CREATE TABLE IF NOT EXISTS {{.SpansIndexTable}}
+{{if .Replication}}ON CLUSTER '{cluster}'{{end}}
 (
     timestamp  DateTime CODEC (Delta, ZSTD(1)),
     traceID    String CODEC (ZSTD(1)),
@@ -9,11 +10,13 @@ CREATE TABLE IF NOT EXISTS %s ON CLUSTER '{cluster}'
     (
         key LowCardinality(String),
         value String
-    ) CODEC(ZSTD(1)),
+    ) CODEC (ZSTD(1)),
     INDEX idx_tag_keys tags.key TYPE bloom_filter(0.01) GRANULARITY 64,
     INDEX idx_duration durationUs TYPE minmax GRANULARITY 1
-) ENGINE ReplicatedMergeTree
-      %s
-      PARTITION BY toDate(timestamp)
-      ORDER BY (service, -toUnixTimestamp(timestamp))
-      SETTINGS index_granularity = 1024;
+) ENGINE {{if .Replication}}ReplicatedMergeTree{{else}}MergeTree(){{end}}
+    {{.TTLTimestamp}}
+    PARTITION BY (
+        toDate(timestamp)
+    )
+    ORDER BY (service, -toUnixTimestamp(timestamp))
+    SETTINGS index_granularity = 1024

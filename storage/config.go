@@ -61,6 +61,8 @@ type Configuration struct {
 	MetricsEndpoint string `yaml:"metrics_endpoint"`
 	// Whether to use SQL scripts supporting replication and sharding. Default false.
 	Replication bool `yaml:"replication"`
+	// If non-empty, enables multitenancy in SQL scripts, and assigns the tenant name for this instance.
+	Tenant string `yaml:"tenant"`
 	// Table with spans. Default "jaeger_spans_local" or "jaeger_spans" when replication is enabled.
 	SpansTable clickhousespanstore.TableName `yaml:"spans_table"`
 	// Span index table. Default "jaeger_index_local" or "jaeger_index" when replication is enabled.

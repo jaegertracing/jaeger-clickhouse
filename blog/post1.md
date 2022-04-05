@@ -11,13 +11,13 @@ Pull requests also will be greatly appreciated.
 
 [ClickHouse](https://github.com/clickhouse/clickhouse) is an analytical column-oriented database management system. It is designed to analyze streams of clicks which are kind of resemblant to spans. It's open-source, optimized for performance, and actively developed.
 
-## How it works?
+## How does it work?
 
 Jaeger spans are stored in 2 tables. First one contains whole span encoded either in JSON or Protobuf.
 Second stores key information about spans for searching. This table is indexed by span duration and tags.
 Also, info about operations is stored in the materialized view. There are no indexes for archived spans.
 Storing data in replicated local tables with distributed global tables is natively supported. Spans are buffered.
-Span buffers are flushed to DB either by timer or after reaching max batch size. 
+Span buffers are flushed to DB either by timer or after reaching max batch size.
 Timer interval and batch size can be set in [config file](../config.yaml).
 
 ![Picture of tables](post1_pics/tables.png)
@@ -48,7 +48,7 @@ Disk usage, [bytes]
 
 ```sql
 SELECT count()
-FROM jaeger_index 
+FROM jaeger_index
 WHERE service = 'tracegen'
 
 ┌──count()─┐

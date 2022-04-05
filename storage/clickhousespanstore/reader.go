@@ -34,18 +34,20 @@ type TraceReader struct {
 	operationsTable TableName
 	indexTable      TableName
 	spansTable      TableName
+	tenant          string
 	maxNumSpans     uint
 }
 
 var _ spanstore.Reader = (*TraceReader)(nil)
 
 // NewTraceReader returns a TraceReader for the database
-func NewTraceReader(db *sql.DB, operationsTable, indexTable, spansTable TableName, maxNumSpans uint) *TraceReader {
+func NewTraceReader(db *sql.DB, operationsTable, indexTable, spansTable TableName, tenant string, maxNumSpans uint) *TraceReader {
 	return &TraceReader{
 		db:              db,
 		operationsTable: operationsTable,
 		indexTable:      indexTable,
 		spansTable:      spansTable,
+		tenant:          tenant,
 		maxNumSpans:     maxNumSpans,
 	}
 }
@@ -60,24 +62,29 @@ func (r *TraceReader) getTraces(ctx context.Context, traceIDs []model.TraceID) (
 	span, _ := opentracing.StartSpanFromContext(ctx, "getTraces")
 	defer span.Finish()
 
-	values := make([]interface{}, len(traceIDs))
+	args := make([]interface{}, len(traceIDs))
 	for i, traceID := range traceIDs {
-		values[i] = traceID.String()
+		args[i] = traceID.String()
 	}
 
 	// It's more efficient to do PREWHERE on traceID to the only read needed models:
 	// * https://clickhouse.tech/docs/en/sql-reference/statements/select/prewhere/
 	//nolint:gosec  , G201: SQL string formatting
-	query := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (%s)", r.spansTable, "?"+strings.Repeat(",?", len(values)-1))
+	query := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (%s)", r.spansTable, "?"+strings.Repeat(",?", len(traceIDs)-1))
+
+	if r.tenant != "" {
+		query += " AND tenant = ?"
+		args = append(args, r.tenant)
+	}
 
 	if r.maxNumSpans > 0 {
 		query += fmt.Sprintf(" ORDER BY timestamp LIMIT %d BY traceID", r.maxNumSpans)
 	}
 
 	span.SetTag("db.statement", query)
-	span.SetTag("db.args", values)
+	span.SetTag("db.args", args)
 
-	rows, err := r.db.QueryContext(ctx, query, values...)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -177,11 +184,19 @@ func (r *TraceReader) GetServices(ctx context.Context) ([]string, error) {
 		return nil, errNoOperationsTable
 	}
 
-	query := fmt.Sprintf("SELECT service FROM %s GROUP BY service", r.operationsTable)
+	query := fmt.Sprintf("SELECT service FROM %s", r.operationsTable)
+	args := make([]interface{}, 0)
 
+	if r.tenant != "" {
+		query += " WHERE tenant = ?"
+		args = append(args, r.tenant)
+	}
+
+	query += " GROUP BY service"
 	span.SetTag("db.statement", query)
+	span.SetTag("db.args", args)
 
-	return r.getStrings(ctx, query)
+	return r.getStrings(ctx, query, args...)
 }
 
 // GetOperations fetches operations in the service and empty slice if service does not exists
@@ -197,8 +212,16 @@ func (r *TraceReader) GetOperations(
 	}
 
 	//nolint:gosec  , G201: SQL string formatting
-	query := fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind ORDER BY operation", r.operationsTable)
-	args := []interface{}{params.ServiceName}
+	query := fmt.Sprintf("SELECT operation, spankind FROM %s WHERE", r.operationsTable)
+	args := make([]interface{}, 0)
+
+	if r.tenant != "" {
+		query += " tenant = ? AND"
+		args = append(args, r.tenant)
+	}
+
+	query += " service = ? GROUP BY operation, spankind ORDER BY operation"
+	args = append(args, params.ServiceName)
 
 	span.SetTag("db.statement", query)
 	span.SetTag("db.args", args)
@@ -325,16 +348,18 @@ func (r *TraceReader) findTraceIDsInRange(ctx context.Context, params *spanstore
 	query := fmt.Sprintf("SELECT DISTINCT traceID FROM %s WHERE service = ?", r.indexTable)
 	args := []interface{}{params.ServiceName}
 
+	if r.tenant != "" {
+		query += " AND tenant = ?"
+		args = append(args, r.tenant)
+	}
+
 	if params.OperationName != "" {
 		query += " AND operation = ?"
 		args = append(args, params.OperationName)
 	}
 
-	query += " AND timestamp >= ?"
-	args = append(args, start)
-
-	query += " AND timestamp <= ?"
-	args = append(args, end)
+	query += " AND timestamp >= ? AND timestamp <= ?"
+	args = append(args, start, end)
 
 	if params.DurationMin != 0 {
 		query += " AND durationUs >= ?"

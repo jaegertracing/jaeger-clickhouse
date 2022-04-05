@@ -1,0 +1,4 @@
+address: tcp://chi:9000
+tenant: multi2
+# For test purposes flush on every write
+batch_write_size: 1

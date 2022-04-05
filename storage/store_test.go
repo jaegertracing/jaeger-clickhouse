@@ -83,6 +83,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 			db,
 			testIndexTable,
 			testSpansTable,
+			"",
 			clickhousespanstore.EncodingJSON,
 			0,
 			0,
@@ -93,6 +94,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 			testOperationsTable,
 			testIndexTable,
 			testSpansTable,
+			"",
 			0,
 		),
 		archiveWriter: clickhousespanstore.NewSpanWriter(
@@ -100,6 +102,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 			db,
 			testIndexTable,
 			testSpansArchiveTable,
+			"",
 			clickhousespanstore.EncodingJSON,
 			0,
 			0,
@@ -110,6 +113,7 @@ func newStore(db *sql.DB, logger mocks.SpyLogger) Store {
 			testOperationsTable,
 			testIndexTable,
 			testSpansArchiveTable,
+			"",
 			0,
 		),
 	}

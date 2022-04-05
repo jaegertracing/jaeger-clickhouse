@@ -1,0 +1,5 @@
+address: tcp://chi:9000
+replication: true
+tenant: multi1
+# For test purposes flush on every write
+batch_write_size: 1

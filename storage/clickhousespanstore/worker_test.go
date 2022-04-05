@@ -29,6 +29,7 @@ const (
 	testLogFieldCount = 5
 	testIndexTable    = "test_index_table"
 	testSpansTable    = "test_spans_table"
+	testTenant        = "test_tenant"
 )
 
 type expectation struct {
@@ -54,6 +55,18 @@ var (
 	indexWriteExpectation = expectation{
 		preparation: fmt.Sprintf("INSERT INTO %s (timestamp, traceID, service, operation, durationUs, tags.key, tags.value) VALUES (?, ?, ?, ?, ?, ?, ?)", testIndexTable),
 		execArgs: [][]driver.Value{{
+			testSpan.StartTime,
+			testSpan.TraceID.String(),
+			testSpan.Process.GetServiceName(),
+			testSpan.OperationName,
+			testSpan.Duration.Microseconds(),
+			keys,
+			values,
+		}}}
+	indexWriteExpectationTenant = expectation{
+		preparation: fmt.Sprintf("INSERT INTO %s (tenant, timestamp, traceID, service, operation, durationUs, tags.key, tags.value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", testIndexTable),
+		execArgs: [][]driver.Value{{
+			testTenant,
 			testSpan.StartTime,
 			testSpan.TraceID.String(),
 			testSpan.Process.GetServiceName(),
@@ -135,13 +148,16 @@ func TestSpanWriter_UniqueTagsForSpan(t *testing.T) {
 func TestSpanWriter_General(t *testing.T) {
 	spanJSON, err := json.Marshal(&testSpan)
 	require.NoError(t, err)
-	modelWriteExpectationJSON := getModelWriteExpectation(spanJSON)
+	modelWriteExpectationJSON := getModelWriteExpectation(spanJSON, "")
+	modelWriteExpectationJSONTenant := getModelWriteExpectation(spanJSON, testTenant)
 	spanProto, err := proto.Marshal(&testSpan)
 	require.NoError(t, err)
-	modelWriteExpectationProto := getModelWriteExpectation(spanProto)
+	modelWriteExpectationProto := getModelWriteExpectation(spanProto, "")
+	modelWriteExpectationProtoTenant := getModelWriteExpectation(spanProto, testTenant)
 	tests := map[string]struct {
 		encoding     Encoding
 		indexTable   TableName
+		tenant       string
 		spans        []*model.Span
 		expectations []expectation
 		action       func(writeWorker *WriteWorker, spans []*model.Span) error
@@ -154,6 +170,14 @@ func TestSpanWriter_General(t *testing.T) {
 			expectations: []expectation{indexWriteExpectation},
 			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeIndexBatch(spans) },
 		},
+		"write index tenant batch": {
+			encoding:     EncodingJSON,
+			indexTable:   testIndexTable,
+			tenant:       testTenant,
+			spans:        testSpans,
+			expectations: []expectation{indexWriteExpectationTenant},
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeIndexBatch(spans) },
+		},
 		"write model batch JSON": {
 			encoding:     EncodingJSON,
 			indexTable:   testIndexTable,
@@ -161,11 +185,27 @@ func TestSpanWriter_General(t *testing.T) {
 			expectations: []expectation{modelWriteExpectationJSON},
 			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeModelBatch(spans) },
 		},
-		"write model bach Proto": {
+		"write model tenant batch JSON": {
+			encoding:     EncodingJSON,
+			indexTable:   testIndexTable,
+			tenant:       testTenant,
+			spans:        testSpans,
+			expectations: []expectation{modelWriteExpectationJSONTenant},
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeModelBatch(spans) },
+		},
+		"write model batch Proto": {
 			encoding:     EncodingProto,
 			indexTable:   testIndexTable,
 			spans:        testSpans,
 			expectations: []expectation{modelWriteExpectationProto},
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeModelBatch(spans) },
+		},
+		"write model tenant batch Proto": {
+			encoding:     EncodingProto,
+			indexTable:   testIndexTable,
+			tenant:       testTenant,
+			spans:        testSpans,
+			expectations: []expectation{modelWriteExpectationProtoTenant},
 			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeModelBatch(spans) },
 		},
 		"write batch no index JSON": {
@@ -192,11 +232,29 @@ func TestSpanWriter_General(t *testing.T) {
 			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeBatch(spans) },
 			expectedLogs: writeBatchLogs,
 		},
+		"write batch tenant JSON": {
+			encoding:     EncodingJSON,
+			indexTable:   testIndexTable,
+			tenant:       testTenant,
+			spans:        testSpans,
+			expectations: []expectation{modelWriteExpectationJSONTenant, indexWriteExpectationTenant},
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeBatch(spans) },
+			expectedLogs: writeBatchLogs,
+		},
 		"write batch Proto": {
 			encoding:     EncodingProto,
 			indexTable:   testIndexTable,
 			spans:        testSpans,
 			expectations: []expectation{modelWriteExpectationProto, indexWriteExpectation},
+			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeBatch(spans) },
+			expectedLogs: writeBatchLogs,
+		},
+		"write batch tenant Proto": {
+			encoding:     EncodingProto,
+			indexTable:   testIndexTable,
+			tenant:       testTenant,
+			spans:        testSpans,
+			expectations: []expectation{modelWriteExpectationProtoTenant, indexWriteExpectationTenant},
 			action:       func(writeWorker *WriteWorker, spans []*model.Span) error { return writeWorker.writeBatch(spans) },
 			expectedLogs: writeBatchLogs,
 		},
@@ -209,7 +267,7 @@ func TestSpanWriter_General(t *testing.T) {
 			defer db.Close()
 
 			spyLogger := mocks.NewSpyLogger()
-			worker := getWriteWorker(spyLogger, db, test.encoding, test.indexTable)
+			worker := getWriteWorker(spyLogger, db, test.encoding, test.indexTable, test.tenant)
 
 			for _, expectation := range test.expectations {
 				mock.ExpectBegin()
@@ -247,7 +305,7 @@ func TestSpanWriter_BeginError(t *testing.T) {
 			defer db.Close()
 
 			spyLogger := mocks.NewSpyLogger()
-			writeWorker := getWriteWorker(spyLogger, db, EncodingJSON, testIndexTable)
+			writeWorker := getWriteWorker(spyLogger, db, EncodingJSON, testIndexTable, "")
 
 			mock.ExpectBegin().WillReturnError(errorMock)
 
@@ -261,10 +319,12 @@ func TestSpanWriter_BeginError(t *testing.T) {
 func TestSpanWriter_PrepareError(t *testing.T) {
 	spanJSON, err := json.Marshal(&testSpan)
 	require.NoError(t, err)
-	modelWriteExpectation := getModelWriteExpectation(spanJSON)
+	modelWriteExpectation := getModelWriteExpectation(spanJSON, "")
+	modelWriteExpectationTenant := getModelWriteExpectation(spanJSON, testTenant)
 
 	tests := map[string]struct {
 		action       func(writeWorker *WriteWorker) error
+		tenant       string
 		expectation  expectation
 		expectedLogs []mocks.LogMock
 	}{
@@ -272,13 +332,29 @@ func TestSpanWriter_PrepareError(t *testing.T) {
 			action:      func(writeWorker *WriteWorker) error { return writeWorker.writeModelBatch(testSpans) },
 			expectation: modelWriteExpectation,
 		},
+		"write model tenant batch": {
+			action:      func(writeWorker *WriteWorker) error { return writeWorker.writeModelBatch(testSpans) },
+			tenant:      testTenant,
+			expectation: modelWriteExpectationTenant,
+		},
 		"write index batch": {
 			action:      func(writeWorker *WriteWorker) error { return writeWorker.writeIndexBatch(testSpans) },
 			expectation: indexWriteExpectation,
 		},
+		"write index tenant batch": {
+			action:      func(writeWorker *WriteWorker) error { return writeWorker.writeIndexBatch(testSpans) },
+			tenant:      testTenant,
+			expectation: indexWriteExpectationTenant,
+		},
 		"write batch": {
 			action:       func(writeWorker *WriteWorker) error { return writeWorker.writeBatch(testSpans) },
 			expectation:  modelWriteExpectation,
+			expectedLogs: writeBatchLogs,
+		},
+		"write tenant batch": {
+			action:       func(writeWorker *WriteWorker) error { return writeWorker.writeBatch(testSpans) },
+			tenant:       testTenant,
+			expectation:  modelWriteExpectationTenant,
 			expectedLogs: writeBatchLogs,
 		},
 	}
@@ -290,7 +366,7 @@ func TestSpanWriter_PrepareError(t *testing.T) {
 			defer db.Close()
 
 			spyLogger := mocks.NewSpyLogger()
-			spanWriter := getWriteWorker(spyLogger, db, EncodingJSON, testIndexTable)
+			spanWriter := getWriteWorker(spyLogger, db, EncodingJSON, testIndexTable, test.tenant)
 
 			mock.ExpectBegin()
 			mock.ExpectPrepare(test.expectation.preparation).WillReturnError(errorMock)
@@ -306,9 +382,11 @@ func TestSpanWriter_PrepareError(t *testing.T) {
 func TestSpanWriter_ExecError(t *testing.T) {
 	spanJSON, err := json.Marshal(&testSpan)
 	require.NoError(t, err)
-	modelWriteExpectation := getModelWriteExpectation(spanJSON)
+	modelWriteExpectation := getModelWriteExpectation(spanJSON, "")
+	modelWriteExpectationTenant := getModelWriteExpectation(spanJSON, testTenant)
 	tests := map[string]struct {
 		indexTable   TableName
+		tenant       string
 		expectations []expectation
 		action       func(writer *WriteWorker) error
 		expectedLogs []mocks.LogMock
@@ -318,9 +396,21 @@ func TestSpanWriter_ExecError(t *testing.T) {
 			expectations: []expectation{modelWriteExpectation},
 			action:       func(writer *WriteWorker) error { return writer.writeModelBatch(testSpans) },
 		},
+		"write model tenant batch": {
+			indexTable:   testIndexTable,
+			tenant:       testTenant,
+			expectations: []expectation{modelWriteExpectationTenant},
+			action:       func(writer *WriteWorker) error { return writer.writeModelBatch(testSpans) },
+		},
 		"write index batch": {
 			indexTable:   testIndexTable,
 			expectations: []expectation{indexWriteExpectation},
+			action:       func(writer *WriteWorker) error { return writer.writeIndexBatch(testSpans) },
+		},
+		"write index tenant batch": {
+			indexTable:   testIndexTable,
+			tenant:       testTenant,
+			expectations: []expectation{indexWriteExpectationTenant},
 			action:       func(writer *WriteWorker) error { return writer.writeIndexBatch(testSpans) },
 		},
 		"write batch no index": {
@@ -335,6 +425,13 @@ func TestSpanWriter_ExecError(t *testing.T) {
 			action:       func(writer *WriteWorker) error { return writer.writeBatch(testSpans) },
 			expectedLogs: writeBatchLogs,
 		},
+		"write tenant batch": {
+			indexTable:   testIndexTable,
+			tenant:       testTenant,
+			expectations: []expectation{modelWriteExpectationTenant, indexWriteExpectationTenant},
+			action:       func(writer *WriteWorker) error { return writer.writeBatch(testSpans) },
+			expectedLogs: writeBatchLogs,
+		},
 	}
 
 	for name, test := range tests {
@@ -344,7 +441,7 @@ func TestSpanWriter_ExecError(t *testing.T) {
 			defer db.Close()
 
 			spyLogger := mocks.NewSpyLogger()
-			writeWorker := getWriteWorker(spyLogger, db, EncodingJSON, testIndexTable)
+			writeWorker := getWriteWorker(spyLogger, db, EncodingJSON, testIndexTable, test.tenant)
 
 			for i, expectation := range test.expectations {
 				mock.ExpectBegin()
@@ -367,13 +464,14 @@ func TestSpanWriter_ExecError(t *testing.T) {
 	}
 }
 
-func getWriteWorker(spyLogger mocks.SpyLogger, db *sql.DB, encoding Encoding, indexTable TableName) WriteWorker {
+func getWriteWorker(spyLogger mocks.SpyLogger, db *sql.DB, encoding Encoding, indexTable TableName, tenant string) WriteWorker {
 	return WriteWorker{
-		params: &WriteParams{
+		params: &WorkerParams{
 			logger:     spyLogger,
 			db:         db,
 			spansTable: testSpansTable,
 			indexTable: indexTable,
+			tenant:     tenant,
 			encoding:   encoding,
 		},
 		workerDone: make(chan *WriteWorker),
@@ -433,13 +531,25 @@ func generateRandomKeyValues(count int) []model.KeyValue {
 	return tags
 }
 
-func getModelWriteExpectation(spanJSON []byte) expectation {
-	return expectation{
-		preparation: fmt.Sprintf("INSERT INTO %s (timestamp, traceID, model) VALUES (?, ?, ?)", testSpansTable),
-		execArgs: [][]driver.Value{{
-			testSpan.StartTime,
-			testSpan.TraceID.String(),
-			spanJSON,
-		}},
+func getModelWriteExpectation(spanJSON []byte, tenant string) expectation {
+	if tenant == "" {
+		return expectation{
+			preparation: fmt.Sprintf("INSERT INTO %s (timestamp, traceID, model) VALUES (?, ?, ?)", testSpansTable),
+			execArgs: [][]driver.Value{{
+				testSpan.StartTime,
+				testSpan.TraceID.String(),
+				spanJSON,
+			}},
+		}
+	} else {
+		return expectation{
+			preparation: fmt.Sprintf("INSERT INTO %s (tenant, timestamp, traceID, model) VALUES (?, ?, ?, ?)", testSpansTable),
+			execArgs: [][]driver.Value{{
+				tenant,
+				testSpan.StartTime,
+				testSpan.TraceID.String(),
+				spanJSON,
+			}},
+		}
 	}
 }

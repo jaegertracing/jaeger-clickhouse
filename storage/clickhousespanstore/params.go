@@ -7,12 +7,13 @@ import (
 	hclog "github.com/hashicorp/go-hclog"
 )
 
-// WriteParams contains parameters that are shared between WriteWorker`s
-type WriteParams struct {
+// WorkerParams contains parameters that are shared between WriteWorkers
+type WorkerParams struct {
 	logger     hclog.Logger
 	db         *sql.DB
 	indexTable TableName
 	spansTable TableName
+	tenant     string
 	encoding   Encoding
 	delay      time.Duration
 }

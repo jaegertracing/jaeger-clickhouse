@@ -57,22 +57,85 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 	if cfg.Replication {
 		return &Store{
 			db: db,
-			writer: clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable,
-				clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize, cfg.MaxSpanCount),
-			reader: clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable, cfg.MaxNumSpans),
-			archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", cfg.GetSpansArchiveTable(),
-				clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize, cfg.MaxSpanCount),
-			archiveReader: clickhousespanstore.NewTraceReader(db, "", "", cfg.GetSpansArchiveTable(), cfg.MaxNumSpans),
+			writer: clickhousespanstore.NewSpanWriter(
+				logger,
+				db,
+				cfg.SpansIndexTable,
+				cfg.SpansTable,
+				cfg.Tenant,
+				clickhousespanstore.Encoding(cfg.Encoding),
+				cfg.BatchFlushInterval,
+				cfg.BatchWriteSize,
+				cfg.MaxSpanCount,
+			),
+			reader: clickhousespanstore.NewTraceReader(
+				db,
+				cfg.OperationsTable,
+				cfg.SpansIndexTable,
+				cfg.SpansTable,
+				cfg.Tenant,
+				cfg.MaxNumSpans,
+			),
+			archiveWriter: clickhousespanstore.NewSpanWriter(
+				logger,
+				db,
+				"",
+				cfg.GetSpansArchiveTable(),
+				cfg.Tenant,
+				clickhousespanstore.Encoding(cfg.Encoding),
+				cfg.BatchFlushInterval,
+				cfg.BatchWriteSize,
+				cfg.MaxSpanCount,
+			),
+			archiveReader: clickhousespanstore.NewTraceReader(
+				db,
+				"",
+				"",
+				cfg.GetSpansArchiveTable(),
+				cfg.Tenant,
+				cfg.MaxNumSpans,
+			),
 		}, nil
 	}
 	return &Store{
 		db: db,
-		writer: clickhousespanstore.NewSpanWriter(logger, db, cfg.SpansIndexTable, cfg.SpansTable,
-			clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize, cfg.MaxSpanCount),
-		reader: clickhousespanstore.NewTraceReader(db, cfg.OperationsTable, cfg.SpansIndexTable, cfg.SpansTable, cfg.MaxNumSpans),
-		archiveWriter: clickhousespanstore.NewSpanWriter(logger, db, "", cfg.GetSpansArchiveTable(),
-			clickhousespanstore.Encoding(cfg.Encoding), cfg.BatchFlushInterval, cfg.BatchWriteSize, cfg.MaxSpanCount),
-		archiveReader: clickhousespanstore.NewTraceReader(db, "", "", cfg.GetSpansArchiveTable(), cfg.MaxNumSpans),
+		writer: clickhousespanstore.NewSpanWriter(
+			logger,
+			db,
+			cfg.SpansIndexTable,
+			cfg.SpansTable,
+			cfg.Tenant,
+			clickhousespanstore.Encoding(cfg.Encoding),
+			cfg.BatchFlushInterval,
+			cfg.BatchWriteSize,
+			cfg.MaxSpanCount),
+		reader: clickhousespanstore.NewTraceReader(
+			db,
+			cfg.OperationsTable,
+			cfg.SpansIndexTable,
+			cfg.SpansTable,
+			cfg.Tenant,
+			cfg.MaxNumSpans,
+		),
+		archiveWriter: clickhousespanstore.NewSpanWriter(
+			logger,
+			db,
+			"",
+			cfg.GetSpansArchiveTable(),
+			cfg.Tenant,
+			clickhousespanstore.Encoding(cfg.Encoding),
+			cfg.BatchFlushInterval,
+			cfg.BatchWriteSize,
+			cfg.MaxSpanCount,
+		),
+		archiveReader: clickhousespanstore.NewTraceReader(
+			db,
+			"",
+			"",
+			cfg.GetSpansArchiveTable(),
+			cfg.Tenant,
+			cfg.MaxNumSpans,
+		),
 	}, nil
 }
 
@@ -114,6 +177,7 @@ type tableArgs struct {
 	TTLTimestamp string
 	TTLDate      string
 
+	Multitenant bool
 	Replication bool
 }
 
@@ -170,6 +234,7 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 			TTLTimestamp: ttlTimestamp,
 			TTLDate:      ttlDate,
 
+			Multitenant: cfg.Tenant != "",
 			Replication: cfg.Replication,
 		}
 

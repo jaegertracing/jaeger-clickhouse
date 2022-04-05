@@ -28,6 +28,9 @@ username:
 password:
 # ClickHouse database name. The database must be created manually before Jaeger starts. Default is "default".
 database:
+# If non-empty, enables a tenant column in tables, and uses the provided tenant name for this instance.
+# Default is empty. See guide-multitenancy.md for more information.
+tenant:
 # Endpoint for serving prometheus metrics. Default localhost:9090.
 metrics_endpoint: localhost:9090
 # Whether to use sql scripts supporting replication and sharding.

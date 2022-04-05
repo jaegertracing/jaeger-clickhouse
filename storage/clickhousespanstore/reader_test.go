@@ -30,82 +30,99 @@ const (
 var testStartTime = time.Date(2010, 3, 15, 7, 40, 0, 0, time.UTC)
 
 func TestTraceReader_FindTraceIDs(t *testing.T) {
-	db, mock, err := mocks.GetDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
-	defer db.Close()
-
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "service"
-	start := testStartTime
-	end := start.Add(24 * time.Hour)
-	fullDuration := end.Sub(start)
-	duration := fullDuration
-	for i := 0; i < maxProgressiveSteps; i++ {
-		duration /= 2
-	}
-	params := spanstore.TraceQueryParameters{
-		ServiceName:  service,
-		NumTraces:    testNumTraces,
-		StartTimeMin: start,
-		StartTimeMax: end,
-	}
 
-	expectedTraceIDs := make([]model.TraceID, testNumTraces)
-	traceIDValues := make([]driver.Value, testNumTraces)
-	for i := range expectedTraceIDs {
-		traceID := model.TraceID{Low: uint64(i)}
-		expectedTraceIDs[i] = traceID
-		traceIDValues[i] = traceID.String()
+	tests := map[string]struct {
+		queryTemplate string
+		firstArgs     []driver.Value
+		tenant        string
+	}{
+		"default": {
+			queryTemplate: "SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ?%s ORDER BY service, timestamp DESC LIMIT ?",
+			firstArgs:     []driver.Value{service},
+		},
+		"tenant": {
+			queryTemplate: "SELECT DISTINCT traceID FROM %s WHERE service = ? AND tenant = ? AND timestamp >= ? AND timestamp <= ?%s ORDER BY service, timestamp DESC LIMIT ?",
+			firstArgs:     []driver.Value{service, testTenant},
+			tenant:        testTenant,
+		},
 	}
 
-	found := traceIDValues[:0]
-	endArg := end
-	for i := 0; i < maxProgressiveSteps; i++ {
-		if i == maxProgressiveSteps-1 {
-			duration = fullDuration
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			db, mock, err := mocks.GetDbMock()
+			require.NoError(t, err, "an error was not expected when opening a stub database connection")
+			defer db.Close()
 
-		startArg := endArg.Add(-duration)
-		if startArg.Before(start) {
-			startArg = start
-		}
+			traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, test.tenant, testMaxNumSpans)
+			start := testStartTime
+			end := start.Add(24 * time.Hour)
+			fullDuration := end.Sub(start)
+			duration := fullDuration
+			for i := 0; i < maxProgressiveSteps; i++ {
+				duration /= 2
+			}
+			params := spanstore.TraceQueryParameters{
+				ServiceName:  service,
+				NumTraces:    testNumTraces,
+				StartTimeMin: start,
+				StartTimeMax: end,
+			}
 
-		// Select how many spans query will return
-		index := int(math.Min(float64(i*2+1), testNumTraces))
-		if i == maxProgressiveSteps-1 {
-			index = testNumTraces
-		}
-		args := append(
-			append(
-				[]driver.Value{
-					service,
-					startArg,
-					endArg,
-				},
-				found...),
-			testNumTraces-len(found))
-		mock.
-			ExpectQuery(fmt.Sprintf(
-				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ?%s ORDER BY service, timestamp DESC LIMIT ?",
-				testIndexTable,
-				func() string {
-					if len(found) == 0 {
-						return ""
-					}
-					return " AND traceID NOT IN (?" + strings.Repeat(",?", len(found)-1) + ")"
-				}(),
-			)).
-			WithArgs(args...).
-			WillReturnRows(getRows(traceIDValues[len(found):index]))
-		endArg = startArg
-		duration *= 2
-		found = traceIDValues[:index]
+			expectedTraceIDs := make([]model.TraceID, testNumTraces)
+			traceIDValues := make([]driver.Value, testNumTraces)
+			for i := range expectedTraceIDs {
+				traceID := model.TraceID{Low: uint64(i)}
+				expectedTraceIDs[i] = traceID
+				traceIDValues[i] = traceID.String()
+			}
+
+			found := traceIDValues[:0]
+			endArg := end
+			for i := 0; i < maxProgressiveSteps; i++ {
+				if i == maxProgressiveSteps-1 {
+					duration = fullDuration
+				}
+
+				startArg := endArg.Add(-duration)
+				if startArg.Before(start) {
+					startArg = start
+				}
+
+				// Select how many spans query will return
+				index := int(math.Min(float64(i*2+1), testNumTraces))
+				if i == maxProgressiveSteps-1 {
+					index = testNumTraces
+				}
+				args := test.firstArgs
+				args = append(args, startArg)
+				args = append(args, endArg)
+				args = append(args, found...)
+				args = append(args, testNumTraces-len(found))
+				mock.
+					ExpectQuery(fmt.Sprintf(
+						test.queryTemplate,
+						testIndexTable,
+						func() string {
+							if len(found) == 0 {
+								return ""
+							}
+							return " AND traceID NOT IN (?" + strings.Repeat(",?", len(found)-1) + ")"
+						}(),
+					)).
+					WithArgs(args...).
+					WillReturnRows(getRows(traceIDValues[len(found):index]))
+				endArg = startArg
+				duration *= 2
+				found = traceIDValues[:index]
+			}
+
+			traceIDs, err := traceReader.FindTraceIDs(context.Background(), &params)
+			require.NoError(t, err)
+			assert.Equal(t, expectedTraceIDs, traceIDs)
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
 	}
-
-	traceIDs, err := traceReader.FindTraceIDs(context.Background(), &params)
-	require.NoError(t, err)
-	assert.Equal(t, expectedTraceIDs, traceIDs)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestTraceReader_FindTraceIDsShortDurationAfterReduction(t *testing.T) {
@@ -113,7 +130,7 @@ func TestTraceReader_FindTraceIDsShortDurationAfterReduction(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	service := "service"
 	start := testStartTime
 	end := start.Add(8 * time.Hour)
@@ -196,7 +213,7 @@ func TestTraceReader_FindTraceIDsEarlyExit(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	service := "service"
 	start := testStartTime
 	end := start.Add(24 * time.Hour)
@@ -249,7 +266,7 @@ func TestTraceReader_FindTraceIDsShortRange(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	service := "service"
 	start := testStartTime
 	end := start.Add(time.Hour)
@@ -292,7 +309,7 @@ func TestTraceReader_FindTraceIDsQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	service := "service"
 	start := testStartTime
 	end := start.Add(24 * time.Hour)
@@ -331,7 +348,7 @@ func TestTraceReader_FindTraceIDsZeroStartTime(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	service := "service"
 	start := time.Time{}
 	end := testStartTime
@@ -349,26 +366,44 @@ func TestTraceReader_FindTraceIDsZeroStartTime(t *testing.T) {
 }
 
 func TestTraceReader_GetServices(t *testing.T) {
-	db, mock, err := mocks.GetDbMock()
-	require.NoError(t, err, "an error was not expected when opening a stub database connection")
-	defer db.Close()
-
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
-	expectedServices := []string{"GET /first", "POST /second", "PUT /third"}
-	expectedServiceValues := make([]driver.Value, len(expectedServices))
-	for i := range expectedServices {
-		expectedServiceValues[i] = expectedServices[i]
+	tests := map[string]struct {
+		query  string
+		args   []driver.Value
+		tenant string
+	}{
+		"default": {
+			query: fmt.Sprintf("SELECT service FROM %s GROUP BY service", testOperationsTable),
+			args:  []driver.Value{},
+		},
+		"tenant": {
+			query:  fmt.Sprintf("SELECT service FROM %s WHERE tenant = ? GROUP BY service", testOperationsTable),
+			args:   []driver.Value{testTenant},
+			tenant: testTenant,
+		},
 	}
-	queryResult := getRows(expectedServiceValues)
 
-	mock.
-		ExpectQuery(fmt.Sprintf("SELECT service FROM %s GROUP BY service", testOperationsTable)).
-		WillReturnRows(queryResult)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			db, mock, err := mocks.GetDbMock()
+			require.NoError(t, err, "an error was not expected when opening a stub database connection")
+			defer db.Close()
 
-	services, err := traceReader.GetServices(context.Background())
-	require.NoError(t, err)
-	assert.Equal(t, expectedServices, services)
-	assert.NoError(t, mock.ExpectationsWereMet())
+			traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, test.tenant, testMaxNumSpans)
+			expectedServices := []string{"GET /first", "POST /second", "PUT /third"}
+			expectedServiceValues := make([]driver.Value, len(expectedServices))
+			for i := range expectedServices {
+				expectedServiceValues[i] = expectedServices[i]
+			}
+			queryResult := getRows(expectedServiceValues)
+
+			mock.ExpectQuery(test.query).WithArgs(test.args...).WillReturnRows(queryResult)
+
+			services, err := traceReader.GetServices(context.Background())
+			require.NoError(t, err)
+			assert.Equal(t, expectedServices, services)
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }
 
 func TestTraceReader_GetServicesQueryError(t *testing.T) {
@@ -376,7 +411,7 @@ func TestTraceReader_GetServicesQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 
 	mock.
 		ExpectQuery(fmt.Sprintf("SELECT service FROM %s GROUP BY service", testOperationsTable)).
@@ -392,7 +427,7 @@ func TestTraceReader_GetServicesNoTable(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable, "", testMaxNumSpans)
 
 	services, err := traceReader.GetServices(context.Background())
 	require.ErrorIs(t, err, errNoOperationsTable)
@@ -404,14 +439,27 @@ func TestTraceReader_GetOperations(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "test service"
 	params := spanstore.OperationQueryParameters{ServiceName: service}
 	tests := map[string]struct {
+		tenant   string
+		query    string
+		args     []driver.Value
 		rows     *sqlmock.Rows
 		expected []spanstore.Operation
 	}{
 		"default": {
+			query: fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind ORDER BY operation", testOperationsTable),
+			args:  []driver.Value{service},
+			rows: sqlmock.NewRows([]string{"operation", "spankind"}).
+				AddRow("operation_1", "client").
+				AddRow("operation_2", ""),
+			expected: []spanstore.Operation{{Name: "operation_1", SpanKind: "client"}, {Name: "operation_2"}},
+		},
+		"tenant": {
+			tenant: testTenant,
+			query:  fmt.Sprintf("SELECT operation, spankind FROM %s WHERE tenant = ? AND service = ? GROUP BY operation, spankind ORDER BY operation", testOperationsTable),
+			args:   []driver.Value{testTenant, service},
 			rows: sqlmock.NewRows([]string{"operation", "spankind"}).
 				AddRow("operation_1", "client").
 				AddRow("operation_2", ""),
@@ -421,10 +469,11 @@ func TestTraceReader_GetOperations(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			mock.
-				ExpectQuery(fmt.Sprintf("SELECT operation, spankind FROM %s WHERE service = ? GROUP BY operation, spankind ORDER BY operation", testOperationsTable)).
-				WithArgs(service).
+				ExpectQuery(test.query).
+				WithArgs(test.args...).
 				WillReturnRows(test.rows)
 
+			traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, test.tenant, testMaxNumSpans)
 			operations, err := traceReader.GetOperations(context.Background(), params)
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, operations)
@@ -438,7 +487,7 @@ func TestTraceReader_GetOperationsQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	service := "test service"
 	params := spanstore.OperationQueryParameters{ServiceName: service}
 	mock.
@@ -457,7 +506,7 @@ func TestTraceReader_GetOperationsNoTable(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, "", testIndexTable, testSpansTable, "", testMaxNumSpans)
 	service := "test service"
 	params := spanstore.OperationQueryParameters{ServiceName: service}
 	operations, err := traceReader.GetOperations(context.Background(), params)
@@ -470,7 +519,6 @@ func TestTraceReader_GetTrace(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	traceID := model.TraceID{High: 0, Low: 1}
 	spanRefs := generateRandomSpans(testSpansInTrace)
 	trace := model.Trace{}
@@ -484,6 +532,7 @@ func TestTraceReader_GetTrace(t *testing.T) {
 	}
 
 	tests := map[string]struct {
+		tenant        string
 		queryResult   *sqlmock.Rows
 		expectedTrace *model.Trace
 		expectedError error
@@ -493,7 +542,19 @@ func TestTraceReader_GetTrace(t *testing.T) {
 			expectedTrace: &trace,
 			expectedError: nil,
 		},
+		"json tenant": {
+			tenant:        testTenant,
+			queryResult:   getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
+			expectedTrace: &trace,
+			expectedError: nil,
+		},
 		"protobuf": {
+			queryResult:   getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
+			expectedTrace: &trace,
+			expectedError: nil,
+		},
+		"protobuf tenant": {
+			tenant:        testTenant,
 			queryResult:   getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
 			expectedTrace: &trace,
 			expectedError: nil,
@@ -512,13 +573,23 @@ func TestTraceReader_GetTrace(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			mock.
-				ExpectQuery(
-					fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?)", testSpansTable),
-				).
-				WithArgs(traceID).
-				WillReturnRows(test.queryResult)
+			if test.tenant == "" {
+				mock.
+					ExpectQuery(
+						fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?)", testSpansTable),
+					).
+					WithArgs(traceID).
+					WillReturnRows(test.queryResult)
+			} else {
+				mock.
+					ExpectQuery(
+						fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?) AND tenant = ?", testSpansTable),
+					).
+					WithArgs(traceID, test.tenant).
+					WillReturnRows(test.queryResult)
+			}
 
+			traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, test.tenant, testMaxNumSpans)
 			trace, err := traceReader.GetTrace(context.Background(), traceID)
 			require.ErrorIs(t, err, test.expectedError)
 			if trace != nil {
@@ -538,7 +609,6 @@ func TestSpanWriter_getTraces(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	traceIDs := []model.TraceID{
 		{High: 0, Low: 1},
 		{High: 2, Low: 2},
@@ -557,23 +627,65 @@ func TestSpanWriter_getTraces(t *testing.T) {
 		traceIDStrings[i] = traceID.String()
 	}
 
+	defaultQuery := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?,?,?,?)", testSpansTable)
+	tenantQuery := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?,?,?,?) AND tenant = ?", testSpansTable)
+
 	tests := map[string]struct {
+		tenant         string
+		query          string
+		args           []driver.Value
 		queryResult    *sqlmock.Rows
 		expectedTraces []*model.Trace
 	}{
 		"JSON encoded traces one span per trace": {
+			query:          defaultQuery,
+			args:           traceIDStrings,
+			queryResult:    getEncodedSpans(spans[:len(traceIDs)], func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
+			expectedTraces: getTracesFromSpans(spans[:len(traceIDs)]),
+		},
+		"tenant JSON encoded traces one span per trace": {
+			tenant:         testTenant,
+			query:          tenantQuery,
+			args:           append(traceIDStrings, testTenant),
 			queryResult:    getEncodedSpans(spans[:len(traceIDs)], func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
 			expectedTraces: getTracesFromSpans(spans[:len(traceIDs)]),
 		},
 		"Protobuf encoded traces one span per trace": {
+			query:          defaultQuery,
+			args:           traceIDStrings,
+			queryResult:    getEncodedSpans(spans[:len(traceIDs)], func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
+			expectedTraces: getTracesFromSpans(spans[:len(traceIDs)]),
+		},
+		"tenant Protobuf encoded traces one span per trace": {
+			tenant:         testTenant,
+			query:          tenantQuery,
+			args:           append(traceIDStrings, testTenant),
 			queryResult:    getEncodedSpans(spans[:len(traceIDs)], func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
 			expectedTraces: getTracesFromSpans(spans[:len(traceIDs)]),
 		},
 		"JSON encoded traces many spans per trace": {
+			query:          defaultQuery,
+			args:           traceIDStrings,
+			queryResult:    getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
+			expectedTraces: getTracesFromSpans(spans),
+		},
+		"tenant JSON encoded traces many spans per trace": {
+			tenant:         testTenant,
+			query:          tenantQuery,
+			args:           append(traceIDStrings, testTenant),
 			queryResult:    getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return json.Marshal(span) }),
 			expectedTraces: getTracesFromSpans(spans),
 		},
 		"Protobuf encoded traces many spans per trace": {
+			query:          defaultQuery,
+			args:           traceIDStrings,
+			queryResult:    getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
+			expectedTraces: getTracesFromSpans(spans),
+		},
+		"tenant Protobuf encoded traces many spans per trace": {
+			tenant:         testTenant,
+			query:          tenantQuery,
+			args:           append(traceIDStrings, testTenant),
 			queryResult:    getEncodedSpans(spans, func(span *model.Span) ([]byte, error) { return proto.Marshal(span) }),
 			expectedTraces: getTracesFromSpans(spans),
 		},
@@ -582,12 +694,11 @@ func TestSpanWriter_getTraces(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			mock.
-				ExpectQuery(
-					fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?,?,?,?)", testSpansTable),
-				).
-				WithArgs(traceIDStrings...).
+				ExpectQuery(test.query).
+				WithArgs(test.args...).
 				WillReturnRows(test.queryResult)
 
+			traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, test.tenant, testMaxNumSpans)
 			traces, err := traceReader.getTraces(context.Background(), traceIDs)
 			require.NoError(t, err)
 			model.SortTraces(traces)
@@ -602,7 +713,6 @@ func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	traceIDs := []model.TraceID{
 		{High: 0, Low: 1},
 		{High: 2, Low: 2},
@@ -621,17 +731,43 @@ func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
 		traceIDStrings[i] = traceID.String()
 	}
 
+	defaultQuery := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?,?,?,?)", testSpansTable)
+	tenantQuery := fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?,?,?,?) AND tenant = ?", testSpansTable)
+
 	tests := map[string]struct {
+		tenant         string
+		query          string
+		args           []driver.Value
 		queryResult    *sqlmock.Rows
 		expectedResult []*model.Trace
 		expectedError  error
 	}{
 		"JSON encoding incorrect data": {
+			query:          defaultQuery,
+			args:           traceIDStrings,
+			queryResult:    getRows([]driver.Value{[]byte{'{', 'n', 'o', 't', '_', 'a', '_', 'k', 'e', 'y', '}'}}),
+			expectedResult: []*model.Trace(nil),
+			expectedError:  fmt.Errorf("invalid character 'n' looking for beginning of object key string"),
+		},
+		"tenant JSON encoding incorrect data": {
+			tenant:         testTenant,
+			query:          tenantQuery,
+			args:           append(traceIDStrings, testTenant),
 			queryResult:    getRows([]driver.Value{[]byte{'{', 'n', 'o', 't', '_', 'a', '_', 'k', 'e', 'y', '}'}}),
 			expectedResult: []*model.Trace(nil),
 			expectedError:  fmt.Errorf("invalid character 'n' looking for beginning of object key string"),
 		},
 		"Protobuf encoding incorrect data": {
+			query:          defaultQuery,
+			args:           traceIDStrings,
+			queryResult:    getRows([]driver.Value{[]byte{'i', 'n', 'c', 'o', 'r', 'r', 'e', 'c', 't'}}),
+			expectedResult: []*model.Trace{},
+			expectedError:  nil,
+		},
+		"tenant Protobuf encoding incorrect data": {
+			tenant:         testTenant,
+			query:          tenantQuery,
+			args:           append(traceIDStrings, testTenant),
 			queryResult:    getRows([]driver.Value{[]byte{'i', 'n', 'c', 'o', 'r', 'r', 'e', 'c', 't'}}),
 			expectedResult: []*model.Trace{},
 			expectedError:  nil,
@@ -641,12 +777,11 @@ func TestSpanWriter_getTracesIncorrectData(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			mock.
-				ExpectQuery(
-					fmt.Sprintf("SELECT model FROM %s PREWHERE traceID IN (?,?,?,?)", testSpansTable),
-				).
-				WithArgs(traceIDStrings...).
+				ExpectQuery(test.query).
+				WithArgs(test.args...).
 				WillReturnRows(test.queryResult)
 
+			traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, test.tenant, testMaxNumSpans)
 			traces, err := traceReader.getTraces(context.Background(), traceIDs)
 			if test.expectedError == nil {
 				assert.NoError(t, err)
@@ -664,7 +799,7 @@ func TestSpanWriter_getTracesQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	traceIDs := []model.TraceID{
 		{High: 0, Low: 1},
 		{High: 2, Low: 2},
@@ -695,7 +830,7 @@ func TestSpanWriter_getTracesRowsScanError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	traceIDs := []model.TraceID{
 		{High: 0, Low: 1},
 		{High: 2, Low: 2},
@@ -727,7 +862,7 @@ func TestSpanWriter_getTraceNoTraceIDs(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	traceIDs := make([]model.TraceID, 0)
 
 	traces, err := traceReader.getTraces(context.Background(), traceIDs)
@@ -777,7 +912,6 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "test_service"
 	operation := "test_operation"
 	start := time.Unix(0, 0)
@@ -812,6 +946,7 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 	tests := map[string]struct {
 		queryParams   spanstore.TraceQueryParameters
 		skip          []model.TraceID
+		tenant        string
 		expectedQuery string
 		expectedArgs  []driver.Value
 	}{
@@ -824,6 +959,22 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 			),
 			expectedArgs: []driver.Value{
 				service,
+				start,
+				end,
+				testNumTraces,
+			},
+		},
+		"tenant": {
+			queryParams: spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces},
+			skip:        make([]model.TraceID, 0),
+			tenant:      testTenant,
+			expectedQuery: fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND tenant = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+			),
+			expectedArgs: []driver.Value{
+				service,
+				testTenant,
 				start,
 				end,
 				testNumTraces,
@@ -922,6 +1073,7 @@ func TestSpanWriter_findTraceIDsInRange(t *testing.T) {
 				WithArgs(test.expectedArgs...).
 				WillReturnRows(queryResult)
 
+			traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, test.tenant, testMaxNumSpans)
 			res, err := traceReader.findTraceIDsInRange(
 				context.Background(),
 				&test.queryParams,
@@ -940,7 +1092,7 @@ func TestSpanReader_findTraceIDsInRangeNoIndexTable(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, "", testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, "", testSpansTable, "", testMaxNumSpans)
 	res, err := traceReader.findTraceIDsInRange(
 		context.Background(),
 		nil,
@@ -957,7 +1109,7 @@ func TestSpanReader_findTraceIDsInRangeEndBeforeStart(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	res, err := traceReader.findTraceIDsInRange(
 		context.Background(),
 		nil,
@@ -974,7 +1126,7 @@ func TestSpanReader_findTraceIDsInRangeQueryError(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 	service := "test_service"
 	start := time.Unix(0, 0)
 	end := time.Now()
@@ -1008,42 +1160,58 @@ func TestSpanReader_findTraceIDsInRangeIncorrectData(t *testing.T) {
 	require.NoError(t, err, "an error was not expected when opening a stub database connection")
 	defer db.Close()
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
 	service := "test_service"
 	start := time.Unix(0, 0)
 	end := time.Now()
-	rowValues := []driver.Value{
-		"1",
-		"incorrect value",
-		"3",
-	}
-	queryResult := sqlmock.NewRows([]string{"traceID"})
-	for _, row := range rowValues {
-		queryResult.AddRow(row)
+
+	tests := map[string]struct {
+		query  string
+		args   []driver.Value
+		tenant string
+	}{
+		"default": {
+			query: fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+			),
+			args: []driver.Value{service, start, end, testNumTraces},
+		},
+		"tenant": {
+			query: fmt.Sprintf(
+				"SELECT DISTINCT traceID FROM %s WHERE service = ? AND tenant = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
+				testIndexTable,
+			),
+			args:   []driver.Value{service, testTenant, start, end, testNumTraces},
+			tenant: testTenant,
+		},
 	}
 
-	mock.
-		ExpectQuery(fmt.Sprintf(
-			"SELECT DISTINCT traceID FROM %s WHERE service = ? AND timestamp >= ? AND timestamp <= ? ORDER BY service, timestamp DESC LIMIT ?",
-			testIndexTable,
-		)).
-		WithArgs(
-			service,
-			start,
-			end,
-			testNumTraces,
-		).
-		WillReturnRows(queryResult)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, test.tenant, testMaxNumSpans)
 
-	res, err := traceReader.findTraceIDsInRange(
-		context.Background(),
-		&spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces},
-		start,
-		end,
-		make([]model.TraceID, 0))
-	assert.Error(t, err)
-	assert.Equal(t, []model.TraceID(nil), res)
-	assert.NoError(t, mock.ExpectationsWereMet())
+			rowValues := []driver.Value{
+				"1",
+				"incorrect value",
+				"3",
+			}
+			queryResult := sqlmock.NewRows([]string{"traceID"})
+			for _, row := range rowValues {
+				queryResult.AddRow(row)
+			}
+			mock.ExpectQuery(test.query).WithArgs(test.args...).WillReturnRows(queryResult)
+
+			res, err := traceReader.findTraceIDsInRange(
+				context.Background(),
+				&spanstore.TraceQueryParameters{ServiceName: service, NumTraces: testNumTraces},
+				start,
+				end,
+				make([]model.TraceID, 0))
+			assert.Error(t, err)
+			assert.Equal(t, []model.TraceID(nil), res)
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }
 
 func TestSpanReader_getStrings(t *testing.T) {
@@ -1062,7 +1230,7 @@ func TestSpanReader_getStrings(t *testing.T) {
 	}
 	mock.ExpectQuery(query).WithArgs(argValues...).WillReturnRows(result)
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 
 	queryResult, err := traceReader.getStrings(context.Background(), query, args...)
 	assert.NoError(t, err)
@@ -1080,7 +1248,7 @@ func TestSpanReader_getStringsQueryError(t *testing.T) {
 	args := []interface{}{"a"}
 	mock.ExpectQuery(query).WithArgs(argValues...).WillReturnError(errorMock)
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 
 	queryResult, err := traceReader.getStrings(context.Background(), query, args...)
 	assert.EqualError(t, err, errorMock.Error())
@@ -1104,7 +1272,7 @@ func TestSpanReader_getStringsRowError(t *testing.T) {
 	result.RowError(2, errorMock)
 	mock.ExpectQuery(query).WithArgs(argValues...).WillReturnRows(result)
 
-	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, testMaxNumSpans)
+	traceReader := NewTraceReader(db, testOperationsTable, testIndexTable, testSpansTable, "", testMaxNumSpans)
 
 	queryResult, err := traceReader.getStrings(context.Background(), query, args...)
 	assert.EqualError(t, err, errorMock.Error())

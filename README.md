@@ -41,7 +41,7 @@ Refer to the [config.yaml](./config.yaml) for all supported configuration option
 ### Docker database example
 
 ```bash
-docker run --rm -it -p9000:9000 --name some-clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:21
+docker run --rm -it -p9000:9000 --name some-clickhouse-server --ulimit nofile=262144:262144 clickhouse/clickhouse-server:22
 GOOS=linux make build run
 make run-hotrod
 ```

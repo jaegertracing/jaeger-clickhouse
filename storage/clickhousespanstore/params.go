@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
+	hclog "github.com/hashicorp/go-hclog"
 )
 
 // WriteParams contains parameters that are shared between WriteWorker`s

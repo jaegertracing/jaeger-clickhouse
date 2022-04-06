@@ -14,8 +14,8 @@ import (
 
 	jaegerclickhouse "github.com/jaegertracing/jaeger-clickhouse"
 
-	"github.com/ClickHouse/clickhouse-go"
-	"github.com/hashicorp/go-hclog"
+	clickhouse "github.com/ClickHouse/clickhouse-go"
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"

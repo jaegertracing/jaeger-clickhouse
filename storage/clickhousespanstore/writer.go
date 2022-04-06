@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/jaegertracing/jaeger/model"

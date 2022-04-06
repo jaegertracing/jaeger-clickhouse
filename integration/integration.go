@@ -43,8 +43,8 @@ const (
 type StorageIntegration struct {
 	SpanWriter       spanstore.Writer
 	SpanReader       spanstore.Reader
-	DependencyWriter dependencystore.Writer
-	DependencyReader dependencystore.Reader
+	DependencyWriter *dependencystore.Writer
+	DependencyReader *dependencystore.Reader
 	Fixtures         []*QueryFixtures
 	// TODO: remove this flag after all storage plugins returns spanKind with operationNames
 	NotSupportSpanKindWithOperation bool
@@ -372,9 +372,9 @@ func (s *StorageIntegration) testGetDependencies(t *testing.T) {
 			CallCount: uint64(3),
 		},
 	}
-	require.NoError(t, s.DependencyWriter.WriteDependencies(time.Now(), expected))
+	require.NoError(t, (*s.DependencyWriter).WriteDependencies(time.Now(), expected))
 	s.refresh(t)
-	actual, err := s.DependencyReader.GetDependencies(context.Background(), time.Now(), 5*time.Minute)
+	actual, err := (*s.DependencyReader).GetDependencies(context.Background(), time.Now(), 5*time.Minute)
 	assert.NoError(t, err)
 	assert.EqualValues(t, expected, actual)
 }

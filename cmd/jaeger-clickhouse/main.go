@@ -10,11 +10,11 @@ import (
 	// Package contains time zone info for connecting to ClickHouse servers with non-UTC time zone
 	_ "time/tzdata"
 
-	"github.com/hashicorp/go-hclog"
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 
 	"github.com/jaegertracing/jaeger-clickhouse/storage"
 )

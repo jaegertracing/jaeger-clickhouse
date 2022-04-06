@@ -3,7 +3,7 @@ package mocks
 import (
 	"database/sql"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
 )
 
 func GetDbMock() (*sql.DB, sqlmock.Sqlmock, error) {

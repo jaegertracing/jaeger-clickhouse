@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"

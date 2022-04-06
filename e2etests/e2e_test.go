@@ -34,6 +34,19 @@ func TestE2E(t *testing.T) {
 		t.Skip("Set E2E_TEST=true to run the test")
 	}
 
+	// Minimal additional configuration (config.d) to enable cluster mode
+	chireplconf := "clickhouse-replicated.xml"
+
+	configs := map[string]*string{
+		"config-local.yaml":       nil,
+		"config-replication.yaml": &chireplconf,
+	}
+	for pluginConfig, clickhouseConfig := range configs {
+		testE2E(t, pluginConfig, clickhouseConfig)
+	}
+}
+
+func testE2E(t *testing.T, pluginConfig string, chiConfig *string) {
 	ctx := context.Background()
 	workingDir, err := os.Getwd()
 	require.NoError(t, err)
@@ -44,12 +57,21 @@ func TestE2E(t *testing.T) {
 	require.NoError(t, err)
 	defer network.Remove(ctx)
 
+	var bindMounts map[string]string
+	if chiConfig != nil {
+		bindMounts = map[string]string{
+			fmt.Sprintf("%s/%s", workingDir, *chiConfig): "/etc/clickhouse-server/config.d/testconf.xml",
+		}
+	} else {
+		bindMounts = map[string]string{}
+	}
 	chReq := testcontainers.ContainerRequest{
 		Image:        clickHouseImage,
 		ExposedPorts: []string{clickhousePort},
 		WaitingFor:   &clickhouseWaitStrategy{test: t, pollInterval: time.Millisecond * 200, startupTimeout: time.Minute},
 		Networks:     []string{networkName},
 		Hostname:     "chi",
+		BindMounts:   bindMounts,
 	}
 	chContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: chReq,
@@ -67,7 +89,7 @@ func TestE2E(t *testing.T) {
 		},
 		Cmd: []string{
 			"--grpc-storage-plugin.binary=/project-dir/jaeger-clickhouse-linux-amd64",
-			"--grpc-storage-plugin.configuration-file=/project-dir/e2etests/config.yaml",
+			fmt.Sprintf("--grpc-storage-plugin.configuration-file=/project-dir/e2etests/%s", pluginConfig),
 			"--grpc-storage-plugin.log-level=debug",
 		},
 		BindMounts: map[string]string{
@@ -75,9 +97,9 @@ func TestE2E(t *testing.T) {
 		},
 		Networks: []string{networkName},
 	}
+	// Call Start() manually here so that if it fails then we can still access the logs.
 	jaegerContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: jaegerReq,
-		Started:          true,
 	})
 	require.NoError(t, err)
 	defer func() {
@@ -88,6 +110,8 @@ func TestE2E(t *testing.T) {
 		fmt.Printf("Jaeger logs:\n---->\n%s<----\n\n", string(all))
 		jaegerContainer.Terminate(ctx)
 	}()
+	err = jaegerContainer.Start(ctx)
+	require.NoError(t, err)
 
 	chContainer.MappedPort(ctx, clickhousePort)
 	jaegerQueryPort, err := jaegerContainer.MappedPort(ctx, jaegerQueryPort)

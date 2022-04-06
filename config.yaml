@@ -1,6 +1,13 @@
 address: tcp://some-clickhouse-server:9000
-# When empty the embedded scripts from sqlscripts directory are used
+# Directory with .sql files to run at plugin startup, mainly for integration tests.
+# Depending on the value of "init_tables", this can be run as a
+# replacement or supplement to creating default tables for span storage.
+# If init_tables is also enabled, the scripts in this directory will be run first.
 init_sql_scripts_dir:
+# Whether to automatically attempt to create tables in ClickHouse.
+# By default, this is enabled if init_sql_scripts_dir is empty,
+# or disabled if init_sql_scripts_dir is provided.
+init_tables:
 # Maximal amount of spans that can be pending writes at a time.
 # New spans exceeding this limit will be discarded,
 # keeping memory in check if there are issues writing to ClickHouse.

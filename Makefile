@@ -42,7 +42,7 @@ test:
 integration-test: build
 	STORAGE=grpc-plugin \
 	PLUGIN_BINARY_PATH=$(PWD)/jaeger-clickhouse-linux-amd64 \
-	PLUGIN_CONFIG_PATH=$(PWD)/integration/integration_config.yaml \
+	PLUGIN_CONFIG_PATH=$(PWD)/integration/config-local.yaml \
 	go test ./integration
 
 .PHONY: tar

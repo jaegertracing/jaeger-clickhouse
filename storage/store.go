@@ -155,7 +155,8 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 			}
 			sqlStatements = append(sqlStatements, string(sqlStatement))
 		}
-	} else {
+	}
+	if *cfg.InitTables {
 		templates := template.Must(template.ParseFS(jaegerclickhouse.SQLScripts, "sqlscripts/*.tmpl.sql"))
 
 		args := tableArgs{

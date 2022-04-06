@@ -102,3 +102,27 @@ func TestConfiguration_GetSpansArchiveTable(t *testing.T) {
 		})
 	}
 }
+
+func TestConfiguration_InitTables(test *testing.T) {
+	// for pointers below
+	t := true
+	f := false
+	tests := map[string]struct {
+		config             Configuration
+		expectedInitTables bool
+	}{
+		"scriptsempty_initnil":      {config: Configuration{}, expectedInitTables: true},
+		"scriptsprovided_initnil":   {config: Configuration{InitSQLScriptsDir: "hello"}, expectedInitTables: false},
+		"scriptsempty_inittrue":     {config: Configuration{InitTables: &t}, expectedInitTables: true},
+		"scriptsprovided_inittrue":  {config: Configuration{InitSQLScriptsDir: "hello", InitTables: &t}, expectedInitTables: true},
+		"scriptsempty_initfalse":    {config: Configuration{InitTables: &f}, expectedInitTables: false},
+		"scriptsprovided_initfalse": {config: Configuration{InitSQLScriptsDir: "hello", InitTables: &f}, expectedInitTables: false},
+	}
+
+	for name, testcase := range tests {
+		test.Run(name, func(t *testing.T) {
+			testcase.config.setDefaults()
+			assert.Equal(t, testcase.expectedInitTables, *(testcase.config.InitTables))
+		})
+	}
+}

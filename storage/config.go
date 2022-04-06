@@ -40,8 +40,15 @@ type Configuration struct {
 	Encoding EncodingType `yaml:"encoding"`
 	// ClickHouse address e.g. tcp://localhost:9000.
 	Address string `yaml:"address"`
-	// Directory with .sql files that are run at plugin startup.
+	// Directory with .sql files to run at plugin startup, mainly for integration tests.
+	// Depending on the value of init_tables, this can be run as a
+	// replacement or supplement to creating default tables for span storage.
+	// If init_tables is also enabled, the scripts in this directory will be run first.
 	InitSQLScriptsDir string `yaml:"init_sql_scripts_dir"`
+	// Whether to automatically attempt to create tables in ClickHouse.
+	// By default, this is enabled if init_sql_scripts_dir is empty,
+	// or disabled if init_sql_scripts_dir is provided.
+	InitTables *bool `yaml:"init_tables"`
 	// Indicates location of TLS certificate used to connect to database.
 	CaFile string `yaml:"ca_file"`
 	// Username for connection to database. Default is "default".
@@ -79,6 +86,16 @@ func (cfg *Configuration) setDefaults() {
 	}
 	if cfg.Encoding == "" {
 		cfg.Encoding = defaultEncoding
+	}
+	if cfg.InitTables == nil {
+		// Decide whether to init tables based on whether a custom script path was provided
+		var defaultInitTables bool
+		if cfg.InitSQLScriptsDir == "" {
+			defaultInitTables = true
+		} else {
+			defaultInitTables = false
+		}
+		cfg.InitTables = &defaultInitTables
 	}
 	if cfg.Username == "" {
 		cfg.Username = defaultUsername

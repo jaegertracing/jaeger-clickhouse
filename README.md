@@ -1,23 +1,22 @@
 # Jaeger ClickHouse
 
-This is implementation of Jaeger's [storage plugin](https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/grpc) for ClickHouse.
-See as well [jaegertracing/jaeger/issues/1438](https://github.com/jaegertracing/jaeger/issues/1438) for historical discussion regarding Clickhouse plugin.
+This is a [Jaeger gRPC storage plugin](https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/grpc) implementation for storing traces in ClickHouse.
 
 ## Project status
 
-Jaeger ClickHouse is a community-driven project, we would love to hear your feature requests.
-Pull requests also will be greatly appreciated.
+This is a community-driven project, and we would love to hear your issues and feature requests.
+Pull requests are also greatly appreciated.
 
 ## Why use ClickHouse for Jaeger?
 
-[ClickHouse](https://github.com/clickhouse/clickhouse) is an analytical column-oriented database management system.
-It is designed to analyze streams of clicks which are kind of resemblant to spans.
+[ClickHouse](https://clickhouse.com) is an analytical column-oriented database management system.
+It is designed to analyze streams of events which are kind of resemblant to spans.
 It's open-source, optimized for performance, and actively developed.
 
-## How it works?
+## How it works
 
-Jaeger spans are stored in 2 tables. First one contains whole span encoded either in JSON or Protobuf.
-Second stores key information about spans for searching. This table is indexed by span duration and tags.
+Jaeger spans are stored in 2 tables. The first contains the whole span encoded either in JSON or Protobuf.
+The second stores key information about spans for searching. This table is indexed by span duration and tags.
 Also, info about operations is stored in the materialized view. There are not indexes for archived spans.
 Storing data in replicated local tables with distributed global tables is natively supported. Spans are bufferized.
 Span buffers are flushed to DB either by timer or after reaching max batch size. Timer interval and batch size can be
@@ -50,7 +49,7 @@ Open [localhost:16686](http://localhost:16686) and [localhost:8080](http://local
 
 ### Custom database
 
-You need to specify connection options in config.yaml file, then you can run
+You need to specify connection options in `config.yaml`, then you can run
 
 ```bash
 make build
@@ -59,4 +58,6 @@ SPAN_STORAGE_TYPE=grpc-plugin {Jaeger binary adress} --query.ui-config=jaeger-ui
 
 ## Credits
 
-This project is based on https://github.com/bobrik/jaeger/tree/ivan/clickhouse/plugin/storage/clickhouse.
+This project is originally based on [this clickhouse plugin implementation](https://github.com/bobrik/jaeger/tree/ivan/clickhouse/plugin/storage/clickhouse).
+
+See also [jaegertracing/jaeger/issues/1438](https://github.com/jaegertracing/jaeger/issues/1438) for historical discussion regarding the implementation of a ClickHouse plugin.

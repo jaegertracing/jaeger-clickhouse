@@ -38,9 +38,10 @@ const (
 )
 
 var (
-	_ shared.StoragePlugin        = (*Store)(nil)
-	_ shared.ArchiveStoragePlugin = (*Store)(nil)
-	_ io.Closer                   = (*Store)(nil)
+	_ shared.StoragePlugin             = (*Store)(nil)
+	_ shared.ArchiveStoragePlugin      = (*Store)(nil)
+	_ shared.StreamingSpanWriterPlugin = (*Store)(nil)
+	_ io.Closer                        = (*Store)(nil)
 )
 
 func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
@@ -292,6 +293,10 @@ func (s *Store) ArchiveSpanReader() spanstore.Reader {
 
 func (s *Store) ArchiveSpanWriter() spanstore.Writer {
 	return s.archiveWriter
+}
+
+func (s *Store) StreamingSpanWriter() spanstore.Writer {
+	return s.writer
 }
 
 func (s *Store) Close() error {

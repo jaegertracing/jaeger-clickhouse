@@ -59,6 +59,7 @@ func main() {
 	}
 	pluginServices.Store = store
 	pluginServices.ArchiveStore = store
+	pluginServices.StreamingSpanWriter = store
 
 	grpc.Serve(&pluginServices)
 	if err = store.Close(); err != nil {

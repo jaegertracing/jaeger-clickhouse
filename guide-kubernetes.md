@@ -4,7 +4,7 @@ This is a guide to deploy Jaeger with Clickhouse storage on Kubernetes.
 
 ## Prerequisites
 
-1. Deploy [Jaeger operator](https://github.com/jaegertracing/jaeger-operator). Note that `gprc-plugin` storage type is supported since version 1.25.0.
+1. Deploy [Jaeger operator](https://github.com/jaegertracing/jaeger-operator). Note that `grpc-plugin` storage type is supported since version 1.25.0.
 2. Deploy [Clickhouse operator](https://github.com/Altinity/clickhouse-operator)
 3. Deploy [Zookeeper](https://github.com/Altinity/clickhouse-operator/blob/master/docs/replication_setup.md) (if replication is used)
 

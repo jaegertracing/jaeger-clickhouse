@@ -12,6 +12,25 @@ DOCKER_TAG ?= latest
 build:
 	${GOBUILD} -o jaeger-clickhouse-$(GOOS)-$(GOARCH) ./cmd/jaeger-clickhouse/main.go
 
+.PHONY: build-linux-amd64
+build-linux-amd64:
+	GOOS=linux GOARCH=amd64 $(MAKE) build
+
+.PHONY: build-linux-arm64
+build-linux-arm64:
+	GOOS=linux GOARCH=arm64 $(MAKE) build
+
+.PHONY: build-darwin-amd64
+build-darwin-amd64:
+	GOOS=darwin GOARCH=amd64 $(MAKE) build
+
+.PHONY: build-darwin-arm64
+build-darwin-arm64:
+	GOOS=darwin GOARCH=arm64 $(MAKE) build
+
+.PHONY: build-all-platforms
+build-all-platforms: build-linux-amd64 build-linux-arm64 build-darwin-amd64 build-darwin-arm64
+
 .PHONY: e2e-tests
 e2e-tests:
 	GOOS=linux GOARCH=amd64 $(MAKE) build
@@ -48,6 +67,25 @@ integration-test: build
 .PHONY: tar
 tar:
 	tar -czvf jaeger-clickhouse-$(GOOS)-$(GOARCH).tar.gz  jaeger-clickhouse-$(GOOS)-$(GOARCH) config.yaml
+
+.PHONY: tar-linux-amd64
+tar-linux-amd64:
+	GOOS=linux GOARCH=amd64 $(MAKE) tar
+
+.PHONY: tar-linux-arm64
+tar-linux-arm64:
+	GOOS=linux GOARCH=arm64 $(MAKE) tar
+
+.PHONY: tar-darwin-amd64
+tar-darwin-amd64:
+	GOOS=darwin GOARCH=amd64 $(MAKE) tar
+
+.PHONY: tar-darwin-arm64
+tar-darwin-arm64:
+	GOOS=darwin GOARCH=arm64 $(MAKE) tar
+
+.PHONY: tar-all-platforms
+tar-all-platforms: tar-linux-amd64 tar-linux-arm64 tar-darwin-amd64 tar-darwin-arm64
 
 .PHONY: docker
 docker: build

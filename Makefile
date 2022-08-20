@@ -47,7 +47,7 @@ run-hotrod:
 .PHONY: fmt
 fmt:
 	go fmt ./...
-	goimports -w  -local github.com/jaegertracing/jaeger-clickhouse ./
+	goimports -w -local github.com/jaegertracing/jaeger-clickhouse ./
 
 .PHONY: lint
 lint:

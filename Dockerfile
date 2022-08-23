@@ -1,4 +1,4 @@
-FROM docker.io/library/alpine:3.15
+FROM docker.io/library/alpine:3.16
 
 ADD jaeger-clickhouse-linux-amd64 /go/bin/jaeger-clickhouse
 

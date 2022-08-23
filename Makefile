@@ -51,7 +51,7 @@ fmt:
 
 .PHONY: lint
 lint:
-	golangci-lint run --allow-parallel-runners ./...
+	golangci-lint -v run --allow-parallel-runners ./...
 
 .PHONY: test
 test:

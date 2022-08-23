@@ -1,6 +1,6 @@
 module github.com/jaegertracing/jaeger-clickhouse
 
-go 1.17
+go 1.19
 
 require (
 	github.com/ClickHouse/clickhouse-go v1.5.4

@@ -1,4 +1,4 @@
-address: tcp://chi:9000
+address: chi:9000
 replication: true
 tenant: multi2
 # For test purposes flush on every write

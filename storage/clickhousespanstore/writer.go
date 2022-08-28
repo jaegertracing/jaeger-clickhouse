@@ -7,10 +7,9 @@ import (
 	"time"
 
 	hclog "github.com/hashicorp/go-hclog"
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Encoding string
@@ -129,7 +128,7 @@ func (w *SpanWriter) backgroundWriter(maxSpanCount int) {
 		}
 
 		if finish {
-			pool.CLose()
+			pool.Close()
 		}
 		w.done.Done()
 

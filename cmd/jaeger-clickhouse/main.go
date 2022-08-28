@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,7 +31,7 @@ func main() {
 		JSONFormat: true,
 	})
 
-	cfgFile, err := ioutil.ReadFile(filepath.Clean(configPath))
+	cfgFile, err := os.ReadFile(filepath.Clean(configPath))
 	if err != nil {
 		logger.Error("Could not read config file", "config", configPath, "error", err)
 		os.Exit(1)

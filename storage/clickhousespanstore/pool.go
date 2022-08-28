@@ -4,9 +4,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/jaegertracing/jaeger/model"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -101,7 +100,7 @@ func (pool *WriteWorkerPool) Work() {
 				pool.params.logger.Error("could not remove worker", "worker", worker, "error", err)
 			}
 		case <-pool.finish:
-			pool.workers.CLoseWorkers()
+			pool.workers.CloseWorkers()
 			finish = true
 		}
 		pool.done.Done()
@@ -116,7 +115,7 @@ func (pool *WriteWorkerPool) WriteBatch(batch []*model.Span) {
 	pool.batches <- batch
 }
 
-func (pool *WriteWorkerPool) CLose() {
+func (pool *WriteWorkerPool) Close() {
 	pool.finish <- true
 	pool.done.Wait()
 }

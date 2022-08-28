@@ -1,4 +1,4 @@
-address: tcp://some-clickhouse-server:9000
+address: some-clickhouse-server:9000
 # Directory with .sql files to run at plugin startup, mainly for integration tests.
 # Depending on the value of "init_tables", this can be run as a
 # replacement or supplement to creating default tables for span storage.

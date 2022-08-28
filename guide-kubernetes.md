@@ -41,7 +41,7 @@ metadata:
     jaeger-clickhouse: demo
 data:
   config.yaml: |
-    address: tcp://clickhouse-jaeger:9000
+    address: clickhouse-jaeger:9000
     username: clickhouse_operator
     password: clickhouse_operator_password
     spans_table:

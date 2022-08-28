@@ -10,15 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/stretchr/testify/assert"
-
-	hclog "github.com/hashicorp/go-hclog"
-
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/gogo/protobuf/proto"
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/model"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 )

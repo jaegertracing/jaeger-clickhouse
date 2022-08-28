@@ -20,19 +20,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -305,7 +304,7 @@ func getTraceFixtureExact(t *testing.T, fileName string) *model.Trace {
 
 func loadAndParseJSONPB(t *testing.T, path string, object proto.Message) {
 	// #nosec
-	inStr, err := ioutil.ReadFile(path)
+	inStr, err := os.ReadFile(path)
 	require.NoError(t, err, "Not expecting error when loading fixture %s", path)
 	err = jsonpb.Unmarshal(bytes.NewReader(correctTime(inStr)), object)
 	require.NoError(t, err, "Not expecting error when unmarshaling fixture %s", path)
@@ -320,7 +319,7 @@ func LoadAndParseQueryTestCases(t *testing.T, queriesFile string) []*QueryFixtur
 
 func loadAndParseJSON(t *testing.T, path string, object interface{}) {
 	// #nosec
-	inStr, err := ioutil.ReadFile(path)
+	inStr, err := os.ReadFile(path)
 	require.NoError(t, err, "Not expecting error when loading fixture %s", path)
 	err = json.Unmarshal(correctTime(inStr), object)
 	require.NoError(t, err, "Not expecting error when unmarshaling fixture %s", path)

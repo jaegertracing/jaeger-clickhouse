@@ -19,13 +19,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	"github.com/uber/jaeger-lib/metrics"
-	"go.uber.org/zap"
-
 	"github.com/jaegertracing/jaeger/pkg/config"
 	"github.com/jaegertracing/jaeger/pkg/testutils"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc"
+	"github.com/stretchr/testify/require"
+	"github.com/uber/jaeger-lib/metrics"
+	"go.uber.org/zap"
 )
 
 const defaultPluginBinaryPath = "../../../examples/memstore-plugin/memstore-plugin"

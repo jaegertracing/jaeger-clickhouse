@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-
 	"github.com/jaegertracing/jaeger/model"
 )
 
@@ -20,11 +19,9 @@ var delays = []int{2, 3, 5, 8}
 // Interval in seconds between attempts changes due to delays slice, then it remains the same as the last value in delays.
 type WriteWorker struct {
 	// workerID is an arbitrary identifier for keeping track of this worker in logs
-	workerID int32
-
-	params *WorkerParams
-	batch  []*model.Span
-
+	workerID   int32
+	params     *WorkerParams
+	batch      []*model.Span
 	finish     chan bool
 	workerDone chan *WriteWorker
 	done       sync.WaitGroup
@@ -61,7 +58,7 @@ func (worker *WriteWorker) Work() {
 	}
 }
 
-func (worker *WriteWorker) CLose() {
+func (worker *WriteWorker) Close() {
 	worker.finish <- true
 	worker.done.Wait()
 }

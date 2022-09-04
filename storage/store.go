@@ -361,9 +361,9 @@ func walkMatch(root, pattern string) ([]string, error) {
 	return matches, nil
 }
 
-// Earlier version of clickhouse-go used to expect
-// tcp:// scheme in front of address, so to maintain
-// backward compatibility we clean it up if present.
+// Earlier version of clickhouse-go used to expect address as tcp://host:port
+// while newer version of clickhouse-go expect address as host:port (without scheme)
+// so to maintain backward compatibility we clean it up
 func sanitize(addr string) string {
 	return strings.TrimPrefix(addr, "tcp://")
 }

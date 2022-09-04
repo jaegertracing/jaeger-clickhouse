@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS jaeger_index_local ON CLUSTER '{cluster}' (
     traceID String CODEC(ZSTD(1)),
     service LowCardinality(String) CODEC(ZSTD(1)),
     operation LowCardinality(String) CODEC(ZSTD(1)),
-    durationUs Int64 CODEC(ZSTD(1)),
+    durationUs UInt64 CODEC(ZSTD(1)),
     tags Array(String) CODEC(ZSTD(1)),
     INDEX idx_tags tags TYPE bloom_filter(0.01) GRANULARITY 64,
     INDEX idx_duration durationUs TYPE minmax GRANULARITY 1

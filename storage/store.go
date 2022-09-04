@@ -147,7 +147,7 @@ func connector(cfg Configuration) (*sql.DB, error) {
 		caCertPool.AppendCertsFromPEM(caCert)
 
 		conn = clickhouse.OpenDB(&clickhouse.Options{
-			Addr: []string{cfg.Address},
+			Addr: []string{sanitize(cfg.Address)},
 			Auth: clickhouse.Auth{
 				Database: cfg.Database,
 				Username: cfg.Username,
@@ -162,7 +162,7 @@ func connector(cfg Configuration) (*sql.DB, error) {
 		})
 	} else {
 		conn = clickhouse.OpenDB(&clickhouse.Options{
-			Addr: []string{cfg.Address},
+			Addr: []string{sanitize(cfg.Address)},
 			Auth: clickhouse.Auth{
 				Database: cfg.Database,
 				Username: cfg.Username,
@@ -359,4 +359,11 @@ func walkMatch(root, pattern string) ([]string, error) {
 		return nil, err
 	}
 	return matches, nil
+}
+
+// Earlier version of clickhouse-go used to expect
+// tcp:// scheme in front of address, so to maintain
+// backward compatibility we clean it up if present.
+func sanitize(addr string) string {
+	return strings.TrimPrefix(addr, "tcp://")
 }

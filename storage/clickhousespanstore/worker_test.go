@@ -56,7 +56,7 @@ var (
 			testSpan.TraceID.String(),
 			testSpan.Process.GetServiceName(),
 			testSpan.OperationName,
-			testSpan.Duration.Microseconds(),
+			Microseconds(testSpan.Duration),
 			keys,
 			values,
 		}}}
@@ -68,7 +68,7 @@ var (
 			testSpan.TraceID.String(),
 			testSpan.Process.GetServiceName(),
 			testSpan.OperationName,
-			testSpan.Duration.Microseconds(),
+			Microseconds(testSpan.Duration),
 			keys,
 			values,
 		}}}

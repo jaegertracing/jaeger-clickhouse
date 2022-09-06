@@ -138,6 +138,18 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 func connector(cfg Configuration) (*sql.DB, error) {
 	var conn *sql.DB
 
+	options := clickhouse.Options{
+		Addr: []string{sanitize(cfg.Address)},
+		Auth: clickhouse.Auth{
+			Database: cfg.Database,
+			Username: cfg.Username,
+			Password: cfg.Password,
+		},
+		Compression: &clickhouse.Compression{
+			Method: clickhouse.CompressionLZ4,
+		},
+	}
+
 	if cfg.CaFile != "" {
 		caCert, err := os.ReadFile(cfg.CaFile)
 		if err != nil {
@@ -145,34 +157,11 @@ func connector(cfg Configuration) (*sql.DB, error) {
 		}
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM(caCert)
-
-		conn = clickhouse.OpenDB(&clickhouse.Options{
-			Addr: []string{sanitize(cfg.Address)},
-			Auth: clickhouse.Auth{
-				Database: cfg.Database,
-				Username: cfg.Username,
-				Password: cfg.Password,
-			},
-			Compression: &clickhouse.Compression{
-				Method: clickhouse.CompressionLZ4,
-			},
-			TLS: &tls.Config{
-				RootCAs: caCertPool,
-			},
-		})
-	} else {
-		conn = clickhouse.OpenDB(&clickhouse.Options{
-			Addr: []string{sanitize(cfg.Address)},
-			Auth: clickhouse.Auth{
-				Database: cfg.Database,
-				Username: cfg.Username,
-				Password: cfg.Password,
-			},
-			Compression: &clickhouse.Compression{
-				Method: clickhouse.CompressionLZ4,
-			},
-		})
+		options.TLS = &tls.Config{
+			RootCAs: caCertPool,
+		}
 	}
+	conn = clickhouse.OpenDB(&options)
 
 	if err := conn.Ping(); err != nil {
 		return nil, err

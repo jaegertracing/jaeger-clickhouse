@@ -189,7 +189,7 @@ func (worker *WriteWorker) writeIndexBatch(batch []*model.Span) error {
 				span.TraceID.String(),
 				span.Process.ServiceName,
 				span.OperationName,
-				microseconds(span.Duration),
+				uint64(span.Duration.Microseconds()),
 				keys,
 				values,
 			)
@@ -200,7 +200,7 @@ func (worker *WriteWorker) writeIndexBatch(batch []*model.Span) error {
 				span.TraceID.String(),
 				span.Process.ServiceName,
 				span.OperationName,
-				microseconds(span.Duration),
+				uint64(span.Duration.Microseconds()),
 				keys,
 				values,
 			)
@@ -271,15 +271,4 @@ func unique(slice []string) []string {
 		}
 	}
 	return list
-}
-
-// microseconds converts time.Duration (int64) to uint64
-//
-// Jaeger duration is of Time.Duration (Int64) type but ClickHouse's durationUs column is of UInt64 type
-// clickhouse-go tries to convert this duration (Int64) type to the clickhouse column durationUs (UInt64) type
-// and fails with the following error:
-//
-// clickhouse [AppendRow]: durationUs clickhouse [AppendRow]: converting Int64 to UInt64 is unsupported
-func microseconds(d time.Duration) uint64 {
-	return uint64(d) / 1e3
 }

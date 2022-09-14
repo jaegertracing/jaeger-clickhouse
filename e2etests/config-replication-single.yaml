@@ -1,4 +1,4 @@
-address: tcp://chi:9000
+address: chi:9000
 replication: true
 # For test purposes flush on every write
 batch_write_size: 1

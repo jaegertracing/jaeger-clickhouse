@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore/mocks"
-
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/gogo/protobuf/proto"
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 )
 
 const (

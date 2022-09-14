@@ -10,15 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/stretchr/testify/assert"
-
-	hclog "github.com/hashicorp/go-hclog"
-
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/gogo/protobuf/proto"
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/model"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore/mocks"
 )
@@ -59,7 +56,7 @@ var (
 			testSpan.TraceID.String(),
 			testSpan.Process.GetServiceName(),
 			testSpan.OperationName,
-			testSpan.Duration.Microseconds(),
+			uint64(testSpan.Duration.Microseconds()),
 			keys,
 			values,
 		}}}
@@ -71,7 +68,7 @@ var (
 			testSpan.TraceID.String(),
 			testSpan.Process.GetServiceName(),
 			testSpan.OperationName,
-			testSpan.Duration.Microseconds(),
+			uint64(testSpan.Duration.Microseconds()),
 			keys,
 			values,
 		}}}

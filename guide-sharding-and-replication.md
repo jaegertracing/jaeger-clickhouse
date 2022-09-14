@@ -64,7 +64,7 @@ kubectl exec -it statefulset.apps/chi-jaeger-cluster1-0-0 -- clickhouse-client
 The plugin has to be configured to write and read that from the global tables:
 
 ```yaml
-address: tcp://clickhouse-jaeger:9000
+address: clickhouse-jaeger:9000
 # database: jaeger
 spans_table: jaeger_spans
 spans_index_table: jaeger_index

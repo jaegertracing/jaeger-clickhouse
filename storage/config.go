@@ -38,7 +38,7 @@ type Configuration struct {
 	MaxSpanCount int `yaml:"max_span_count"`
 	// Encoding either json or protobuf. Default is json.
 	Encoding EncodingType `yaml:"encoding"`
-	// ClickHouse address e.g. tcp://localhost:9000.
+	// ClickHouse address e.g. localhost:9000.
 	Address string `yaml:"address"`
 	// Directory with .sql files to run at plugin startup, mainly for integration tests.
 	// Depending on the value of init_tables, this can be run as a

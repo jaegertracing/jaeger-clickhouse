@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore"
 )
 
 func TestSetDefaults(t *testing.T) {

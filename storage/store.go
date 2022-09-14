@@ -6,21 +6,19 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
 
-	jaegerclickhouse "github.com/jaegertracing/jaeger-clickhouse"
-
-	clickhouse "github.com/ClickHouse/clickhouse-go"
+	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc/shared"
 	"github.com/jaegertracing/jaeger/storage/dependencystore"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
 
+	jaegerclickhouse "github.com/jaegertracing/jaeger-clickhouse"
 	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousedependencystore"
 	"github.com/jaegertracing/jaeger-clickhouse/storage/clickhousespanstore"
 )
@@ -32,10 +30,6 @@ type Store struct {
 	archiveWriter spanstore.Writer
 	archiveReader spanstore.Reader
 }
-
-const (
-	tlsConfigKey = "clickhouse_tls_config_key"
-)
 
 var (
 	_ shared.StoragePlugin             = (*Store)(nil)
@@ -109,7 +103,8 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 			clickhousespanstore.Encoding(cfg.Encoding),
 			cfg.BatchFlushInterval,
 			cfg.BatchWriteSize,
-			cfg.MaxSpanCount),
+			cfg.MaxSpanCount,
+		),
 		reader: clickhousespanstore.NewTraceReader(
 			db,
 			cfg.OperationsTable,
@@ -141,30 +136,37 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 }
 
 func connector(cfg Configuration) (*sql.DB, error) {
-	params := fmt.Sprintf("%s?database=%s&username=%s&password=%s",
-		cfg.Address,
-		cfg.Database,
-		cfg.Username,
-		cfg.Password,
-	)
+	var conn *sql.DB
+
+	options := clickhouse.Options{
+		Addr: []string{sanitize(cfg.Address)},
+		Auth: clickhouse.Auth{
+			Database: cfg.Database,
+			Username: cfg.Username,
+			Password: cfg.Password,
+		},
+		Compression: &clickhouse.Compression{
+			Method: clickhouse.CompressionLZ4,
+		},
+	}
 
 	if cfg.CaFile != "" {
-		caCert, err := ioutil.ReadFile(cfg.CaFile)
+		caCert, err := os.ReadFile(cfg.CaFile)
 		if err != nil {
 			return nil, err
 		}
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM(caCert)
-		err = clickhouse.RegisterTLSConfig(tlsConfigKey, &tls.Config{RootCAs: caCertPool})
-		if err != nil {
-			return nil, err
+		options.TLS = &tls.Config{
+			RootCAs: caCertPool,
 		}
-		params += fmt.Sprintf(
-			"&secure=true&tls_config=%s",
-			tlsConfigKey,
-		)
 	}
-	return clickhouseConnector(params)
+	conn = clickhouse.OpenDB(&options)
+
+	if err := conn.Ping(); err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
 
 type tableArgs struct {
@@ -214,7 +216,7 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		}
 		sort.Strings(filePaths)
 		for _, f := range filePaths {
-			sqlStatement, err := ioutil.ReadFile(filepath.Clean(f))
+			sqlStatement, err := os.ReadFile(filepath.Clean(f))
 			if err != nil {
 				return err
 			}
@@ -303,19 +305,6 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
-func clickhouseConnector(params string) (*sql.DB, error) {
-	db, err := sql.Open("clickhouse", params)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
 func executeScripts(logger hclog.Logger, sqlStatements []string, db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -359,4 +348,11 @@ func walkMatch(root, pattern string) ([]string, error) {
 		return nil, err
 	}
 	return matches, nil
+}
+
+// Earlier version of clickhouse-go used to expect address as tcp://host:port
+// while newer version of clickhouse-go expect address as host:port (without scheme)
+// so to maintain backward compatibility we clean it up
+func sanitize(addr string) string {
+	return strings.TrimPrefix(addr, "tcp://")
 }

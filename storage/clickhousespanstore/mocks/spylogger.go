@@ -5,9 +5,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	hclog "github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/assert"
 )
 
 const levelCount = 5

@@ -46,9 +46,9 @@ func (workerHeap *workerHeap) RemoveWorker(worker *WriteWorker) error {
 	return nil
 }
 
-func (workerHeap *workerHeap) CLoseWorkers() {
+func (workerHeap *workerHeap) CloseWorkers() {
 	for _, item := range *workerHeap.elems {
-		item.worker.CLose()
+		item.worker.Close()
 	}
 }
 

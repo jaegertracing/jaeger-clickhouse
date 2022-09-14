@@ -10,10 +10,9 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	opentracing "github.com/opentracing/opentracing-go"
-
 	"github.com/jaegertracing/jaeger/model"
 	"github.com/jaegertracing/jaeger/storage/spanstore"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 const (

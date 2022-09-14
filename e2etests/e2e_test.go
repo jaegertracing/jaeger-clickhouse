@@ -2,7 +2,6 @@ package e2etests
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/ClickHouse/clickhouse-go" // import driver
+	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ecodia/golang-awaitility/awaitility"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -176,7 +175,18 @@ func (c *clickhouseWaitStrategy) WaitUntilReady(ctx context.Context, target wait
 
 	port, err := target.MappedPort(ctx, clickhousePort)
 	require.NoError(c.test, err)
-	db, err := sql.Open("clickhouse", fmt.Sprintf("tcp://localhost:%d?database=default", port.Int()))
+
+	db := clickhouse.OpenDB(&clickhouse.Options{
+		Addr: []string{
+			fmt.Sprintf("localhost:%d", port.Int()),
+		},
+		Auth: clickhouse.Auth{
+			Database: "default",
+		},
+		Compression: &clickhouse.Compression{
+			Method: clickhouse.CompressionLZ4,
+		},
+	})
 	require.NoError(c.test, err)
 
 	for {

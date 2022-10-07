@@ -20,17 +20,18 @@ import (
 	"testing"
 
 	"github.com/jaegertracing/jaeger/pkg/config"
+	"github.com/jaegertracing/jaeger/pkg/metrics"
 	"github.com/jaegertracing/jaeger/pkg/testutils"
 	"github.com/jaegertracing/jaeger/plugin/storage/grpc"
+	"github.com/jaegertracing/jaeger/plugin/storage/integration"
 	"github.com/stretchr/testify/require"
-	"github.com/uber/jaeger-lib/metrics"
 	"go.uber.org/zap"
 )
 
 const defaultPluginBinaryPath = "../../../examples/memstore-plugin/memstore-plugin"
 
 type GRPCStorageIntegrationTestSuite struct {
-	StorageIntegration
+	integration.StorageIntegration
 	logger           *zap.Logger
 	pluginBinaryPath string
 	pluginConfigPath string

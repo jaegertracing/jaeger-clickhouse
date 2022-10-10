@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"time"
 
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	hclog "github.com/hashicorp/go-hclog"
@@ -162,6 +163,19 @@ func connector(cfg Configuration) (*sql.DB, error) {
 		}
 	}
 	conn = clickhouse.OpenDB(&options)
+
+	if cfg.MaxOpenConns != nil {
+		conn.SetMaxIdleConns(int(*cfg.MaxOpenConns))
+	}
+	if cfg.MaxIdleConns != nil {
+		conn.SetMaxIdleConns(int(*cfg.MaxIdleConns))
+	}
+	if cfg.ConnMaxLifetimeMillis != nil {
+		conn.SetConnMaxLifetime(time.Millisecond * time.Duration(*cfg.ConnMaxLifetimeMillis))
+	}
+	if cfg.ConnMaxIdleTimeMillis != nil {
+		conn.SetConnMaxIdleTime(time.Millisecond * time.Duration(*cfg.ConnMaxIdleTimeMillis))
+	}
 
 	if err := conn.Ping(); err != nil {
 		return nil, err

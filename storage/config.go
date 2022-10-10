@@ -74,6 +74,14 @@ type Configuration struct {
 	TTLDays uint `yaml:"ttl"`
 	// The maximum number of spans to fetch per trace. If 0, no limits is set. Default 0.
 	MaxNumSpans uint `yaml:"max_num_spans"`
+	// The maximum number of open connections to the database. Default is unlimited (see: https://pkg.go.dev/database/sql#DB.SetMaxOpenConns)
+	MaxOpenConns *uint `yaml:"max_open_conns"`
+	// The maximum number of database connections in the idle connection pool. Default 2. (see: https://pkg.go.dev/database/sql#DB.SetMaxIdleConns)
+	MaxIdleConns *uint `yaml:"max_idle_conns"`
+	// The maximum amount of milliseconds a database connection may be reused. Default = connections are never closed due to age (see: https://pkg.go.dev/database/sql#DB.SetConnMaxLifetime)
+	ConnMaxLifetimeMillis *uint `yaml:"conn_max_lifetime_millis"`
+	// The maximum amount of milliseconds a database connection may be idle. Default = connections are never closed due to idle time (see: https://pkg.go.dev/database/sql#DB.SetConnMaxIdleTime)
+	ConnMaxIdleTimeMillis *uint `yaml:"conn_max_idle_time_millis"`
 }
 
 func (cfg *Configuration) setDefaults() {

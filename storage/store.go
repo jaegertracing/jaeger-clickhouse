@@ -268,6 +268,12 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		sqlStatements = append(sqlStatements, render(templates, "jaeger-spans.tmpl.sql", args))
 		sqlStatements = append(sqlStatements, render(templates, "jaeger-spans-archive.tmpl.sql", args))
 
+		if cfg.TTLDays > 0 {
+			sqlStatements = append(sqlStatements, render(templates, "jaeger-index-alter.tmpl.sql", args))
+			sqlStatements = append(sqlStatements, render(templates, "jaeger-spans-alter.tmpl.sql", args))
+			sqlStatements = append(sqlStatements, render(templates, "jaeger-spans-archive-alter.tmpl.sql", args))
+		}
+
 		if cfg.Replication {
 			// Now these tables omit the "_local" suffix
 			distargs := distributedTableArgs{

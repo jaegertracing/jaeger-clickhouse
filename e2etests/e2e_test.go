@@ -81,7 +81,7 @@ func testE2E(t *testing.T, test testCase) {
 	if test.chiconf != nil {
 		mounts = testcontainers.Mounts(testcontainers.BindMount(fmt.Sprintf("%s/%s", workingDir, *test.chiconf), "/etc/clickhouse-server/config.d/testconf.xml"))
 	} else {
-		mounts = testcontainers.Mounts(testcontainers.BindMount("", ""))
+		mounts = testcontainers.Mounts(testcontainers.BindMount("/tmp", "/tmp"))
 	}
 	chReq := testcontainers.ContainerRequest{
 		Image:        clickHouseImage,

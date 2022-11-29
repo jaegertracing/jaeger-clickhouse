@@ -3,7 +3,7 @@ module github.com/jaegertracing/jaeger-clickhouse
 go 1.19
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.4.2
+	github.com/ClickHouse/clickhouse-go/v2 v2.4.3
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/ecodia/golang-awaitility v0.0.0-20180710094957-fb55e59708c7
 	github.com/gogo/protobuf v1.3.2

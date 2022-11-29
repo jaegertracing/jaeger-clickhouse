@@ -3,7 +3,7 @@ GOARCH ?= $(shell go env GOARCH)
 GOBUILD=CGO_ENABLED=0 installsuffix=cgo go build -trimpath
 
 TOOLS_MOD_DIR = ./internal/tools
-JAEGER_VERSION ?= 1.32.0
+JAEGER_VERSION ?= 1.39.0
 
 DOCKER_REPO ?= ghcr.io/jaegertracing/jaeger-clickhouse
 DOCKER_TAG ?= latest

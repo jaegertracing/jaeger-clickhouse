@@ -20,7 +20,7 @@ import (
 
 const (
 	clickHouseImage = "clickhouse/clickhouse-server:22"
-	jaegerImage     = "jaegertracing/all-in-one:1.32.0"
+	jaegerImage     = "jaegertracing/all-in-one:1.39.0"
 
 	networkName     = "chi-jaeger-test"
 	clickhousePort  = "9000/tcp"
@@ -77,13 +77,11 @@ func testE2E(t *testing.T, test testCase) {
 	require.NoError(t, err)
 	defer network.Remove(ctx)
 
-	var bindMounts map[string]string
+	var mounts testcontainers.ContainerMounts
 	if test.chiconf != nil {
-		bindMounts = map[string]string{
-			fmt.Sprintf("%s/%s", workingDir, *test.chiconf): "/etc/clickhouse-server/config.d/testconf.xml",
-		}
+		mounts = testcontainers.Mounts(testcontainers.BindMount(fmt.Sprintf("%s/%s", workingDir, *test.chiconf), "/etc/clickhouse-server/config.d/testconf.xml"))
 	} else {
-		bindMounts = map[string]string{}
+		mounts = testcontainers.Mounts(testcontainers.BindMount("/tmp", "/tmp"))
 	}
 	chReq := testcontainers.ContainerRequest{
 		Image:        clickHouseImage,
@@ -91,7 +89,7 @@ func testE2E(t *testing.T, test testCase) {
 		WaitingFor:   &clickhouseWaitStrategy{test: t, pollInterval: time.Millisecond * 200, startupTimeout: time.Minute},
 		Networks:     []string{networkName},
 		Hostname:     "chi",
-		BindMounts:   bindMounts,
+		Mounts:       mounts,
 	}
 	chContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: chReq,
@@ -114,9 +112,7 @@ func testE2E(t *testing.T, test testCase) {
 				fmt.Sprintf("--grpc-storage-plugin.configuration-file=/project-dir/e2etests/%s", pluginConfig),
 				"--grpc-storage-plugin.log-level=debug",
 			},
-			BindMounts: map[string]string{
-				workingDir + "/..": "/project-dir",
-			},
+			Mounts:   testcontainers.Mounts(testcontainers.BindMount(workingDir+"/..", "/project-dir")),
 			Networks: []string{networkName},
 		}
 		// Call Start() manually here so that if it fails then we can still access the logs.

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS {{.SpansIndexTable}}
     {{if .Multitenant -}}
     tenant     LowCardinality(String) CODEC (ZSTD(1)),
     {{- end -}}
-    timestamp  DateTime CODEC (Delta, ZSTD(1)),
+    timestamp  DateTime64(3, 'UTC') CODEC (Delta, ZSTD(1)),
     traceID    String CODEC (ZSTD(1)),
     service    LowCardinality(String) CODEC (ZSTD(1)),
     operation  LowCardinality(String) CODEC (ZSTD(1)),

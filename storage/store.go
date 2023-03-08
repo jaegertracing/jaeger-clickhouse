@@ -220,7 +220,7 @@ func runInitScripts(logger hclog.Logger, db *sql.DB, cfg Configuration) error {
 		ttlDate       string
 	)
 	if cfg.TTLDays > 0 {
-		ttlTimestamp = fmt.Sprintf("TTL timestamp + INTERVAL %d DAY DELETE", cfg.TTLDays)
+		ttlTimestamp = fmt.Sprintf("TTL toDateTime(timestamp) + INTERVAL %d DAY DELETE", cfg.TTLDays)
 		ttlDate = fmt.Sprintf("TTL date + INTERVAL %d DAY DELETE", cfg.TTLDays)
 	}
 	if cfg.InitSQLScriptsDir != "" {

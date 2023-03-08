@@ -86,7 +86,7 @@ CREATE DATABASE IF NOT EXISTS jaeger ON CLUSTER '{cluster}' ENGINE=Atomic;
 USE jaeger;
 
 CREATE TABLE IF NOT EXISTS jaeger_spans_local ON CLUSTER '{cluster}' (
-    timestamp DateTime CODEC(Delta, ZSTD(1)),
+    timestamp DateTime64(3, 'UTC') CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     model String CODEC(ZSTD(3))
 ) ENGINE ReplicatedMergeTree
@@ -95,7 +95,7 @@ ORDER BY traceID
 SETTINGS index_granularity=1024;
 
 CREATE TABLE IF NOT EXISTS jaeger_index_local ON CLUSTER '{cluster}' (
-    timestamp DateTime CODEC(Delta, ZSTD(1)),
+    timestamp DateTime64(3, 'UTC') CODEC(Delta, ZSTD(1)),
     traceID String CODEC(ZSTD(1)),
     service LowCardinality(String) CODEC(ZSTD(1)),
     operation LowCardinality(String) CODEC(ZSTD(1)),

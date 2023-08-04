@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"testing"
@@ -127,7 +127,7 @@ func testE2E(t *testing.T, test testCase) {
 		defer func() {
 			logs, errLogs := jaegerContainer.Logs(ctx)
 			require.NoError(t, errLogs)
-			all, errLogs := ioutil.ReadAll(logs)
+			all, errLogs := io.ReadAll(logs)
 			require.NoError(t, errLogs)
 			fmt.Printf("Jaeger logs:\n---->\n%s<----\n\n", string(all))
 			jaegerContainer.Terminate(ctx)
@@ -146,7 +146,7 @@ func testE2E(t *testing.T, test testCase) {
 			// Jaeger traces itself so this request generates some spans
 			response, errHTTP := http.Get(fmt.Sprintf("http://localhost:%d/api/services", jaegerQueryPort.Int()))
 			require.NoError(t, errHTTP)
-			body, errHTTP := ioutil.ReadAll(response.Body)
+			body, errHTTP := io.ReadAll(response.Body)
 			require.NoError(t, errHTTP)
 			var r result
 			errHTTP = json.Unmarshal(body, &r)

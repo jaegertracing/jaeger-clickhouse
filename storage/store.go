@@ -165,7 +165,7 @@ func connector(cfg Configuration) (*sql.DB, error) {
 	conn = clickhouse.OpenDB(&options)
 
 	if cfg.MaxOpenConns != nil {
-		conn.SetMaxIdleConns(int(*cfg.MaxOpenConns))
+		conn.SetMaxOpenConns(int(*cfg.MaxOpenConns))
 	}
 	if cfg.MaxIdleConns != nil {
 		conn.SetMaxIdleConns(int(*cfg.MaxIdleConns))

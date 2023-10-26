@@ -60,11 +60,14 @@ func (pool *WriteWorkerPool) Work() {
 	finish := false
 	nextWorkerID := int32(1)
 	pendingSpanCount := 0
+
+	pool.done.Add(1)
+	defer pool.done.Done()
+
 	for {
 		// Initialize to zero, or update value from previous loop
 		numPendingSpans.Set(float64(pendingSpanCount))
 
-		pool.done.Add(1)
 		select {
 		case batch := <-pool.batches:
 			batchSize := len(batch)
@@ -103,7 +106,6 @@ func (pool *WriteWorkerPool) Work() {
 			pool.workers.CloseWorkers()
 			finish = true
 		}
-		pool.done.Done()
 
 		if finish {
 			break

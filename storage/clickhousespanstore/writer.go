@@ -93,6 +93,23 @@ func (w *SpanWriter) backgroundWriter(maxSpanCount int) {
 	timer := time.After(w.workerParams.delay)
 	last := time.Now()
 
+	finishSpan := func() {
+		for len(w.spans) > 0 {
+			select {
+			case span := <-w.spans:
+				batch = append(batch, span)
+				if len(batch) >= cap(batch) {
+					pool.WriteBatch(batch)
+				}
+			default:
+			}
+		}
+		if len(batch) > 0 {
+			pool.WriteBatch(batch)
+		}
+		pool.Close()
+	}
+
 	w.done.Add(1)
 	defer w.done.Done()
 
@@ -130,21 +147,7 @@ func (w *SpanWriter) backgroundWriter(maxSpanCount int) {
 		}
 
 		if finish {
-			for len(w.spans) > 0 {
-				select {
-				case span := <-w.spans:
-					batch = append(batch, span)
-					if len(batch) >= cap(batch) {
-						pool.WriteBatch(batch)
-					}
-				default:
-				}
-			}
-			if len(batch) > 0 {
-				pool.WriteBatch(batch)
-			}
-
-			pool.Close()
+			finishSpan()
 			break
 		}
 	}

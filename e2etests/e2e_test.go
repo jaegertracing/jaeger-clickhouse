@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"testing"
@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	clickHouseImage = "clickhouse/clickhouse-server:22"
-	jaegerImage     = "jaegertracing/all-in-one:1.32.0"
+	clickHouseImage = "clickhouse/clickhouse-server:24"
+	jaegerImage     = "jaegertracing/all-in-one:1.54.0"
 
 	networkName     = "chi-jaeger-test"
 	clickhousePort  = "9000/tcp"
@@ -77,21 +77,27 @@ func testE2E(t *testing.T, test testCase) {
 	require.NoError(t, err)
 	defer network.Remove(ctx)
 
-	var bindMounts map[string]string
+	var files []testcontainers.ContainerFile
 	if test.chiconf != nil {
-		bindMounts = map[string]string{
-			fmt.Sprintf("%s/%s", workingDir, *test.chiconf): "/etc/clickhouse-server/config.d/testconf.xml",
+		files = []testcontainers.ContainerFile{
+			{
+				HostFilePath:      workingDir + "/clickhouse-replicated.xml",
+				ContainerFilePath: "/etc/clickhouse-server/config.d/testconf.xml",
+				FileMode:          0o777,
+			},
 		}
 	} else {
-		bindMounts = map[string]string{}
+		files = []testcontainers.ContainerFile{}
 	}
+
 	chReq := testcontainers.ContainerRequest{
-		Image:        clickHouseImage,
-		ExposedPorts: []string{clickhousePort},
-		WaitingFor:   &clickhouseWaitStrategy{test: t, pollInterval: time.Millisecond * 200, startupTimeout: time.Minute},
-		Networks:     []string{networkName},
-		Hostname:     "chi",
-		BindMounts:   bindMounts,
+		Image:         clickHouseImage,
+		ImagePlatform: "linux/amd64",
+		ExposedPorts:  []string{clickhousePort},
+		WaitingFor:    &clickhouseWaitStrategy{test: t, pollInterval: time.Millisecond * 200, startupTimeout: time.Minute},
+		Networks:      []string{networkName},
+		Hostname:      "chi",
+		Files:         files,
 	}
 	chContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: chReq,
@@ -103,22 +109,39 @@ func testE2E(t *testing.T, test testCase) {
 	jaegerContainers := make([]testcontainers.Container, 0)
 	for _, pluginConfig := range test.configs {
 		jaegerReq := testcontainers.ContainerRequest{
-			Image:        jaegerImage,
-			ExposedPorts: []string{jaegerQueryPort, jaegerAdminPort},
-			WaitingFor:   wait.ForHTTP("/").WithPort(jaegerAdminPort).WithStartupTimeout(time.Second * 10),
+			Image:         jaegerImage,
+			ImagePlatform: "linux/amd64",
+			ExposedPorts:  []string{jaegerQueryPort, jaegerAdminPort},
+			WaitingFor:    wait.ForHTTP("/").WithPort(jaegerAdminPort).WithStartupTimeout(time.Second * 10),
 			Env: map[string]string{
 				"SPAN_STORAGE_TYPE": "grpc-plugin",
 			},
 			Cmd: []string{
-				"--grpc-storage-plugin.binary=/project-dir/jaeger-clickhouse-linux-amd64",
-				fmt.Sprintf("--grpc-storage-plugin.configuration-file=/project-dir/e2etests/%s", pluginConfig),
+				"--grpc-storage-plugin.binary=/tmp/jaeger-clickhouse-linux-amd64",
+				fmt.Sprintf("--grpc-storage-plugin.configuration-file=/tmp/%s", pluginConfig),
 				"--grpc-storage-plugin.log-level=debug",
+				"--query.ui-config=/tmp/jaeger-ui.json",
 			},
-			BindMounts: map[string]string{
-				workingDir + "/..": "/project-dir",
+			Files: []testcontainers.ContainerFile{
+				{
+					HostFilePath:      workingDir + "/../jaeger-clickhouse-linux-amd64",
+					ContainerFilePath: "/tmp/jaeger-clickhouse-linux-amd64",
+					FileMode:          0o777,
+				},
+				{
+					HostFilePath:      workingDir + "/" + pluginConfig,
+					ContainerFilePath: fmt.Sprintf("/tmp/%s", pluginConfig),
+					FileMode:          0o777,
+				},
+				{
+					HostFilePath:      workingDir + "/../jaeger-ui.json",
+					ContainerFilePath: "/tmp/jaeger-ui.json",
+					FileMode:          0o777,
+				},
 			},
 			Networks: []string{networkName},
 		}
+
 		// Call Start() manually here so that if it fails then we can still access the logs.
 		jaegerContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 			ContainerRequest: jaegerReq,
@@ -127,7 +150,7 @@ func testE2E(t *testing.T, test testCase) {
 		defer func() {
 			logs, errLogs := jaegerContainer.Logs(ctx)
 			require.NoError(t, errLogs)
-			all, errLogs := ioutil.ReadAll(logs)
+			all, errLogs := io.ReadAll(logs)
 			require.NoError(t, errLogs)
 			fmt.Printf("Jaeger logs:\n---->\n%s<----\n\n", string(all))
 			jaegerContainer.Terminate(ctx)
@@ -142,16 +165,16 @@ func testE2E(t *testing.T, test testCase) {
 		jaegerQueryPort, err := jaegerContainer.MappedPort(ctx, jaegerQueryPort)
 		require.NoError(t, err)
 
-		err = awaitility.Await(100*time.Millisecond, time.Second*3, func() bool {
+		err = awaitility.Await(1000*time.Millisecond, time.Second*10, func() bool {
 			// Jaeger traces itself so this request generates some spans
 			response, errHTTP := http.Get(fmt.Sprintf("http://localhost:%d/api/services", jaegerQueryPort.Int()))
 			require.NoError(t, errHTTP)
-			body, errHTTP := ioutil.ReadAll(response.Body)
+			body, errHTTP := io.ReadAll(response.Body)
 			require.NoError(t, errHTTP)
 			var r result
 			errHTTP = json.Unmarshal(body, &r)
 			require.NoError(t, errHTTP)
-			return len(r.Data) == 1 && r.Data[0] == "jaeger-query"
+			return len(r.Data) == 1 && r.Data[0] == "jaeger-all-in-one"
 		})
 		assert.NoError(t, err)
 	}

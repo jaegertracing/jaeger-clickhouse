@@ -29,7 +29,7 @@ AS SELECT
     if(
         has(tags.key, 'span.kind'),
         tags.value[indexOf(tags.key, 'span.kind')],
-        ''
+        'unspecified'
     ) AS spankind
 FROM {{.Database}}.{{.SpansIndexTable}}
 GROUP BY

@@ -42,6 +42,7 @@ var (
 func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 	cfg.setDefaults()
 	db, err := connector(cfg)
+
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to database: %q", err)
 	}
@@ -149,6 +150,20 @@ func connector(cfg Configuration) (*sql.DB, error) {
 		Compression: &clickhouse.Compression{
 			Method: clickhouse.CompressionLZ4,
 		},
+	}
+
+	if cfg.Debug == "true" {
+		options.Debug = true
+	}
+
+	if cfg.Protocol == "http" {
+		options.Protocol = clickhouse.HTTP
+	}
+
+	if cfg.SkipVerify == "true" {
+		options.TLS = &tls.Config{
+			InsecureSkipVerify: true,
+		}
 	}
 
 	if cfg.CaFile != "" {

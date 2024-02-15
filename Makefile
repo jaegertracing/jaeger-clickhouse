@@ -3,7 +3,7 @@ GOARCH ?= $(shell go env GOARCH)
 GOBUILD=CGO_ENABLED=0 installsuffix=cgo go build -trimpath
 
 TOOLS_MOD_DIR = ./internal/tools
-JAEGER_VERSION ?= 1.32.0
+JAEGER_VERSION ?= 1.54.0
 
 DOCKER_REPO ?= ghcr.io/jaegertracing/jaeger-clickhouse
 DOCKER_TAG ?= latest
@@ -60,7 +60,7 @@ test:
 .PHONY: integration-test
 integration-test: build
 	STORAGE=grpc-plugin \
-	PLUGIN_BINARY_PATH=$(PWD)/jaeger-clickhouse-linux-amd64 \
+	PLUGIN_BINARY_PATH=$(PWD)/jaeger-clickhouse-$(GOOS)-$(GOARCH) \
 	PLUGIN_CONFIG_PATH=$(PWD)/integration/config-local.yaml \
 	go test ./integration
 

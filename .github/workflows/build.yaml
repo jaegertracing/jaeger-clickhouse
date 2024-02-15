@@ -95,7 +95,7 @@ jobs:
           go-version: ^1.19
 
       - name: Setup database
-        run: docker run --rm -d -p9000:9000 --name test-clickhouse-server --ulimit nofile=262144:262144 clickhouse/clickhouse-server:22
+        run: docker run --rm -d -p9000:9000 --name test-clickhouse-server --ulimit nofile=262144:262144 clickhouse/clickhouse-server:24
 
       - name: Run integration tests
         run: make integration-test

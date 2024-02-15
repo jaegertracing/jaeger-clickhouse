@@ -19,6 +19,9 @@ const (
 	defaultDatabaseName                 = "default"
 	defaultMetricsEndpoint              = "localhost:9090"
 	defaultMaxNumSpans                  = 0
+	defaultProtocol                     = "native"
+	defaultDebug                        = "false"
+	defaultSkipVerify                   = "false"
 
 	defaultSpansTable      clickhousespanstore.TableName = "jaeger_spans"
 	defaultSpansIndexTable clickhousespanstore.TableName = "jaeger_index"
@@ -38,6 +41,12 @@ type Configuration struct {
 	MaxSpanCount int `yaml:"max_span_count"`
 	// Encoding either json or protobuf. Default is json.
 	Encoding EncodingType `yaml:"encoding"`
+	// Enable debug logs
+	Debug string `yaml:"debug"`
+	// Protocol is either native or http. Default is native.
+	Protocol string `yaml:"protocol"`
+	// Skip TLS verification
+	SkipVerify string `yaml:"insecure_skip_verify"`
 	// ClickHouse address e.g. localhost:9000.
 	Address string `yaml:"address"`
 	// Directory with .sql files to run at plugin startup, mainly for integration tests.
@@ -96,6 +105,15 @@ func (cfg *Configuration) setDefaults() {
 	}
 	if cfg.Encoding == "" {
 		cfg.Encoding = defaultEncoding
+	}
+	if cfg.Protocol == "" {
+		cfg.Protocol = defaultProtocol
+	}
+	if cfg.SkipVerify == "" {
+		cfg.SkipVerify = defaultSkipVerify
+	}
+	if cfg.Debug == "" {
+		cfg.Debug = defaultDebug
 	}
 	if cfg.InitTables == nil {
 		// Decide whether to init tables based on whether a custom script path was provided

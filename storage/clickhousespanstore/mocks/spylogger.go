@@ -22,6 +22,11 @@ type SpyLogger struct {
 	logs [][]LogMock
 }
 
+// GetLevel implements hclog.Logger.
+func (SpyLogger) GetLevel() hclog.Level {
+	panic("unimplemented")
+}
+
 func NewSpyLogger() SpyLogger {
 	return SpyLogger{logs: make([][]LogMock, levelCount)}
 }

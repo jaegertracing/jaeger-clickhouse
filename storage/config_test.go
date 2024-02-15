@@ -27,6 +27,18 @@ func TestSetDefaults(t *testing.T) {
 			getField: func(config Configuration) interface{} { return config.Encoding },
 			expected: defaultEncoding,
 		},
+		"debug": {
+			getField: func(config Configuration) interface{} { return config.Debug },
+			expected: defaultDebug,
+		},
+		"protocol": {
+			getField: func(config Configuration) interface{} { return config.Protocol },
+			expected: defaultProtocol,
+		},
+		"insecure skip verify": {
+			getField: func(config Configuration) interface{} { return config.SkipVerify },
+			expected: defaultSkipVerify,
+		},
 		"batch write size": {
 			getField: func(config Configuration) interface{} { return config.BatchWriteSize },
 			expected: defaultBatchSize,

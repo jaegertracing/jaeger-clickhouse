@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	// Package contains time zone info for connecting to ClickHouse servers with non-UTC time zone
 	_ "time/tzdata"
@@ -44,7 +45,11 @@ func main() {
 
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		err = http.ListenAndServe(cfg.MetricsEndpoint, nil)
+		server := &http.Server{
+			Addr:              cfg.MetricsEndpoint,
+			ReadHeaderTimeout: 5 * time.Second,
+		}
+		err = server.ListenAndServe()
 		if err != nil {
 			logger.Error("Failed to listen for metrics endpoint", "error", err)
 		}

@@ -529,8 +529,9 @@ func generateRandomKeyValues(count int) []model.KeyValue {
 }
 
 func getModelWriteExpectation(spanJSON []byte, tenant string) expectation {
+	var e expectation
 	if tenant == "" {
-		return expectation{
+		e = expectation{
 			preparation: fmt.Sprintf("INSERT INTO %s (timestamp, traceID, model) VALUES (?, ?, ?)", testSpansTable),
 			execArgs: [][]driver.Value{{
 				testSpan.StartTime,
@@ -539,7 +540,7 @@ func getModelWriteExpectation(spanJSON []byte, tenant string) expectation {
 			}},
 		}
 	} else {
-		return expectation{
+		e = expectation{
 			preparation: fmt.Sprintf("INSERT INTO %s (tenant, timestamp, traceID, model) VALUES (?, ?, ?, ?)", testSpansTable),
 			execArgs: [][]driver.Value{{
 				tenant,
@@ -549,4 +550,5 @@ func getModelWriteExpectation(spanJSON []byte, tenant string) expectation {
 			}},
 		}
 	}
+	return e
 }

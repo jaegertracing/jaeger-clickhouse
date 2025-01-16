@@ -139,8 +139,12 @@ func NewStore(logger hclog.Logger, cfg Configuration) (*Store, error) {
 func connector(cfg Configuration) (*sql.DB, error) {
 	var conn *sql.DB
 
+	var addrs []string
+	for _, addr := range strings.Split(cfg.Address, ",") {
+		addrs = append(addrs, sanitize(addr))
+	}
 	options := clickhouse.Options{
-		Addr: []string{sanitize(cfg.Address)},
+		Addr: addrs,
 		Auth: clickhouse.Auth{
 			Database: cfg.Database,
 			Username: cfg.Username,

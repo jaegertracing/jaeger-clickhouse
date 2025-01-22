@@ -88,13 +88,32 @@ func (w *SpanWriter) registerMetrics() {
 func (w *SpanWriter) backgroundWriter(maxSpanCount int) {
 	pool := NewWorkerPool(&w.workerParams, maxSpanCount)
 	go pool.Work()
-	batch := make([]*model.Span, 0, w.size)
 
+	batch := make([]*model.Span, 0, w.size)
 	timer := time.After(w.workerParams.delay)
 	last := time.Now()
 
+	finishSpan := func() {
+		for len(w.spans) > 0 {
+			select {
+			case span := <-w.spans:
+				batch = append(batch, span)
+				if len(batch) >= cap(batch) {
+					pool.WriteBatch(batch)
+				}
+			default:
+			}
+		}
+		if len(batch) > 0 {
+			pool.WriteBatch(batch)
+		}
+		pool.Close()
+	}
+
+	w.done.Add(1)
+	defer w.done.Done()
+
 	for {
-		w.done.Add(1)
 
 		flush := false
 		finish := false
@@ -128,11 +147,7 @@ func (w *SpanWriter) backgroundWriter(maxSpanCount int) {
 		}
 
 		if finish {
-			pool.Close()
-		}
-		w.done.Done()
-
-		if finish {
+			finishSpan()
 			break
 		}
 	}

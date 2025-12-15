@@ -2,6 +2,8 @@
 
 ⚠️ This module only implements grpc-plugin API that has been deprecated in Jaeger (https://github.com/jaegertracing/jaeger/issues/4647).
 
+🏗️ Jaeger v2 will support ClickHouse natively, see https://github.com/jaegertracing/jaeger/issues/5058 .
+
 This is a [Jaeger gRPC storage plugin](https://github.com/jaegertracing/jaeger/tree/master/plugin/storage/grpc) implementation for storing traces in ClickHouse.
 
 ## Project status
